@@ -60,6 +60,7 @@ export function EditorApp() {
   const [timelinePreviewStatus, setTimelinePreviewStatus] = useState('Ready to scrub');
   const [timelinePlaybackStatus, setTimelinePlaybackStatus] =
     useState<TimelinePlaybackStatus>('stopped');
+  const [subtitleHud, setSubtitleHud] = useState<SubtitleHudState | null>(null);
   const [showTriggerDebug, setShowTriggerDebug] = useState(true);
   const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
   const projectRef = useRef<ProjectData | null>(null);
@@ -73,6 +74,7 @@ export function EditorApp() {
   const directorCommandsRef = useRef<DirectorCommand[]>([]);
   const runtimeRef = useRef<WebRuntime | null>(null);
   const timelinePlaybackRef = useRef<TimelinePlaybackSession | null>(null);
+  const subtitleTimerRef = useRef<number | undefined>(undefined);
   const [eventDebugState, setEventDebugState] = useState<EventDebugState>({
     firedEventIds: [],
     flags: { power_enabled: true },
@@ -140,6 +142,9 @@ export function EditorApp() {
 
       if (session?.timerId !== undefined) {
         clearInterval(session.timerId);
+      }
+      if (subtitleTimerRef.current !== undefined) {
+        clearTimeout(subtitleTimerRef.current);
       }
     };
   }, []);
@@ -396,6 +401,9 @@ export function EditorApp() {
     );
 
     director.scrub(timelineId, safeTime, previewContext);
+    if (consumeSubtitleCommands(previewContext.directorCommands) === 0) {
+      clearSubtitle();
+    }
     dispatch({ type: 'selectTimeline', timelineId });
     dispatch({ type: 'setTimelineTime', timelineTime: safeTime });
     setTimelinePreviewStatus(formatTimelinePreviewStatus(timelineId, safeTime, director));
@@ -476,6 +484,7 @@ export function EditorApp() {
     timelinePlaybackRef.current = null;
     setTimelinePlaybackStatus('stopped');
     dispatch({ type: 'setTimelineTime', timelineTime: 0 });
+    clearSubtitle();
     setTimelinePreviewStatus(timelineId ? `${timelineId} stopped` : 'Timeline stopped');
   };
 
@@ -525,6 +534,7 @@ export function EditorApp() {
       }
 
       session.director.update(0.1, session.context);
+      consumeSubtitleCommands(session.context.directorCommands);
       const state = session.director.getTimelineState(session.timelineId);
 
       if (!state) {
@@ -584,6 +594,7 @@ export function EditorApp() {
     const firedEventIds = new TriggerSystem(
       new EventSystem(Object.values(project.events)),
     ).interact(selectedEntity.id, context);
+    consumeSubtitleCommands(directorCommandsRef.current);
 
     setEventDebugState(
       createEventDebugState(
@@ -592,6 +603,48 @@ export function EditorApp() {
         directorCommandsRef.current,
       ),
     );
+  };
+
+  const consumeSubtitleCommands = (commands: DirectorCommand[]): number => {
+    let consumed = 0;
+
+    for (let index = commands.length - 1; index >= 0; index -= 1) {
+      const command = commands[index];
+
+      if (command.type !== 'subtitle.show') {
+        continue;
+      }
+
+      commands.splice(index, 1);
+      showSubtitle(command);
+      consumed += 1;
+    }
+
+    return consumed;
+  };
+
+  const showSubtitle = (command: Extract<DirectorCommand, { type: 'subtitle.show' }>) => {
+    if (subtitleTimerRef.current !== undefined) {
+      clearTimeout(subtitleTimerRef.current);
+    }
+
+    setSubtitleHud({
+      text: command.text,
+      speaker: command.speaker,
+    });
+    subtitleTimerRef.current = window.setTimeout(() => {
+      setSubtitleHud(null);
+      subtitleTimerRef.current = undefined;
+    }, command.duration * 1000);
+  };
+
+  const clearSubtitle = () => {
+    if (subtitleTimerRef.current !== undefined) {
+      clearTimeout(subtitleTimerRef.current);
+      subtitleTimerRef.current = undefined;
+    }
+
+    setSubtitleHud(null);
   };
 
   return (
@@ -675,6 +728,12 @@ export function EditorApp() {
               runtimeRef.current = runtime;
             }}
           />
+          {subtitleHud ? (
+            <div className="runtime-subtitle" role="status" data-testid="runtime-subtitle">
+              {subtitleHud.speaker ? <span>{subtitleHud.speaker}</span> : null}
+              <strong>{subtitleHud.text}</strong>
+            </div>
+          ) : null}
         </section>
 
         <aside className="editor-panel editor-panel-right" aria-labelledby="inspector-heading">
@@ -741,6 +800,11 @@ export function EditorApp() {
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
 type TimelinePlaybackStatus = 'stopped' | 'playing' | 'paused';
+
+interface SubtitleHudState {
+  text: string;
+  speaker?: string;
+}
 
 interface TimelinePlaybackSession {
   director: DirectorSystem;

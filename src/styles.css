@@ -195,6 +195,7 @@ button:hover {
 }
 
 .viewport-region {
+  position: relative;
   min-width: 0;
   min-height: 0;
   background: #0e1114;
@@ -235,6 +236,34 @@ button:hover {
 .inspector-list dd {
   color: #aeb9c4;
   font-size: 13px;
+}
+
+.runtime-subtitle {
+  position: absolute;
+  left: 50%;
+  bottom: 34px;
+  z-index: 2;
+  display: grid;
+  gap: 3px;
+  max-width: min(520px, calc(100% - 220px));
+  transform: translateX(-50%);
+  border: 1px solid rgb(214 199 90 / 55%);
+  border-radius: 8px;
+  padding: 10px 16px;
+  background: rgb(10 13 16 / 82%);
+  box-shadow: 0 14px 28px rgb(0 0 0 / 28%);
+  color: #f4f0da;
+  pointer-events: none;
+  text-align: center;
+}
+
+.runtime-subtitle span {
+  color: #d6c75a;
+  font-size: 12px;
+}
+
+.runtime-subtitle strong {
+  font-size: 16px;
 }
 
 .inspector-list {

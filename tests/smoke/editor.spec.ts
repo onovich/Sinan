@@ -49,6 +49,7 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   });
   await expect(page.getByTestId('timeline-playhead')).toHaveAttribute('style', /left:\s*50%/);
   await page.waitForTimeout(200);
+  await expect(page.getByTestId('runtime-subtitle')).toContainText('Gate open.');
   expect(sampleAveragePngDelta(initialCanvas, await canvas.screenshot())).toBeGreaterThan(1);
 
   await timelinePanel.getByRole('button', { name: 'Start' }).click();
