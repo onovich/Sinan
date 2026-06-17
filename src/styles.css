@@ -68,6 +68,11 @@ button:hover {
   font-size: 13px;
 }
 
+.editor-topbar .save-status {
+  align-self: center;
+  min-width: 68px;
+}
+
 .editor-topbar nav {
   display: flex;
   flex-wrap: wrap;

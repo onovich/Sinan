@@ -2,6 +2,7 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 
 import { createDemoDataRepository } from '../data/demoDataLoader';
 import type { ProjectData } from '../data/DataRepository';
+import { saveJson } from '../data/saveJsonClient';
 import type { TransformData } from '../schemas/transform.schema';
 import type { EditorCommandContext } from './commands/Command';
 import { CommandHistory } from './commands/CommandHistory';
@@ -22,6 +23,7 @@ export function EditorApp() {
   const [editorState, dispatch] = useReducer(editorReducer, undefined, createInitialEditorState);
   const [project, setProject] = useState<ProjectData | null>(null);
   const [projectError, setProjectError] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
   const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
   const projectRef = useRef<ProjectData | null>(null);
   const commandHistoryRef = useRef(new CommandHistory());
@@ -87,6 +89,22 @@ export function EditorApp() {
     refreshHistoryState(commandHistoryRef.current, setHistoryState);
   };
 
+  const saveLevel = () => {
+    if (!project) {
+      return;
+    }
+
+    setSaveStatus('saving');
+    void saveJson(`data/levels/${project.level.id}.json`, project.level)
+      .then(() => {
+        setSaveStatus('saved');
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+        setSaveStatus('failed');
+      });
+  };
+
   const translateSelectedEntity = (delta: readonly [number, number, number]) => {
     if (!selectedEntity) {
       return;
@@ -147,6 +165,14 @@ export function EditorApp() {
             Redo
           </button>
         </div>
+        <div className="toolbar-group" aria-label="Project commands">
+          <button type="button" onClick={saveLevel} disabled={!project || saveStatus === 'saving'}>
+            Save
+          </button>
+          <span className="save-status" role="status">
+            {formatSaveStatus(saveStatus)}
+          </span>
+        </div>
       </header>
 
       <main className="editor-workbench">
@@ -197,6 +223,22 @@ function formatMode(mode: EditorMode): string {
 
 function formatTool(tool: ActiveTool): string {
   return tool[0].toUpperCase() + tool.slice(1);
+}
+
+function formatSaveStatus(status: 'idle' | 'saving' | 'saved' | 'failed'): string {
+  if (status === 'idle') {
+    return 'Not saved';
+  }
+
+  if (status === 'saving') {
+    return 'Saving';
+  }
+
+  if (status === 'saved') {
+    return 'Saved';
+  }
+
+  return 'Save failed';
 }
 
 function updateProjectEntityTransform(

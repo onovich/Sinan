@@ -1,8 +1,19 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
+import { createSaveJsonMiddleware } from './scripts/saveJsonDev';
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'sinan-save-json-dev',
+      apply: 'serve',
+      configureServer(server) {
+        server.middlewares.use(createSaveJsonMiddleware(server.config.root));
+      },
+    },
+  ],
   server: {
     host: '127.0.0.1',
     port: 5173,

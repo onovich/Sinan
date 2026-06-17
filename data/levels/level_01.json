@@ -11,9 +11,22 @@
       "id": "player_spawn_01",
       "prefab": "player_spawn",
       "transform": {
-        "position": [0, 0, 3],
-        "rotation": [0, 0, 0, 1],
-        "scale": [1, 1, 1]
+        "position": [
+          0,
+          0,
+          3
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
       },
       "components": {
         "PlayerSpawn": {
@@ -25,9 +38,22 @@
       "id": "switch_a",
       "prefab": "switch_wall",
       "transform": {
-        "position": [2, 1, 4],
-        "rotation": [0, 0, 0, 1],
-        "scale": [1, 1, 1]
+        "position": [
+          2,
+          1,
+          4
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
       },
       "components": {
         "Switch": {
@@ -42,9 +68,22 @@
       "id": "gate_a",
       "prefab": "door_wood",
       "transform": {
-        "position": [5, 0, 8],
-        "rotation": [0, 0.7071068, 0, 0.7071068],
-        "scale": [1, 1, 1]
+        "position": [
+          5,
+          0,
+          8
+        ],
+        "rotation": [
+          0,
+          0.7071068,
+          0,
+          0.7071068
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
       },
       "components": {
         "Door": {
@@ -54,5 +93,8 @@
         }
       }
     }
-  ]
+  ],
+  "events": [],
+  "timelines": [],
+  "cameraShots": []
 }

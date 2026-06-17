@@ -51,7 +51,9 @@ async function readSchemaDirectory<T>(
   const fileNames = await readJsonFileNames(absolutePath);
 
   return Promise.all(
-    fileNames.map(async (fileName) => schema.parse(await readJson(path.join(relativePath, fileName)))),
+    fileNames.map(async (fileName) =>
+      schema.parse(await readJson(path.join(relativePath, fileName))),
+    ),
   );
 }
 
