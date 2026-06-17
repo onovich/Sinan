@@ -61,6 +61,7 @@ export function EditorApp() {
   const [timelinePlaybackStatus, setTimelinePlaybackStatus] =
     useState<TimelinePlaybackStatus>('stopped');
   const [subtitleHud, setSubtitleHud] = useState<SubtitleHudState | null>(null);
+  const [audioHud, setAudioHud] = useState<AudioHudState | null>(null);
   const [showTriggerDebug, setShowTriggerDebug] = useState(true);
   const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
   const projectRef = useRef<ProjectData | null>(null);
@@ -75,6 +76,7 @@ export function EditorApp() {
   const runtimeRef = useRef<WebRuntime | null>(null);
   const timelinePlaybackRef = useRef<TimelinePlaybackSession | null>(null);
   const subtitleTimerRef = useRef<number | undefined>(undefined);
+  const audioTimerRef = useRef<number | undefined>(undefined);
   const [eventDebugState, setEventDebugState] = useState<EventDebugState>({
     firedEventIds: [],
     flags: { power_enabled: true },
@@ -145,6 +147,9 @@ export function EditorApp() {
       }
       if (subtitleTimerRef.current !== undefined) {
         clearTimeout(subtitleTimerRef.current);
+      }
+      if (audioTimerRef.current !== undefined) {
+        clearTimeout(audioTimerRef.current);
       }
     };
   }, []);
@@ -401,7 +406,7 @@ export function EditorApp() {
     );
 
     director.scrub(timelineId, safeTime, previewContext);
-    if (consumeSubtitleCommands(previewContext.directorCommands) === 0) {
+    if (consumeRuntimeEffectCommands(previewContext.directorCommands).subtitles === 0) {
       clearSubtitle();
     }
     dispatch({ type: 'selectTimeline', timelineId });
@@ -534,7 +539,7 @@ export function EditorApp() {
       }
 
       session.director.update(0.1, session.context);
-      consumeSubtitleCommands(session.context.directorCommands);
+      consumeRuntimeEffectCommands(session.context.directorCommands);
       const state = session.director.getTimelineState(session.timelineId);
 
       if (!state) {
@@ -594,7 +599,7 @@ export function EditorApp() {
     const firedEventIds = new TriggerSystem(
       new EventSystem(Object.values(project.events)),
     ).interact(selectedEntity.id, context);
-    consumeSubtitleCommands(directorCommandsRef.current);
+    consumeRuntimeEffectCommands(directorCommandsRef.current);
 
     setEventDebugState(
       createEventDebugState(
@@ -605,22 +610,30 @@ export function EditorApp() {
     );
   };
 
-  const consumeSubtitleCommands = (commands: DirectorCommand[]): number => {
-    let consumed = 0;
+  const consumeRuntimeEffectCommands = (
+    commands: DirectorCommand[],
+  ): { subtitles: number; sounds: number } => {
+    let subtitles = 0;
+    let sounds = 0;
 
     for (let index = commands.length - 1; index >= 0; index -= 1) {
       const command = commands[index];
 
-      if (command.type !== 'subtitle.show') {
+      if (command.type === 'subtitle.show') {
+        commands.splice(index, 1);
+        showSubtitle(command);
+        subtitles += 1;
         continue;
       }
 
-      commands.splice(index, 1);
-      showSubtitle(command);
-      consumed += 1;
+      if (command.type === 'sound.play') {
+        commands.splice(index, 1);
+        playSound(command.soundId);
+        sounds += 1;
+      }
     }
 
-    return consumed;
+    return { subtitles, sounds };
   };
 
   const showSubtitle = (command: Extract<DirectorCommand, { type: 'subtitle.show' }>) => {
@@ -645,6 +658,39 @@ export function EditorApp() {
     }
 
     setSubtitleHud(null);
+  };
+
+  const playSound = (soundId: string) => {
+    const asset = projectRef.current?.assets.assets[soundId];
+
+    if (!asset || asset.type !== 'audio') {
+      showAudioStatus({ soundId, status: 'missing' });
+      return;
+    }
+
+    showAudioStatus({ soundId, status: 'queued' });
+    const audio = new Audio(asset.url);
+    audio.volume = 0.45;
+    void audio
+      .play()
+      .then(() => {
+        showAudioStatus({ soundId, status: 'played' });
+      })
+      .catch(() => {
+        showAudioStatus({ soundId, status: 'blocked' });
+      });
+  };
+
+  const showAudioStatus = (state: AudioHudState) => {
+    if (audioTimerRef.current !== undefined) {
+      clearTimeout(audioTimerRef.current);
+    }
+
+    setAudioHud(state);
+    audioTimerRef.current = window.setTimeout(() => {
+      setAudioHud(null);
+      audioTimerRef.current = undefined;
+    }, 1600);
   };
 
   return (
@@ -734,6 +780,16 @@ export function EditorApp() {
               <strong>{subtitleHud.text}</strong>
             </div>
           ) : null}
+          {audioHud ? (
+            <div
+              className={`runtime-audio-status is-${audioHud.status}`}
+              role="status"
+              data-testid="runtime-audio-status"
+            >
+              <span>{formatAudioStatus(audioHud.status)}</span>
+              <strong>{audioHud.soundId}</strong>
+            </div>
+          ) : null}
         </section>
 
         <aside className="editor-panel editor-panel-right" aria-labelledby="inspector-heading">
@@ -806,6 +862,13 @@ interface SubtitleHudState {
   speaker?: string;
 }
 
+type AudioHudStatus = 'queued' | 'played' | 'blocked' | 'missing';
+
+interface AudioHudState {
+  soundId: string;
+  status: AudioHudStatus;
+}
+
 interface TimelinePlaybackSession {
   director: DirectorSystem;
   context: DirectorSystemContext;
@@ -835,6 +898,22 @@ function formatSaveStatus(status: SaveStatus): string {
   }
 
   return 'Save failed';
+}
+
+function formatAudioStatus(status: AudioHudStatus): string {
+  if (status === 'played') {
+    return 'Played';
+  }
+
+  if (status === 'blocked') {
+    return 'Blocked';
+  }
+
+  if (status === 'missing') {
+    return 'Missing';
+  }
+
+  return 'Queued';
 }
 
 function getSelectedEvent(

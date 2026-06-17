@@ -58,6 +58,7 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   await timelinePanel.getByRole('button', { name: 'Play', exact: true }).click();
   await expect(timelinePanel.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
   await page.waitForTimeout(800);
+  await expect(page.getByTestId('runtime-audio-status')).toContainText('audio.switch_click');
   expect(sampleAveragePngDelta(playbackStartCanvas, await canvas.screenshot())).toBeGreaterThan(1);
   await timelinePanel.getByRole('button', { name: 'Stop' }).click();
 

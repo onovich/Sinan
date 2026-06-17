@@ -266,6 +266,41 @@ button:hover {
   font-size: 16px;
 }
 
+.runtime-audio-status {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  min-width: 150px;
+  border: 1px solid rgb(90 167 214 / 58%);
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: rgb(9 14 18 / 82%);
+  color: #dbe9f2;
+  pointer-events: none;
+}
+
+.runtime-audio-status.is-blocked,
+.runtime-audio-status.is-missing {
+  border-color: rgb(255 156 139 / 62%);
+}
+
+.runtime-audio-status span {
+  color: #8fc7e9;
+  font-size: 12px;
+}
+
+.runtime-audio-status.is-blocked span,
+.runtime-audio-status.is-missing span {
+  color: #ffb09f;
+}
+
+.runtime-audio-status strong {
+  font-size: 13px;
+}
+
 .inspector-list {
   display: grid;
   gap: 12px;
