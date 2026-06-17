@@ -260,12 +260,15 @@ button:hover {
   margin: 0;
 }
 
-.component-section {
+.component-section,
+.event-debug,
+.inspector-actions {
   margin-top: 18px;
 }
 
 .component-section h3,
-.transform-nudge h3 {
+.transform-nudge h3,
+.inspector-actions h3 {
   margin: 0 0 10px;
   color: #cfd7df;
   font-size: 13px;
@@ -286,6 +289,12 @@ button:hover {
 .transform-nudge button {
   min-height: 30px;
   border-radius: 6px;
+}
+
+.inspector-actions button {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 6px 12px;
 }
 
 .component-list {

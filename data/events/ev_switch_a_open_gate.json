@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "ev_switch_a_open_gate",
+  "name": "Switch opens gate",
+  "trigger": {
+    "type": "entity.interact",
+    "entityId": "switch_a"
+  },
+  "condition": {
+    "all": [
+      {
+        "type": "flag.equals",
+        "flag": "power_enabled",
+        "value": true
+      },
+      {
+        "type": "inventory.hasItem",
+        "itemId": "gate_key"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "switch.setState",
+      "entityId": "switch_a",
+      "value": true
+    },
+    {
+      "type": "door.open",
+      "entityId": "gate_a"
+    },
+    {
+      "type": "flag.set",
+      "flag": "gate_a_opened",
+      "value": true
+    },
+    {
+      "type": "timeline.play",
+      "timelineId": "tl_open_gate"
+    }
+  ]
+}

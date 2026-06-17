@@ -1,9 +1,12 @@
-import type { ProjectData } from './DataRepository';
 import type { EntityData } from '../schemas/entity.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 
+export interface ProjectPrefabLookup {
+  prefabs: Record<string, PrefabData>;
+}
+
 export function getRenderableModelAssetId(
-  project: ProjectData,
+  project: ProjectPrefabLookup,
   entity: EntityData,
 ): string | undefined {
   const entityRenderable = getComponentPayload(entity.components, 'Renderable');
@@ -20,7 +23,10 @@ export function getRenderableModelAssetId(
   return prefabModel ?? prefab?.model;
 }
 
-export function getEntityPrefab(project: ProjectData, entity: EntityData): PrefabData | undefined {
+export function getEntityPrefab(
+  project: ProjectPrefabLookup,
+  entity: EntityData,
+): PrefabData | undefined {
   if (!entity.prefab) {
     return undefined;
   }

@@ -3,9 +3,14 @@ import type { EntityData } from '../../schemas/entity.schema';
 export interface InspectorPanelProps {
   entity: EntityData | undefined;
   onTranslateSelected?: (delta: readonly [number, number, number]) => void;
+  onInteractSelected?: () => void;
 }
 
-export function InspectorPanel({ entity, onTranslateSelected }: InspectorPanelProps) {
+export function InspectorPanel({
+  entity,
+  onTranslateSelected,
+  onInteractSelected,
+}: InspectorPanelProps) {
   if (!entity) {
     return (
       <section aria-labelledby="inspector-heading">
@@ -57,6 +62,14 @@ export function InspectorPanel({ entity, onTranslateSelected }: InspectorPanelPr
               Z +
             </button>
           </div>
+        </section>
+      ) : null}
+      {onInteractSelected ? (
+        <section className="inspector-actions" aria-labelledby="inspector-actions-heading">
+          <h3 id="inspector-actions-heading">Actions</h3>
+          <button type="button" onClick={onInteractSelected}>
+            Interact
+          </button>
         </section>
       ) : null}
       <section className="component-section" aria-labelledby="components-heading">

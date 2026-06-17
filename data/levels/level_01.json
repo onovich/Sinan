@@ -94,7 +94,9 @@
       }
     }
   ],
-  "events": [],
+  "events": [
+    "ev_switch_a_open_gate"
+  ],
   "timelines": [],
   "cameraShots": []
 }

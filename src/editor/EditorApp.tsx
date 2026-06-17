@@ -3,6 +3,9 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { createDemoDataRepository } from '../data/demoDataLoader';
 import type { ProjectData } from '../data/DataRepository';
 import { saveJson } from '../data/saveJsonClient';
+import { EventSystem } from '../events/EventSystem';
+import { TriggerSystem } from '../events/TriggerSystem';
+import { createEventRuntimeState, type DirectorCommand, type FlagValue } from '../events/types';
 import type { TransformData } from '../schemas/transform.schema';
 import type { EditorCommandContext } from './commands/Command';
 import { CommandHistory } from './commands/CommandHistory';
@@ -10,6 +13,7 @@ import { TransformEntityCommand } from './commands/TransformEntityCommand';
 import { Viewport } from './Viewport';
 import { editorPanelLayout } from './editorLayout';
 import { AssetPanel } from './panels/AssetPanel';
+import { EventDebugPanel, type EventDebugState } from './panels/EventDebugPanel';
 import { HierarchyPanel } from './panels/HierarchyPanel';
 import { InspectorPanel } from './panels/InspectorPanel';
 import {
@@ -27,6 +31,19 @@ export function EditorApp() {
   const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
   const projectRef = useRef<ProjectData | null>(null);
   const commandHistoryRef = useRef(new CommandHistory());
+  const eventRuntimeStateRef = useRef(
+    createEventRuntimeState({
+      flags: { power_enabled: true },
+      inventory: new Set(['gate_key']),
+    }),
+  );
+  const directorCommandsRef = useRef<DirectorCommand[]>([]);
+  const [eventDebugState, setEventDebugState] = useState<EventDebugState>({
+    firedEventIds: [],
+    flags: { power_enabled: true },
+    doorStates: {},
+    directorCommands: [],
+  });
   const selectedEntity = project?.level.entities.find(
     (entity) => entity.id === editorState.selectedEntityId,
   );
@@ -126,6 +143,28 @@ export function EditorApp() {
     refreshHistoryState(commandHistoryRef.current, setHistoryState);
   };
 
+  const interactSelectedEntity = () => {
+    if (!selectedEntity || !project) {
+      return;
+    }
+
+    const context = {
+      state: eventRuntimeStateRef.current,
+      directorCommands: directorCommandsRef.current,
+    };
+    const firedEventIds = new TriggerSystem(
+      new EventSystem(Object.values(project.events)),
+    ).interact(selectedEntity.id, context);
+
+    setEventDebugState(
+      createEventDebugState(
+        firedEventIds,
+        eventRuntimeStateRef.current,
+        directorCommandsRef.current,
+      ),
+    );
+  };
+
   return (
     <div className="editor-shell" data-testid="editor-shell">
       <header className="editor-topbar">
@@ -198,7 +237,12 @@ export function EditorApp() {
         </section>
 
         <aside className="editor-panel editor-panel-right" aria-labelledby="inspector-heading">
-          <InspectorPanel entity={selectedEntity} onTranslateSelected={translateSelectedEntity} />
+          <InspectorPanel
+            entity={selectedEntity}
+            onTranslateSelected={translateSelectedEntity}
+            onInteractSelected={selectedEntity ? interactSelectedEntity : undefined}
+          />
+          <EventDebugPanel debugState={eventDebugState} />
         </aside>
       </main>
 
@@ -271,6 +315,27 @@ function transformsEqual(left: TransformData, right: TransformData): boolean {
 
 function tupleEqual(left: readonly number[], right: readonly number[]): boolean {
   return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function createEventDebugState(
+  firedEventIds: readonly string[],
+  state: {
+    flags: Record<string, FlagValue | undefined>;
+    doorStates: Record<string, { isOpen?: boolean } | undefined>;
+  },
+  directorCommands: readonly DirectorCommand[],
+): EventDebugState {
+  return {
+    firedEventIds,
+    flags: { ...state.flags },
+    doorStates: Object.fromEntries(
+      Object.entries(state.doorStates).map(([entityId, doorState]) => [
+        entityId,
+        doorState?.isOpen,
+      ]),
+    ),
+    directorCommands: [...directorCommands],
+  };
 }
 
 function refreshHistoryState(

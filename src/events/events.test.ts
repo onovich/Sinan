@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { ActionSystem } from './ActionSystem';
 import { ConditionSystem } from './ConditionSystem';
+import { EventSystem } from './EventSystem';
+import { TriggerSystem } from './TriggerSystem';
 import { createDefaultActionRegistry } from './actionRegistry';
 import { createDefaultConditionRegistry } from './conditionRegistry';
 import { createDefaultTriggerRegistry } from './triggerRegistry';
@@ -83,5 +85,46 @@ describe('registries', () => {
     expect(actionRegistry.has('timeline.play')).toBe(true);
     expect(triggerRegistry.has('entity.interact')).toBe(true);
     expect(triggerRegistry.has('timeline.finished')).toBe(true);
+  });
+});
+
+describe('EventSystem and TriggerSystem', () => {
+  it('fires matching interact events when conditions pass', () => {
+    const context: ActionExecutionContext = {
+      state: createEventRuntimeState({
+        flags: { power_enabled: true },
+        inventory: new Set(['gate_key']),
+      }),
+      directorCommands: [],
+    };
+    const eventSystem = new EventSystem([
+      {
+        schemaVersion: 1,
+        id: 'ev_switch_a_open_gate',
+        trigger: { type: 'entity.interact', entityId: 'switch_a' },
+        condition: {
+          all: [
+            { type: 'flag.equals', flag: 'power_enabled', value: true },
+            { type: 'inventory.hasItem', itemId: 'gate_key' },
+          ],
+        },
+        actions: [
+          { type: 'switch.setState', entityId: 'switch_a', value: true },
+          { type: 'door.open', entityId: 'gate_a' },
+          { type: 'flag.set', flag: 'gate_a_opened', value: true },
+          { type: 'timeline.play', timelineId: 'tl_open_gate' },
+        ],
+      },
+    ]);
+
+    const fired = new TriggerSystem(eventSystem).interact('switch_a', context);
+
+    expect(fired).toEqual(['ev_switch_a_open_gate']);
+    expect(context.state.entityStates.switch_a?.Switch).toBe(true);
+    expect(context.state.doorStates.gate_a?.isOpen).toBe(true);
+    expect(context.state.flags.gate_a_opened).toBe(true);
+    expect(context.directorCommands).toEqual([
+      { type: 'timeline.play', timelineId: 'tl_open_gate' },
+    ]);
   });
 });

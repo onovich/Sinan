@@ -1,4 +1,5 @@
 import assetsManifest from '../../data/assets.manifest.json';
+import switchEvent from '../../data/events/ev_switch_a_open_gate.json';
 import level01 from '../../data/levels/level_01.json';
 import doorWood from '../../data/prefabs/door_wood.json';
 import playerSpawn from '../../data/prefabs/player_spawn.json';
@@ -8,6 +9,7 @@ import type { ProjectJsonLoader } from './loadJson';
 
 const demoJsonByPath: Record<string, unknown> = {
   'data/assets.manifest.json': assetsManifest,
+  'data/events/ev_switch_a_open_gate.json': switchEvent,
   'data/levels/level_01.json': level01,
   'data/prefabs/door_wood.json': doorWood,
   'data/prefabs/player_spawn.json': playerSpawn,

@@ -59,6 +59,15 @@ export function createDefaultActionRegistry(): ActionRegistry {
     }
   });
 
+  registry.register('switch.setState', (action, context) => {
+    if (action.type === 'switch.setState') {
+      context.state.entityStates[action.entityId] = {
+        ...context.state.entityStates[action.entityId],
+        Switch: action.value,
+      };
+    }
+  });
+
   registry.register('timeline.play', (action, context) => {
     if (action.type === 'timeline.play') {
       context.directorCommands.push({ type: 'timeline.play', timelineId: action.timelineId });
