@@ -10,10 +10,15 @@ import { TriggerSystem } from '../events/TriggerSystem';
 import { createEventRuntimeState, type DirectorCommand, type FlagValue } from '../events/types';
 import type { RuntimeTransform } from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
-import type { CameraShotData } from '../schemas/cameraShot.schema';
+import { CameraShotSchema, type CameraShotData } from '../schemas/cameraShot.schema';
 import type { ComponentMapData, ComponentPayloadData } from '../schemas/entity.schema';
-import type { EventData } from '../schemas/event.schema';
-import type { TimelineData, TimelineTrackData } from '../schemas/timeline.schema';
+import { EventSchema, type EventData } from '../schemas/event.schema';
+import { LevelSchema, type LevelData } from '../schemas/level.schema';
+import {
+  TimelineSchema,
+  type TimelineData,
+  type TimelineTrackData,
+} from '../schemas/timeline.schema';
 import type { TransformData } from '../schemas/transform.schema';
 import type { EditorCommandContext } from './commands/Command';
 import { CommandHistory } from './commands/CommandHistory';
@@ -61,6 +66,8 @@ export function EditorApp() {
   const [eventSaveStatus, setEventSaveStatus] = useState<EventSaveStatus>('idle');
   const [timelineSaveStatus, setTimelineSaveStatus] = useState<TimelineSaveStatus>('idle');
   const [cameraShotSaveStatus, setCameraShotSaveStatus] = useState<CameraShotSaveStatus>('idle');
+  const [saveErrors, setSaveErrors] = useState<SaveErrorState>(() => createCleanSaveErrorState());
+  const [savedSnapshots, setSavedSnapshots] = useState<SavedDataSnapshot | null>(null);
   const [cameraPreviewStatus, setCameraPreviewStatus] = useState('No camera preview');
   const [timelinePreviewStatus, setTimelinePreviewStatus] = useState('Ready to scrub');
   const [timelinePlaybackStatus, setTimelinePlaybackStatus] =
@@ -99,17 +106,28 @@ export function EditorApp() {
   const timelines = getSortedTimelines(project);
   const selectedCameraShot = getSelectedCameraShot(project, editorState.selectedCameraShotId);
   const cameraShots = getSortedCameraShots(project);
+  const visibleDirtyState =
+    project && savedSnapshots ? computeDirtyState(project, savedSnapshots) : dirtyState;
   const levelStatusPill = getSaveStatusPill({
     saveStatus,
-    isDirty: dirtyState.level,
+    isDirty: visibleDirtyState.level,
   });
-  const selectedEventIsDirty = selectedEvent ? dirtyState.eventIds.has(selectedEvent.id) : false;
+  const selectedEventIsDirty = selectedEvent
+    ? visibleDirtyState.eventIds.has(selectedEvent.id)
+    : false;
+  const selectedEventSaveError = selectedEvent ? saveErrors.events[selectedEvent.id] : undefined;
   const selectedTimelineIsDirty = selectedTimeline
-    ? dirtyState.timelineIds.has(selectedTimeline.id)
+    ? visibleDirtyState.timelineIds.has(selectedTimeline.id)
     : false;
+  const selectedTimelineSaveError = selectedTimeline
+    ? saveErrors.timelines[selectedTimeline.id]
+    : undefined;
   const selectedCameraShotIsDirty = selectedCameraShot
-    ? dirtyState.cameraShotIds.has(selectedCameraShot.id)
+    ? visibleDirtyState.cameraShotIds.has(selectedCameraShot.id)
     : false;
+  const selectedCameraShotSaveError = selectedCameraShot
+    ? saveErrors.cameraShots[selectedCameraShot.id]
+    : undefined;
   const commandContext: EditorCommandContext = {
     updateEntityTransform: (entityId, transform) => {
       setProject((current) => updateProjectEntityTransform(current, entityId, transform));
@@ -141,7 +159,9 @@ export function EditorApp() {
         if (!cancelled) {
           setProject(loadedProject);
           setProjectError(null);
+          setSavedSnapshots(createSavedDataSnapshot(loadedProject));
           setDirtyState(createCleanDirtyState());
+          setSaveErrors(createCleanSaveErrorState());
           setSaveStatus('idle');
           setEventSaveStatus('idle');
           setTimelineSaveStatus('idle');
@@ -201,6 +221,7 @@ export function EditorApp() {
     );
     markLevelDirty(setDirtyState);
     setSaveStatus('idle');
+    clearLevelSaveError(setSaveErrors);
     refreshHistoryState(commandHistoryRef.current, setHistoryState);
   };
 
@@ -231,6 +252,7 @@ export function EditorApp() {
     );
     markLevelDirty(setDirtyState);
     setSaveStatus('idle');
+    clearLevelSaveError(setSaveErrors);
     refreshHistoryState(commandHistoryRef.current, setHistoryState);
   };
 
@@ -257,12 +279,16 @@ export function EditorApp() {
 
     if (target.kind === 'level') {
       setSaveStatus('idle');
+      clearLevelSaveError(setSaveErrors);
     } else if (target.kind === 'event') {
       setEventSaveStatus('idle');
+      clearEventSaveError(setSaveErrors, target.id);
     } else if (target.kind === 'timeline') {
       setTimelineSaveStatus('idle');
+      clearTimelineSaveError(setSaveErrors, target.id);
     } else {
       setCameraShotSaveStatus('idle');
+      clearCameraShotSaveError(setSaveErrors, target.id);
     }
   }
 
@@ -271,15 +297,28 @@ export function EditorApp() {
       return;
     }
 
+    const validation = validateEditorSave(LevelSchema, project.level, 'Level');
+
+    if (!validation.success) {
+      setSaveStatus('failed');
+      setLevelSaveError(setSaveErrors, validation.message);
+      return;
+    }
+
     setSaveStatus('saving');
-    void saveJson(`data/levels/${project.level.id}.json`, project.level)
+    clearLevelSaveError(setSaveErrors);
+    void saveJson(`data/levels/${project.level.id}.json`, validation.data)
       .then(() => {
         setSaveStatus('saved');
+        clearLevelSaveError(setSaveErrors);
+        setSavedSnapshots((current) => updateSavedLevelSnapshot(current, validation.data));
         clearLevelDirty(setDirtyState);
       })
       .catch((error: unknown) => {
+        const message = formatSaveError(error);
         console.error(error);
         setSaveStatus('failed');
+        setLevelSaveError(setSaveErrors, message);
       });
   };
 
@@ -296,19 +335,35 @@ export function EditorApp() {
     );
     markEventDirty(setDirtyState, event.id);
     setEventSaveStatus('idle');
+    clearEventSaveError(setSaveErrors, event.id);
     refreshHistoryState(commandHistoryRef.current, setHistoryState);
   };
 
   const saveEvent = (event: EventData) => {
+    const validation = validateEditorSave(EventSchema, event, 'Event');
+
+    if (!validation.success) {
+      setEventSaveStatus('failed');
+      setEventSaveError(setSaveErrors, event.id, validation.message);
+      return;
+    }
+
     setEventSaveStatus('saving');
-    void saveJson(`data/events/${event.id}.json`, event)
+    clearEventSaveError(setSaveErrors, event.id);
+    void saveJson(`data/events/${event.id}.json`, validation.data)
       .then(() => {
         setEventSaveStatus('saved');
+        clearEventSaveError(setSaveErrors, event.id);
+        setSavedSnapshots((current) =>
+          updateSavedItemSnapshot(current, 'events', event.id, validation.data),
+        );
         clearEventDirty(setDirtyState, event.id);
       })
       .catch((error: unknown) => {
+        const message = formatSaveError(error);
         console.error(error);
         setEventSaveStatus('failed');
+        setEventSaveError(setSaveErrors, event.id, message);
       });
   };
 
@@ -333,6 +388,7 @@ export function EditorApp() {
     dispatch({ type: 'selectTimelineTrack', trackId: track.id });
     markTimelineDirty(setDirtyState, timelineId);
     setTimelineSaveStatus('idle');
+    clearTimelineSaveError(setSaveErrors, timelineId);
     refreshHistoryState(commandHistoryRef.current, setHistoryState);
   };
 
@@ -351,6 +407,7 @@ export function EditorApp() {
     dispatch({ type: 'selectTimelineTrack', trackId: track.id });
     markTimelineDirty(setDirtyState, timelineId);
     setTimelineSaveStatus('idle');
+    clearTimelineSaveError(setSaveErrors, timelineId);
     refreshHistoryState(commandHistoryRef.current, setHistoryState);
   };
 
@@ -368,6 +425,7 @@ export function EditorApp() {
     dispatch({ type: 'selectTimelineTrack', trackId: undefined });
     markTimelineDirty(setDirtyState, timelineId);
     setTimelineSaveStatus('idle');
+    clearTimelineSaveError(setSaveErrors, timelineId);
     refreshHistoryState(commandHistoryRef.current, setHistoryState);
   };
 
@@ -395,19 +453,35 @@ export function EditorApp() {
     dispatch({ type: 'selectTimelineTrack', trackId: track.id });
     markTimelineDirty(setDirtyState, timelineId);
     setTimelineSaveStatus('idle');
+    clearTimelineSaveError(setSaveErrors, timelineId);
     refreshHistoryState(commandHistoryRef.current, setHistoryState);
   };
 
   const saveTimeline = (timeline: TimelineData) => {
+    const validation = validateEditorSave(TimelineSchema, timeline, 'Timeline');
+
+    if (!validation.success) {
+      setTimelineSaveStatus('failed');
+      setTimelineSaveError(setSaveErrors, timeline.id, validation.message);
+      return;
+    }
+
     setTimelineSaveStatus('saving');
-    void saveJson(`data/timelines/${timeline.id}.json`, timeline)
+    clearTimelineSaveError(setSaveErrors, timeline.id);
+    void saveJson(`data/timelines/${timeline.id}.json`, validation.data)
       .then(() => {
         setTimelineSaveStatus('saved');
+        clearTimelineSaveError(setSaveErrors, timeline.id);
+        setSavedSnapshots((current) =>
+          updateSavedItemSnapshot(current, 'timelines', timeline.id, validation.data),
+        );
         clearTimelineDirty(setDirtyState, timeline.id);
       })
       .catch((error: unknown) => {
+        const message = formatSaveError(error);
         console.error(error);
         setTimelineSaveStatus('failed');
+        setTimelineSaveError(setSaveErrors, timeline.id, message);
       });
   };
 
@@ -423,6 +497,8 @@ export function EditorApp() {
     markLevelDirty(setDirtyState);
     setSaveStatus('idle');
     setCameraShotSaveStatus('idle');
+    clearLevelSaveError(setSaveErrors);
+    clearCameraShotSaveError(setSaveErrors, shot.id);
     refreshHistoryState(commandHistoryRef.current, setHistoryState);
   };
 
@@ -439,19 +515,35 @@ export function EditorApp() {
     );
     markCameraShotDirty(setDirtyState, shot.id);
     setCameraShotSaveStatus('idle');
+    clearCameraShotSaveError(setSaveErrors, shot.id);
     refreshHistoryState(commandHistoryRef.current, setHistoryState);
   };
 
   const saveCameraShot = (shot: CameraShotData) => {
+    const validation = validateEditorSave(CameraShotSchema, shot, 'Camera shot');
+
+    if (!validation.success) {
+      setCameraShotSaveStatus('failed');
+      setCameraShotSaveError(setSaveErrors, shot.id, validation.message);
+      return;
+    }
+
     setCameraShotSaveStatus('saving');
-    void saveJson(`data/cameraShots/${shot.id}.json`, shot)
+    clearCameraShotSaveError(setSaveErrors, shot.id);
+    void saveJson(`data/cameraShots/${shot.id}.json`, validation.data)
       .then(() => {
         setCameraShotSaveStatus('saved');
+        clearCameraShotSaveError(setSaveErrors, shot.id);
+        setSavedSnapshots((current) =>
+          updateSavedItemSnapshot(current, 'cameraShots', shot.id, validation.data),
+        );
         clearCameraShotDirty(setDirtyState, shot.id);
       })
       .catch((error: unknown) => {
+        const message = formatSaveError(error);
         console.error(error);
         setCameraShotSaveStatus('failed');
+        setCameraShotSaveError(setSaveErrors, shot.id, message);
       });
   };
 
@@ -938,6 +1030,11 @@ export function EditorApp() {
               >
                 {levelStatusPill.text}
               </span>
+              {saveErrors.level ? (
+                <span className="save-error" role="alert" title={saveErrors.level}>
+                  {saveErrors.level}
+                </span>
+              ) : null}
             </div>
           </div>
         </div>
@@ -998,6 +1095,7 @@ export function EditorApp() {
             selectedEvent={selectedEvent}
             saveStatus={eventSaveStatus}
             isDirty={selectedEventIsDirty}
+            saveError={selectedEventSaveError}
             entityIds={getEntityIds(project)}
             timelineIds={timelines.map((timeline) => timeline.id)}
             cameraShotIds={cameraShots.map((shot) => shot.id)}
@@ -1012,6 +1110,7 @@ export function EditorApp() {
             selectedEntityId={selectedEntity?.id}
             saveStatus={cameraShotSaveStatus}
             isDirty={selectedCameraShotIsDirty}
+            saveError={selectedCameraShotSaveError}
             previewStatus={cameraPreviewStatus}
             onSelectShot={(cameraShotId) => dispatch({ type: 'selectCameraShot', cameraShotId })}
             onCreateShot={createCameraShot}
@@ -1032,6 +1131,7 @@ export function EditorApp() {
           currentTime={editorState.timelineTime}
           saveStatus={timelineSaveStatus}
           isDirty={selectedTimelineIsDirty}
+          saveError={selectedTimelineSaveError}
           playbackStatus={timelinePlaybackStatus}
           previewStatus={timelinePreviewStatus}
           entityIds={getEntityIds(project)}
@@ -1066,7 +1166,35 @@ interface DirtyState {
   cameraShotIds: ReadonlySet<string>;
 }
 
+interface SaveErrorState {
+  level?: string;
+  events: Record<string, string | undefined>;
+  timelines: Record<string, string | undefined>;
+  cameraShots: Record<string, string | undefined>;
+}
+
+interface SavedDataSnapshot {
+  level: string;
+  events: Record<string, string>;
+  timelines: Record<string, string>;
+  cameraShots: Record<string, string>;
+}
+
+interface EditorSaveIssue {
+  path: readonly unknown[];
+  message: string;
+}
+
+interface EditorSaveSchema<T> {
+  safeParse(
+    value: unknown,
+  ): { success: true; data: T } | { success: false; error: { issues: readonly EditorSaveIssue[] } };
+}
+
+type EditorSaveValidation<T> = { success: true; data: T } | { success: false; message: string };
+
 type DirtyStateSetter = Dispatch<SetStateAction<DirtyState>>;
+type SaveErrorStateSetter = Dispatch<SetStateAction<SaveErrorState>>;
 
 type DirtyTarget =
   | { kind: 'cameraShot'; id: string; touchesLevel?: boolean }
@@ -1124,6 +1252,127 @@ function createCleanDirtyState(): DirtyState {
     timelineIds: new Set(),
     cameraShotIds: new Set(),
   };
+}
+
+function createCleanSaveErrorState(): SaveErrorState {
+  return {
+    events: {},
+    timelines: {},
+    cameraShots: {},
+  };
+}
+
+function createSavedDataSnapshot(project: ProjectData): SavedDataSnapshot {
+  return {
+    level: serializeEditorData(project.level),
+    events: serializeEditorDataMap(project.events),
+    timelines: serializeEditorDataMap(project.timelines),
+    cameraShots: serializeEditorDataMap(project.cameraShots),
+  };
+}
+
+function computeDirtyState(project: ProjectData, saved: SavedDataSnapshot): DirtyState {
+  return {
+    level: serializeEditorData(project.level) !== saved.level,
+    eventIds: collectDirtySnapshotIds(project.events, saved.events),
+    timelineIds: collectDirtySnapshotIds(project.timelines, saved.timelines),
+    cameraShotIds: collectDirtySnapshotIds(project.cameraShots, saved.cameraShots),
+  };
+}
+
+function updateSavedLevelSnapshot(
+  current: SavedDataSnapshot | null,
+  level: LevelData,
+): SavedDataSnapshot | null {
+  if (!current) {
+    return current;
+  }
+
+  return {
+    ...current,
+    level: serializeEditorData(level),
+  };
+}
+
+function updateSavedItemSnapshot<T>(
+  current: SavedDataSnapshot | null,
+  collection: 'cameraShots' | 'events' | 'timelines',
+  id: string,
+  data: T,
+): SavedDataSnapshot | null {
+  if (!current) {
+    return current;
+  }
+
+  return {
+    ...current,
+    [collection]: {
+      ...current[collection],
+      [id]: serializeEditorData(data),
+    },
+  };
+}
+
+function clearLevelSaveError(setSaveErrors: SaveErrorStateSetter): void {
+  setSaveErrors((current) => ({ ...current, level: undefined }));
+}
+
+function setLevelSaveError(setSaveErrors: SaveErrorStateSetter, message: string): void {
+  setSaveErrors((current) => ({ ...current, level: message }));
+}
+
+function clearEventSaveError(setSaveErrors: SaveErrorStateSetter, eventId: string): void {
+  setSaveErrors((current) => ({
+    ...current,
+    events: { ...current.events, [eventId]: undefined },
+  }));
+}
+
+function setEventSaveError(
+  setSaveErrors: SaveErrorStateSetter,
+  eventId: string,
+  message: string,
+): void {
+  setSaveErrors((current) => ({
+    ...current,
+    events: { ...current.events, [eventId]: message },
+  }));
+}
+
+function clearTimelineSaveError(setSaveErrors: SaveErrorStateSetter, timelineId: string): void {
+  setSaveErrors((current) => ({
+    ...current,
+    timelines: { ...current.timelines, [timelineId]: undefined },
+  }));
+}
+
+function setTimelineSaveError(
+  setSaveErrors: SaveErrorStateSetter,
+  timelineId: string,
+  message: string,
+): void {
+  setSaveErrors((current) => ({
+    ...current,
+    timelines: { ...current.timelines, [timelineId]: message },
+  }));
+}
+
+function clearCameraShotSaveError(setSaveErrors: SaveErrorStateSetter, cameraShotId: string): void {
+  setSaveErrors((current) => ({
+    ...current,
+    cameraShots: { ...current.cameraShots, [cameraShotId]: undefined },
+  }));
+}
+
+function setCameraShotSaveError(
+  setSaveErrors: SaveErrorStateSetter,
+  cameraShotId: string,
+  message: string,
+): void {
+  setSaveErrors((current) => ({
+    ...current,
+    cameraShots: { ...current.cameraShots, [cameraShotId]: message },
+  }));
 }
 
 function markLevelDirty(setDirtyState: DirtyStateSetter): void {
@@ -1238,6 +1487,76 @@ function removeDirtyId(ids: ReadonlySet<string>, id: string): ReadonlySet<string
   nextIds.delete(id);
 
   return nextIds;
+}
+
+function serializeEditorDataMap<T>(items: Readonly<Record<string, T>>): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(items).map(([id, item]) => [id, serializeEditorData(item)]),
+  );
+}
+
+function collectDirtySnapshotIds<T>(
+  currentItems: Readonly<Record<string, T>>,
+  savedItems: Readonly<Record<string, string>>,
+): ReadonlySet<string> {
+  const ids = new Set([...Object.keys(currentItems), ...Object.keys(savedItems)]);
+  const dirtyIds = new Set<string>();
+
+  for (const id of ids) {
+    const currentItem = currentItems[id];
+
+    if (currentItem === undefined || serializeEditorData(currentItem) !== savedItems[id]) {
+      dirtyIds.add(id);
+    }
+  }
+
+  return dirtyIds;
+}
+
+function serializeEditorData(data: unknown): string {
+  return JSON.stringify(data);
+}
+
+function validateEditorSave<T>(
+  schema: EditorSaveSchema<T>,
+  data: unknown,
+  label: string,
+): EditorSaveValidation<T> {
+  const result = schema.safeParse(data);
+
+  if (!result.success) {
+    return {
+      success: false,
+      message: `${label} save blocked: ${formatEditorSaveIssues(result.error.issues)}`,
+    };
+  }
+
+  return {
+    success: true,
+    data: result.data,
+  };
+}
+
+function formatEditorSaveIssues(issues: readonly EditorSaveIssue[]): string {
+  return issues
+    .slice(0, 5)
+    .map((issue) => {
+      const issuePath = issue.path.map((segment) => String(segment)).join('.') || 'data';
+      return `${issuePath}: ${issue.message}`;
+    })
+    .join('; ');
+}
+
+function formatSaveError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  return 'Save failed.';
 }
 
 function getSelectedEvent(

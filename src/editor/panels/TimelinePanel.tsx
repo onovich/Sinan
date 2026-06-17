@@ -22,6 +22,7 @@ export interface TimelinePanelProps {
   currentTime: number;
   saveStatus: TimelineSaveStatus;
   isDirty: boolean;
+  saveError?: string;
   playbackStatus: 'stopped' | 'playing' | 'paused';
   previewStatus: string;
   entityIds: readonly string[];
@@ -63,6 +64,7 @@ export function TimelinePanel({
   currentTime,
   saveStatus,
   isDirty,
+  saveError,
   playbackStatus,
   previewStatus,
   entityIds,
@@ -434,6 +436,12 @@ export function TimelinePanel({
           </button>
         </div>
       </div>
+
+      {saveError ? (
+        <p className="panel-error" role="alert">
+          {saveError}
+        </p>
+      ) : null}
 
       {selectedTimeline ? (
         <>

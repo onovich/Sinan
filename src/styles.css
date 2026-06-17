@@ -373,6 +373,15 @@ button:hover {
   color: #ff9c8b;
 }
 
+.save-error {
+  max-width: min(34vw, 360px);
+  overflow: hidden;
+  color: #ff9c8b;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .viewport-region {
   position: relative;
   min-width: 0;

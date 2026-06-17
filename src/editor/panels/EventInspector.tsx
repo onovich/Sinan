@@ -17,6 +17,7 @@ export interface EventInspectorProps {
   selectedEvent: EventData | undefined;
   saveStatus: EventSaveStatus;
   isDirty: boolean;
+  saveError?: string;
   entityIds: readonly string[];
   timelineIds: readonly string[];
   cameraShotIds: readonly string[];
@@ -59,6 +60,7 @@ export function EventInspector({
   selectedEvent,
   saveStatus,
   isDirty,
+  saveError,
   entityIds,
   timelineIds,
   cameraShotIds,
@@ -161,6 +163,12 @@ export function EventInspector({
                 <li key={message}>{message}</li>
               ))}
             </ul>
+          ) : null}
+
+          {saveError ? (
+            <p className="panel-error" role="alert">
+              {saveError}
+            </p>
           ) : null}
 
           <div className="event-command-row">

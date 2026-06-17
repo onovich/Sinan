@@ -10,6 +10,22 @@ export async function saveJson(path: string, data: unknown): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error(await response.text());
+    throw new Error(await readSaveError(response));
   }
+}
+
+async function readSaveError(response: Response): Promise<string> {
+  const text = await response.text();
+
+  try {
+    const parsed = JSON.parse(text) as { error?: unknown };
+
+    if (typeof parsed.error === 'string') {
+      return parsed.error;
+    }
+  } catch {
+    // Fall back to the raw response body below.
+  }
+
+  return text || `Save request failed with HTTP ${response.status}.`;
 }

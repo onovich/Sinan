@@ -34,16 +34,22 @@ This document tracks Phase 12 authoring workflow and data safety behavior.
 - Camera key operations go through `UpdateCameraShotCommand`, so undo/redo and camera-shot dirty state remain consistent.
 - Key move commands swap neighboring key times instead of only swapping array order, because runtime sampling sorts property and camera keys by time.
 
+## Save-Time Validation And Dirty State
+
+- The editor validates level, event, timeline, and camera shot data with the matching Zod schema before sending it to the dev save API.
+- The dev save API validates every registered writable `data/**/*.json` target before writing. It supports the asset manifest, prefabs, levels, events, timelines, and camera shots, and rejects unknown data paths.
+- Save failures from local schema validation or the dev save API are surfaced in the top project toolbar or the selected event, timeline, and camera shot panels.
+- Dirty state is derived from last-saved JSON snapshots for level, event, timeline, and camera shot data. Undoing or redoing back to saved content returns the affected domain to `Clean`; successful saves refresh only the saved snapshot for that domain.
+
 ## Current Smoke Coverage
 
 - Browser smoke selects `switch_a`, edits the `Interactable.prompt` field, checks the level dirty state, and verifies undo/redo restores the prompt value.
 - Browser smoke edits event conditions and actions through structured controls, checks the event dirty state, and verifies undo/redo restores the event action/condition counts.
 - Browser smoke adds, reorders, removes, undoes, and redoes a property timeline keyframe.
 - Browser smoke adds, reorders, removes, undoes, and redoes a camera shot keyframe.
+- Browser smoke verifies the dev save API rejects a schema-invalid event payload and that undoing event and level edits back to saved content restores `Clean` status.
 
 ## Remaining Phase 12 Work
 
-- Save-time validation before writing JSON through the dev save API.
-- Dirty-state exactness after save/reload comparisons.
 - Migration scaffolding and migration tests.
 - Stronger asset/reference/registry validation reports.

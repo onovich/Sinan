@@ -21,6 +21,15 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   });
 
   await page.goto('/');
+  const invalidSave = await page.request.post('/__sinan/save-json', {
+    data: {
+      path: 'data/events/ev_invalid_smoke.json',
+      data: { schemaVersion: 1, id: 'ev_invalid_smoke', actions: [] },
+    },
+  });
+  const invalidSaveBody = await invalidSave.text();
+  expect(invalidSave.status()).toBe(400);
+  expect(invalidSaveBody).toContain('event validation');
   await expect(page.getByTestId('editor-shell')).toBeVisible();
   await expect(page.getByText('Level loaded')).toBeVisible();
   const layout = await page.evaluate(() => {
@@ -103,9 +112,11 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(conditionRows).toHaveCount(0);
   await expect(actionRows).toHaveCount(1);
+  await expect(eventInspector.locator('.status-pill')).toHaveText('Clean');
   await page.getByRole('button', { name: 'Redo' }).click();
   await expect(conditionRows).toHaveCount(1);
   await expect(actionRows).toHaveCount(2);
+  await expect(eventInspector.locator('.status-pill')).toHaveText('Unsaved');
   await expect
     .poll(() => Array.from(modelResponses.values()).filter((status) => status === 200).length)
     .toBeGreaterThanOrEqual(4);
@@ -205,8 +216,10 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   await expect(interactableForm.getByLabel('Prompt')).toHaveValue('Open gate');
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(interactableForm.getByLabel('Prompt')).toHaveValue('Press E');
+  await expect(page.locator('.save-status')).toHaveText('Clean');
   await page.getByRole('button', { name: 'Redo' }).click();
   await expect(interactableForm.getByLabel('Prompt')).toHaveValue('Open gate');
+  await expect(page.locator('.save-status')).toHaveText('Unsaved');
   await page.getByRole('button', { name: 'X +', exact: true }).click();
   await expect(page.locator('.save-status')).toHaveText('Unsaved');
   await page.getByRole('button', { name: 'Interact' }).click();

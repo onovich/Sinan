@@ -15,6 +15,7 @@ export interface CameraShotPanelProps {
   selectedEntityId?: string;
   saveStatus: CameraShotSaveStatus;
   isDirty: boolean;
+  saveError?: string;
   previewStatus: string;
   onSelectShot: (shotId: string) => void;
   onCreateShot: () => void;
@@ -30,6 +31,7 @@ export function CameraShotPanel({
   selectedEntityId,
   saveStatus,
   isDirty,
+  saveError,
   previewStatus,
   onSelectShot,
   onCreateShot,
@@ -190,6 +192,12 @@ export function CameraShotPanel({
           Save Shot
         </button>
       </div>
+
+      {saveError ? (
+        <p className="panel-error" role="alert">
+          {saveError}
+        </p>
+      ) : null}
 
       {shots.length > 0 ? (
         <label className="field-stack" htmlFor="camera-shot-select">

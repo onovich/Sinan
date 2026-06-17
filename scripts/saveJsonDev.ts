@@ -4,6 +4,13 @@ import path from 'node:path';
 
 import { z } from 'zod';
 
+import { AssetManifestSchema } from '../src/schemas/asset.schema';
+import { CameraShotSchema } from '../src/schemas/cameraShot.schema';
+import { EventSchema } from '../src/schemas/event.schema';
+import { LevelSchema } from '../src/schemas/level.schema';
+import { PrefabSchema } from '../src/schemas/prefab.schema';
+import { TimelineSchema } from '../src/schemas/timeline.schema';
+
 export const SAVE_JSON_ENDPOINT = '/__sinan/save-json';
 
 const SaveJsonPayloadSchema = z
@@ -14,6 +21,11 @@ const SaveJsonPayloadSchema = z
   .strict();
 
 export type SaveJsonPayload = z.infer<typeof SaveJsonPayloadSchema>;
+
+interface SaveJsonSchemaRegistration {
+  label: string;
+  schema: z.ZodType;
+}
 
 export function resolveDataWritePath(repoRoot: string, requestedPath: string): string {
   const normalized = requestedPath.replaceAll('\\', '/');
@@ -39,17 +51,74 @@ export function resolveDataWritePath(repoRoot: string, requestedPath: string): s
   return target;
 }
 
+export function validateSaveJsonPayload(payload: SaveJsonPayload): SaveJsonPayload {
+  const registration = getSaveJsonSchema(payload.path);
+  const result = registration.schema.safeParse(payload.data);
+
+  if (!result.success) {
+    throw new Error(
+      `Save payload failed ${registration.label} validation: ${formatZodIssues(result.error.issues)}`,
+    );
+  }
+
+  return {
+    ...payload,
+    data: result.data,
+  };
+}
+
 export async function writeJsonToDataPath(
   repoRoot: string,
   payload: SaveJsonPayload,
 ): Promise<string> {
   const target = resolveDataWritePath(repoRoot, payload.path);
-  const json = `${JSON.stringify(payload.data, null, 2)}\n`;
+  const validatedPayload = validateSaveJsonPayload(payload);
+  const json = `${JSON.stringify(validatedPayload.data, null, 2)}\n`;
 
   await mkdir(path.dirname(target), { recursive: true });
   await writeFile(target, json, 'utf8');
 
   return target;
+}
+
+function getSaveJsonSchema(requestedPath: string): SaveJsonSchemaRegistration {
+  const normalized = requestedPath.replaceAll('\\', '/');
+
+  if (normalized === 'data/assets.manifest.json') {
+    return { label: 'asset manifest', schema: AssetManifestSchema };
+  }
+
+  if (normalized.startsWith('data/prefabs/')) {
+    return { label: 'prefab', schema: PrefabSchema };
+  }
+
+  if (normalized.startsWith('data/levels/')) {
+    return { label: 'level', schema: LevelSchema };
+  }
+
+  if (normalized.startsWith('data/events/')) {
+    return { label: 'event', schema: EventSchema };
+  }
+
+  if (normalized.startsWith('data/timelines/')) {
+    return { label: 'timeline', schema: TimelineSchema };
+  }
+
+  if (normalized.startsWith('data/cameraShots/')) {
+    return { label: 'camera shot', schema: CameraShotSchema };
+  }
+
+  throw new Error(`No save schema registered for ${normalized}.`);
+}
+
+function formatZodIssues(issues: readonly { path: readonly unknown[]; message: string }[]): string {
+  return issues
+    .slice(0, 5)
+    .map((issue) => {
+      const issuePath = issue.path.map((segment) => String(segment)).join('.') || 'data';
+      return `${issuePath}: ${issue.message}`;
+    })
+    .join('; ');
 }
 
 export function createSaveJsonMiddleware(repoRoot: string) {
