@@ -1,17 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { createDemoDataRepository } from '../data/demoDataLoader';
+import type { ProjectData } from '../data/DataRepository';
 import { getRenderableModelAssetId } from '../data/projectDataSelectors';
 import type { WebRuntime } from '../runtime/WebRuntime';
 import { ThreeRuntime } from '../runtime/three/ThreeRuntime';
 
-type ViewportStatus = 'Loading level data' | 'Level loaded' | 'Load failed';
+type ViewportStatus =
+  | 'Waiting for level data'
+  | 'Loading level data'
+  | 'Level loaded'
+  | 'Load failed';
 
-export function Viewport() {
+export interface ViewportProps {
+  project: ProjectData | null;
+}
+
+export function Viewport({ project }: ViewportProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const runtimeRef = useRef<WebRuntime | null>(null);
-  const [status, setStatus] = useState<ViewportStatus>('Loading level data');
+  const [status, setStatus] = useState<ViewportStatus>('Waiting for level data');
 
   useEffect(() => {
     const host = hostRef.current;
@@ -35,18 +43,6 @@ export function Viewport() {
     };
 
     runtime.init({ canvas, ...readSize() });
-    void loadDemoLevel(runtime, () => disposed)
-      .then(() => {
-        if (!disposed) {
-          setStatus('Level loaded');
-        }
-      })
-      .catch((error: unknown) => {
-        console.error(error);
-        if (!disposed) {
-          setStatus('Load failed');
-        }
-      });
 
     const resizeObserver = new ResizeObserver(() => {
       runtime.resize(readSize());
@@ -80,6 +76,34 @@ export function Viewport() {
     };
   }, []);
 
+  useEffect(() => {
+    const runtime = runtimeRef.current;
+
+    if (!runtime || !project) {
+      setStatus('Waiting for level data');
+      return;
+    }
+
+    let disposed = false;
+    setStatus('Loading level data');
+    void loadProjectIntoRuntime(runtime, project, () => disposed)
+      .then(() => {
+        if (!disposed) {
+          setStatus('Level loaded');
+        }
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+        if (!disposed) {
+          setStatus('Load failed');
+        }
+      });
+
+    return () => {
+      disposed = true;
+    };
+  }, [project]);
+
   return (
     <div ref={hostRef} className="viewport-placeholder" data-testid="viewport-placeholder">
       <canvas ref={canvasRef} className="runtime-canvas" aria-label="Runtime viewport" />
@@ -91,14 +115,11 @@ export function Viewport() {
   );
 }
 
-async function loadDemoLevel(runtime: WebRuntime, isDisposed: () => boolean): Promise<void> {
-  const repository = createDemoDataRepository();
-  const project = await repository.loadProjectLevel('level_01');
-
-  if (isDisposed()) {
-    return;
-  }
-
+async function loadProjectIntoRuntime(
+  runtime: WebRuntime,
+  project: ProjectData,
+  isDisposed: () => boolean,
+): Promise<void> {
   await Promise.all(
     Object.entries(project.assets.assets)
       .filter(([, asset]) => asset.type === 'model')

@@ -1,10 +1,46 @@
+import { useEffect, useReducer, useState } from 'react';
+
+import { createDemoDataRepository } from '../data/demoDataLoader';
+import type { ProjectData } from '../data/DataRepository';
 import { Viewport } from './Viewport';
 import { editorPanelLayout } from './editorLayout';
-
-const initialEntities = ['player_spawn', 'switch_a', 'gate_a'];
-const initialAssets = ['room_blockout', 'switch_wall', 'gate_placeholder'];
+import { AssetPanel } from './panels/AssetPanel';
+import { HierarchyPanel } from './panels/HierarchyPanel';
+import { InspectorPanel } from './panels/InspectorPanel';
+import { createInitialEditorState, editorReducer, type EditorMode } from './store/editorStore';
 
 export function EditorApp() {
+  const [editorState, dispatch] = useReducer(editorReducer, undefined, createInitialEditorState);
+  const [project, setProject] = useState<ProjectData | null>(null);
+  const [projectError, setProjectError] = useState<string | null>(null);
+  const selectedEntity = project?.level.entities.find(
+    (entity) => entity.id === editorState.selectedEntityId,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const repository = createDemoDataRepository();
+
+    repository
+      .loadProjectLevel('level_01')
+      .then((loadedProject) => {
+        if (!cancelled) {
+          setProject(loadedProject);
+          setProjectError(null);
+        }
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+        if (!cancelled) {
+          setProjectError(error instanceof Error ? error.message : String(error));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="editor-shell" data-testid="editor-shell">
       <header className="editor-topbar">
@@ -13,54 +49,36 @@ export function EditorApp() {
           <span>Scene editing workspace</span>
         </div>
         <nav aria-label="Editor modes">
-          <button type="button" className="is-active">
-            Edit
-          </button>
-          <button type="button">Play</button>
-          <button type="button">Preview</button>
+          {(['edit', 'play', 'preview'] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className={editorState.mode === mode ? 'is-active' : undefined}
+              onClick={() => dispatch({ type: 'setMode', mode })}
+            >
+              {formatMode(mode)}
+            </button>
+          ))}
         </nav>
       </header>
 
       <main className="editor-workbench">
         <aside className="editor-panel editor-panel-left" aria-labelledby="hierarchy-heading">
-          <PanelHeading id="hierarchy-heading" title={editorPanelLayout[0].title} />
-          <ul className="entity-list">
-            {initialEntities.map((entityId) => (
-              <li key={entityId}>
-                <button type="button">{entityId}</button>
-              </li>
-            ))}
-          </ul>
-          <section aria-labelledby="assets-heading">
-            <PanelHeading id="assets-heading" title="Assets" />
-            <ul className="asset-list">
-              {initialAssets.map((assetId) => (
-                <li key={assetId}>{assetId}</li>
-              ))}
-            </ul>
-          </section>
+          <HierarchyPanel
+            level={project?.level ?? null}
+            selectedEntityId={editorState.selectedEntityId}
+            onSelectEntity={(entityId) => dispatch({ type: 'selectEntity', entityId })}
+          />
+          <AssetPanel assets={project?.assets ?? null} />
+          {projectError ? <p className="panel-error">{projectError}</p> : null}
         </aside>
 
         <section className="viewport-region" aria-label={editorPanelLayout[1].title}>
-          <Viewport />
+          <Viewport project={project} />
         </section>
 
         <aside className="editor-panel editor-panel-right" aria-labelledby="inspector-heading">
-          <PanelHeading id="inspector-heading" title={editorPanelLayout[2].title} />
-          <dl className="inspector-list">
-            <div>
-              <dt>Selection</dt>
-              <dd>None</dd>
-            </div>
-            <div>
-              <dt>Mode</dt>
-              <dd>Edit</dd>
-            </div>
-            <div>
-              <dt>Tool</dt>
-              <dd>Select</dd>
-            </div>
-          </dl>
+          <InspectorPanel entity={selectedEntity} />
         </aside>
       </main>
 
@@ -79,11 +97,6 @@ export function EditorApp() {
   );
 }
 
-interface PanelHeadingProps {
-  id: string;
-  title: string;
-}
-
-function PanelHeading({ id, title }: PanelHeadingProps) {
-  return <h2 id={id}>{title}</h2>;
+function formatMode(mode: EditorMode): string {
+  return mode[0].toUpperCase() + mode.slice(1);
 }

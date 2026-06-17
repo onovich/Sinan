@@ -1,0 +1,44 @@
+export type EditorMode = 'edit' | 'play' | 'preview';
+export type ActiveTool = 'select' | 'move' | 'rotate' | 'scale' | 'camera';
+export type InspectorTab = 'components' | 'events' | 'timeline' | 'camera';
+
+export interface EditorState {
+  mode: EditorMode;
+  selectedEntityId?: string;
+  selectedTimelineId?: string;
+  selectedCameraShotId?: string;
+  activeTool: ActiveTool;
+  timelineTime: number;
+  inspectorTab: InspectorTab;
+}
+
+export type EditorAction =
+  | { type: 'setMode'; mode: EditorMode }
+  | { type: 'selectEntity'; entityId: string | undefined }
+  | { type: 'setActiveTool'; activeTool: ActiveTool }
+  | { type: 'setInspectorTab'; inspectorTab: InspectorTab }
+  | { type: 'setTimelineTime'; timelineTime: number };
+
+export function createInitialEditorState(): EditorState {
+  return {
+    mode: 'edit',
+    activeTool: 'select',
+    timelineTime: 0,
+    inspectorTab: 'components',
+  };
+}
+
+export function editorReducer(state: EditorState, action: EditorAction): EditorState {
+  switch (action.type) {
+    case 'setMode':
+      return { ...state, mode: action.mode };
+    case 'selectEntity':
+      return { ...state, selectedEntityId: action.entityId };
+    case 'setActiveTool':
+      return { ...state, activeTool: action.activeTool };
+    case 'setInspectorTab':
+      return { ...state, inspectorTab: action.inspectorTab };
+    case 'setTimelineTime':
+      return { ...state, timelineTime: action.timelineTime };
+  }
+}

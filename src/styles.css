@@ -126,6 +126,8 @@ button:hover {
 }
 
 .entity-list button {
+  display: grid;
+  gap: 2px;
   width: 100%;
   overflow: hidden;
   text-align: left;
@@ -133,7 +135,28 @@ button:hover {
   white-space: nowrap;
 }
 
+.entity-list button.is-selected {
+  border-color: #76b28b;
+  background: #294034;
+}
+
+.entity-list small,
+.asset-list small {
+  overflow: hidden;
+  color: #8fa0ad;
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+.entity-list span,
+.asset-list span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .asset-list li {
+  display: grid;
+  gap: 2px;
   overflow: hidden;
   border: 1px solid #313c46;
   border-radius: 6px;
@@ -142,6 +165,17 @@ button:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   background: #202830;
+}
+
+.panel-empty,
+.panel-error {
+  margin: 0 0 14px;
+  color: #aeb9c4;
+  font-size: 13px;
+}
+
+.panel-error {
+  color: #ff9c8b;
 }
 
 .viewport-region {
@@ -208,6 +242,47 @@ button:hover {
 
 .inspector-list dd {
   margin: 0;
+}
+
+.component-section {
+  margin-top: 18px;
+}
+
+.component-section h3 {
+  margin: 0 0 10px;
+  color: #cfd7df;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.component-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.component-list li {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #313c46;
+  border-radius: 6px;
+  padding: 10px;
+  background: #202830;
+}
+
+.component-list strong {
+  font-size: 13px;
+}
+
+.component-list pre {
+  overflow: auto;
+  margin: 0;
+  color: #c5ced6;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .timeline-shell {
