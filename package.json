@@ -10,6 +10,7 @@
     "test:smoke": "playwright test",
     "lint": "eslint .",
     "typecheck": "tsc -b --pretty false",
+    "check-boundaries": "tsx scripts/check-boundaries.ts",
     "validate-data": "tsx scripts/validate-data.ts",
     "migrate-data": "tsx scripts/migrate-data.ts",
     "generate:dev-assets": "tsx scripts/generate-dev-glb-assets.ts",

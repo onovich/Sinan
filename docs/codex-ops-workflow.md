@@ -42,11 +42,12 @@ npm run typecheck
 npm run lint
 npm run build
 npm run test
+npm run check-boundaries
 npm run validate-data
 npm run migrate-data -- --check
 ```
 
-`validate-data` currently performs JSON parse, Zod schema validation, duplicate id checks, asset URL/file checks, registry coverage checks, and reference checks for prefabs, assets, timelines, camera shots, and events where those data directories exist. `migrate-data -- --check` verifies repository data is already at the current schema version without writing.
+`check-boundaries` verifies that renderer-neutral source layers do not import Three.js and that project code/data do not use dynamic-code execution patterns. `validate-data` currently performs JSON parse, Zod schema validation, duplicate id checks, asset URL/file checks, registry coverage checks, and reference checks for prefabs, assets, timelines, camera shots, and events where those data directories exist. `migrate-data -- --check` verifies repository data is already at the current schema version without writing.
 
 ## Dev Server
 
