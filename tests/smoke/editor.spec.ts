@@ -1,5 +1,8 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { readFile, writeFile } from 'node:fs/promises';
 import { inflateSync } from 'node:zlib';
+
+test.describe.configure({ mode: 'serial' });
 
 test('editor workflow loads, renders, and supports core timeline controls', async ({ page }) => {
   const browserErrors: string[] = [];
@@ -229,17 +232,84 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   expect(browserErrors).toEqual([]);
 });
 
-test('editor shell remains contained and readable on a narrow viewport', async ({ page }) => {
-  const browserErrors: string[] = [];
+test('editor save and reload persists authoring changes across data domains', async ({ page }) => {
+  const browserErrors = collectBrowserErrors(page);
+  const originalLevel = await readSmokeFile('data/levels/level_01.json');
+  const originalEvent = await readSmokeFile('data/events/ev_gate_trigger_enter.json');
+  const originalTimeline = await readSmokeFile('data/timelines/tl_open_gate.json');
+  const originalCameraShot = await readSmokeFile('data/cameraShots/cam_gate_reveal.json');
 
-  page.on('console', (message) => {
-    if (message.type() === 'error') {
-      browserErrors.push(message.text());
-    }
-  });
-  page.on('pageerror', (error) => {
-    browserErrors.push(error.message);
-  });
+  try {
+    await page.goto('/');
+    await expect(page.getByTestId('editor-shell')).toBeVisible();
+    await expect(page.locator('.save-status')).toHaveText('Clean');
+
+    await page.getByRole('button', { name: /^switch_a/ }).click();
+    const interactableForm = page.locator('form[aria-label="Interactable component editor"]');
+    await expect(interactableForm.getByLabel('Prompt')).toHaveValue('Press E');
+    await interactableForm.getByLabel('Prompt').fill('Phase 13 save smoke');
+    await interactableForm.getByRole('button', { name: 'Apply Component' }).click();
+    await expect(page.locator('.save-status')).toHaveText('Unsaved');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.locator('.save-status')).toHaveText('Saved');
+
+    const eventInspector = page.locator('.event-inspector');
+    await expect(eventInspector.getByLabel('Name')).toHaveValue('Player Enters Gate Trigger');
+    await eventInspector.getByLabel('Name').fill('Phase 13 Gate Trigger');
+    await eventInspector.getByRole('button', { name: 'Apply' }).click();
+    await expect(eventInspector.locator('.status-pill')).toHaveText('Unsaved');
+    await eventInspector.getByRole('button', { name: 'Save Event' }).click();
+    await expect(eventInspector.locator('.status-pill')).toHaveText('Saved');
+
+    const timelinePanel = page.getByTestId('timeline-panel');
+    await page.getByRole('button', { name: /track_gate_open_amount/ }).click();
+    const timelineKeySelect = timelinePanel.locator('#timeline-key-select');
+    await expect(timelineKeySelect.locator('option')).toHaveCount(2);
+    await timelinePanel.getByRole('button', { name: 'Add Key', exact: true }).click();
+    await expect(timelineKeySelect.locator('option')).toHaveCount(3);
+    await expect(timelinePanel.locator('.timeline-meta .status-pill')).toHaveText('Unsaved');
+    await timelinePanel.getByRole('button', { name: 'Save Timeline' }).click();
+    await expect(timelinePanel.locator('.timeline-meta .status-pill')).toHaveText('Saved');
+
+    const cameraPanel = page.locator('.camera-shot-panel');
+    const cameraKeySelect = cameraPanel.locator('#camera-key-select');
+    await expect(cameraKeySelect.locator('option')).toHaveCount(3);
+    await cameraPanel.getByRole('button', { name: 'Add Key', exact: true }).click();
+    await expect(cameraKeySelect.locator('option')).toHaveCount(4);
+    await expect(cameraPanel.locator('.panel-title-row .status-pill').first()).toHaveText(
+      'Unsaved',
+    );
+    await cameraPanel.getByRole('button', { name: 'Save Shot' }).click();
+    await expect(cameraPanel.locator('.panel-title-row .status-pill').first()).toHaveText('Saved');
+
+    await expect
+      .poll(async () =>
+        getSwitchPrompt(await readSmokeJson(page.request, 'data/levels/level_01.json')),
+      )
+      .toBe('Phase 13 save smoke');
+
+    await page.reload();
+    await expect(page.getByTestId('editor-shell')).toBeVisible();
+
+    await page.getByRole('button', { name: /^switch_a/ }).click();
+    await expect(interactableForm.getByLabel('Prompt')).toHaveValue('Phase 13 save smoke');
+    await expect(eventInspector.getByLabel('Name')).toHaveValue('Phase 13 Gate Trigger');
+
+    await page.getByRole('button', { name: /track_gate_open_amount/ }).click();
+    await expect(timelineKeySelect.locator('option')).toHaveCount(3);
+    await expect(cameraKeySelect.locator('option')).toHaveCount(4);
+    await expect(page.locator('.save-status')).toHaveText('Clean');
+    expect(browserErrors).toEqual([]);
+  } finally {
+    await restoreSmokeFile('data/levels/level_01.json', originalLevel);
+    await restoreSmokeFile('data/events/ev_gate_trigger_enter.json', originalEvent);
+    await restoreSmokeFile('data/timelines/tl_open_gate.json', originalTimeline);
+    await restoreSmokeFile('data/cameraShots/cam_gate_reveal.json', originalCameraShot);
+  }
+});
+
+test('editor shell remains contained and readable on a narrow viewport', async ({ page }) => {
+  const browserErrors = collectBrowserErrors(page);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
@@ -306,6 +376,64 @@ test('editor shell remains contained and readable on a narrow viewport', async (
   expect(layout.rightPanelScrollable).toBe(true);
   expect(browserErrors).toEqual([]);
 });
+
+function collectBrowserErrors(page: Page): string[] {
+  const browserErrors: string[] = [];
+
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      browserErrors.push(message.text());
+    }
+  });
+  page.on('pageerror', (error) => {
+    browserErrors.push(error.message);
+  });
+
+  return browserErrors;
+}
+
+async function readSmokeJson(request: APIRequestContext, path: string): Promise<unknown> {
+  const response = await request.get(`/${path}`);
+  expect(response.ok()).toBe(true);
+
+  return response.json();
+}
+
+function readSmokeFile(path: string): Promise<string> {
+  return readFile(path, 'utf8');
+}
+
+function restoreSmokeFile(path: string, text: string): Promise<void> {
+  return writeFile(path, text, 'utf8');
+}
+
+function getSwitchPrompt(level: unknown): string | undefined {
+  if (!isRecord(level) || !isUnknownArray(level.entities)) {
+    return undefined;
+  }
+
+  const switchEntity = level.entities.find(
+    (entity) => isRecord(entity) && entity.id === 'switch_a',
+  );
+
+  if (!isRecord(switchEntity) || !isRecord(switchEntity.components)) {
+    return undefined;
+  }
+
+  const interactable = switchEntity.components.Interactable;
+
+  return isRecord(interactable) && typeof interactable.prompt === 'string'
+    ? interactable.prompt
+    : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isUnknownArray(value: unknown): value is unknown[] {
+  return Array.isArray(value);
+}
 
 interface PngInspection {
   sampledUniqueColors: number;
