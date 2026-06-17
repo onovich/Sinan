@@ -8,7 +8,6 @@ import type {
   TransformGizmoMode,
 } from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
-import { ThreeRuntime } from '../runtime/three/ThreeRuntime';
 import {
   AabbColliderComponentSchema,
   TriggerZoneComponentSchema,
@@ -54,6 +53,7 @@ export function Viewport({
   const runtimeReadyRef = useRef(onRuntimeReady);
   const showTriggerDebugRef = useRef(showTriggerDebug);
   const [status, setStatus] = useState<ViewportStatus>('Waiting for level data');
+  const [runtimeVersion, setRuntimeVersion] = useState(0);
 
   useEffect(() => {
     selectEntityRef.current = onSelectEntity;
@@ -79,12 +79,10 @@ export function Viewport({
       return undefined;
     }
 
-    const runtime = new ThreeRuntime();
-    runtimeRef.current = runtime;
-    runtimeReadyRef.current?.(runtime);
-    selectionToolRef.current = new SelectionTool(runtime, (entityId) => {
-      selectEntityRef.current(entityId);
-    });
+    let runtime: WebRuntime | null = null;
+    let resizeObserver: ResizeObserver | undefined;
+    let frameId: number | undefined;
+    let disposed = false;
 
     const readSize = () => {
       const rect = host.getBoundingClientRect();
@@ -96,36 +94,59 @@ export function Viewport({
       };
     };
 
-    runtime.init({ canvas, ...readSize() });
+    const startRuntime = async () => {
+      const { ThreeRuntime } = await import('../runtime/three/ThreeRuntime');
 
-    const resizeObserver = new ResizeObserver(() => {
-      runtime.resize(readSize());
-    });
-    resizeObserver.observe(host);
-
-    let frameId = 0;
-    let lastTime = performance.now();
-    let disposed = false;
-
-    const frame = (now: number) => {
       if (disposed) {
         return;
       }
 
-      const deltaSeconds = Math.min((now - lastTime) / 1000, 0.05);
-      lastTime = now;
-      runtime.update(deltaSeconds);
-      runtime.render();
+      const activeRuntime = new ThreeRuntime();
+      runtime = activeRuntime;
+      runtimeRef.current = activeRuntime;
+      runtimeReadyRef.current?.(activeRuntime);
+      selectionToolRef.current = new SelectionTool(activeRuntime, (entityId) => {
+        selectEntityRef.current(entityId);
+      });
+
+      activeRuntime.init({ canvas, ...readSize() });
+
+      resizeObserver = new ResizeObserver(() => {
+        activeRuntime.resize(readSize());
+      });
+      resizeObserver.observe(host);
+
+      let lastTime = performance.now();
+      const frame = (now: number) => {
+        if (disposed) {
+          return;
+        }
+
+        const deltaSeconds = Math.min((now - lastTime) / 1000, 0.05);
+        lastTime = now;
+        activeRuntime.update(deltaSeconds);
+        activeRuntime.render();
+        frameId = window.requestAnimationFrame(frame);
+      };
+
       frameId = window.requestAnimationFrame(frame);
+      setRuntimeVersion((version) => version + 1);
     };
 
-    frameId = window.requestAnimationFrame(frame);
+    void startRuntime().catch((error: unknown) => {
+      console.error(error);
+      if (!disposed) {
+        setStatus('Load failed');
+      }
+    });
 
     return () => {
       disposed = true;
-      window.cancelAnimationFrame(frameId);
-      resizeObserver.disconnect();
-      runtime.dispose();
+      if (frameId !== undefined) {
+        window.cancelAnimationFrame(frameId);
+      }
+      resizeObserver?.disconnect();
+      runtime?.dispose();
       runtimeRef.current = null;
       runtimeReadyRef.current?.(null);
       selectionToolRef.current = null;
@@ -159,7 +180,7 @@ export function Viewport({
     return () => {
       disposed = true;
     };
-  }, [project]);
+  }, [project, runtimeVersion]);
 
   useEffect(() => {
     const runtime = runtimeRef.current;

@@ -4,6 +4,31 @@ import { configDefaults, defineConfig } from 'vitest/config';
 import { createSaveJsonMiddleware } from './scripts/saveJsonDev';
 
 export default defineConfig({
+  build: {
+    chunkSizeWarningLimit: 700,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          const normalizedId = id.replace(/\\/g, '/');
+
+          if (normalizedId.includes('/node_modules/three/')) {
+            return 'three-vendor';
+          }
+
+          if (
+            normalizedId.includes('/node_modules/react/') ||
+            normalizedId.includes('/node_modules/react-dom/')
+          ) {
+            return 'react-vendor';
+          }
+
+          if (normalizedId.includes('/src/runtime/three/')) {
+            return 'three-runtime';
+          }
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     {

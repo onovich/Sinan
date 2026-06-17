@@ -26,7 +26,17 @@ This document tracks Phase 13 hardening work after the Phase 12 authoring/data-s
 - `Smoke.cmd` runs Playwright browser smoke on the desktop and narrow viewport paths.
 - Automated architecture checks cover forbidden Three imports and dynamic-code execution patterns.
 
+## Bundle Hygiene
+
+- `Viewport` loads the Three runtime through a dynamic import so the editor shell can stay out of the Three.js vendor chunk.
+- Vite manual chunks separate `react-vendor`, `three-vendor`, and `three-runtime` from the main editor bundle.
+- Current production build output is approximately:
+  - `index`: 190 kB minified / 50 kB gzip.
+  - `react-vendor`: 192 kB minified / 60 kB gzip.
+  - `three-runtime`: 11 kB minified / 4 kB gzip.
+  - `three-vendor`: 631 kB minified / 164 kB gzip.
+- The Vite chunk warning limit is set to 700 kB because the remaining large chunk is the isolated Three.js/GLTF runtime dependency, not editor application growth. If `three-vendor` grows past this threshold, revisit runtime imports or defer heavier optional Three examples.
+
 ## Remaining Phase 13 Work
 
-- Resolve or document the current Vite chunk-size warning.
 - Add runtime lifecycle/disposal regression tests and no-console-error smoke where practical.
