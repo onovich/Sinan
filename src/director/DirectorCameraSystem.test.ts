@@ -51,6 +51,7 @@ function createRuntimeMock(poses: RuntimeCameraPose[], transform: RuntimeTransfo
     setCameraPose: (pose) => {
       poses.push(pose);
     },
+    setDebugAabb: () => undefined,
     pick: () => null,
     attachTransformGizmo: () => undefined,
     detachTransformGizmo: () => undefined,

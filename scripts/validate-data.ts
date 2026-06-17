@@ -24,6 +24,7 @@ async function main(): Promise<void> {
     availableEventIds: new Set(events.map((event) => event.id)),
     prefabs,
     levels,
+    events,
     availableTimelineIds: new Set(timelines.map((timeline) => timeline.id)),
     availableCameraShotIds: new Set(cameraShots.map((shot) => shot.id)),
   });

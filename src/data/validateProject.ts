@@ -1,4 +1,5 @@
 import type { AssetManifestData } from '../schemas/asset.schema';
+import type { EventData } from '../schemas/event.schema';
 import type { LevelData } from '../schemas/level.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 import type { ReferenceValidationIssue, ReferenceValidationInput } from './ReferenceResolver';
@@ -8,6 +9,7 @@ export interface ProjectValidationInput {
   assets: AssetManifestData;
   prefabs: readonly PrefabData[];
   levels: readonly LevelData[];
+  events?: readonly EventData[];
   availableEventIds?: ReadonlySet<string>;
   availableTimelineIds?: ReadonlySet<string>;
   availableCameraShotIds?: ReadonlySet<string>;
@@ -22,6 +24,7 @@ export function validateProject(input: ProjectValidationInput): ProjectValidatio
     assets: input.assets,
     prefabs: input.prefabs,
     levels: input.levels,
+    events: input.events,
     availableEventIds: input.availableEventIds,
     availableTimelineIds: input.availableTimelineIds,
     availableCameraShotIds: input.availableCameraShotIds,

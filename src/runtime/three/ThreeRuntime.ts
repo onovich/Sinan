@@ -8,6 +8,7 @@ import type {
   RuntimeAnimationStopOptions,
   RuntimeAnimationTimeOptions,
   RuntimeCameraPose,
+  RuntimeDebugAabb,
   RuntimeInitOptions,
   RuntimeSize,
   TransformGizmoCallbacks,
@@ -28,6 +29,7 @@ export class ThreeRuntime implements WebRuntime {
   private transformGizmoEntityId: string | undefined;
   private transformGizmoCallbacks: TransformGizmoCallbacks | undefined;
   private objectByEntityId = new Map<string, THREE.Object3D>();
+  private debugAabbByEntityId = new Map<string, THREE.LineSegments>();
   private modelByAssetId = new Map<string, ModelHandle & { url: string }>();
   private animationByEntityId = new Map<
     string,
@@ -137,6 +139,8 @@ export class ThreeRuntime implements WebRuntime {
   }
 
   destroyObject(entityId: string): void {
+    this.disposeDebugAabb(entityId);
+
     const object = this.objectByEntityId.get(entityId);
     if (!object) {
       return;
@@ -144,7 +148,7 @@ export class ThreeRuntime implements WebRuntime {
 
     object.removeFromParent();
     object.traverse((child) => {
-      disposeMeshResources(child);
+      disposeObjectResources(child);
     });
     this.objectByEntityId.delete(entityId);
   }
@@ -238,6 +242,35 @@ export class ThreeRuntime implements WebRuntime {
     this.camera.updateProjectionMatrix();
   }
 
+  setDebugAabb(entityId: string, bounds: RuntimeDebugAabb | undefined): void {
+    this.disposeDebugAabb(entityId);
+
+    if (!bounds?.visible || !this.scene) {
+      return;
+    }
+
+    const sourceGeometry = new THREE.BoxGeometry(...bounds.size);
+    const geometry = new THREE.EdgesGeometry(sourceGeometry);
+    sourceGeometry.dispose();
+
+    const material = new THREE.LineBasicMaterial({
+      color: bounds.color ?? '#f4bd4e',
+      depthWrite: false,
+      transparent: true,
+      opacity: 0.95,
+    });
+    const line = new THREE.LineSegments(geometry, material);
+    line.name = `${entityId}:debug-aabb`;
+    line.position.set(...bounds.center);
+    line.userData = {
+      entityId,
+      debugKind: 'trigger-aabb',
+    };
+
+    this.scene.add(line);
+    this.debugAabbByEntityId.set(entityId, line);
+  }
+
   pick(clientX: number, clientY: number): PickResult | null {
     if (!this.canvas || !this.camera || !this.objectRoot) {
       return null;
@@ -329,7 +362,7 @@ export class ThreeRuntime implements WebRuntime {
 
     this.disposed = true;
     this.scene?.traverse((object) => {
-      disposeMeshResources(object);
+      disposeObjectResources(object);
     });
 
     this.renderer?.dispose();
@@ -344,8 +377,20 @@ export class ThreeRuntime implements WebRuntime {
     this.transformGizmoEntityId = undefined;
     this.transformGizmoCallbacks = undefined;
     this.objectByEntityId.clear();
+    this.debugAabbByEntityId.clear();
     this.modelByAssetId.clear();
     this.animationByEntityId.clear();
+  }
+
+  private disposeDebugAabb(entityId: string): void {
+    const line = this.debugAabbByEntityId.get(entityId);
+    if (!line) {
+      return;
+    }
+
+    line.removeFromParent();
+    disposeObjectResources(line);
+    this.debugAabbByEntityId.delete(entityId);
   }
 
   private emitTransformGizmoChange(callbackName: keyof TransformGizmoCallbacks): void {
@@ -428,15 +473,19 @@ function createBoxObject(
   return group;
 }
 
-function disposeMeshResources(object: THREE.Object3D): void {
-  if (!(object instanceof THREE.Mesh)) {
+function disposeObjectResources(object: THREE.Object3D): void {
+  if (!(object instanceof THREE.Mesh) && !(object instanceof THREE.LineSegments)) {
     return;
   }
 
-  const mesh = object as THREE.Mesh<THREE.BufferGeometry, THREE.Material | THREE.Material[]>;
-  mesh.geometry.dispose();
+  const renderable = object as
+    | THREE.Mesh<THREE.BufferGeometry, THREE.Material | THREE.Material[]>
+    | THREE.LineSegments<THREE.BufferGeometry, THREE.Material | THREE.Material[]>;
+  renderable.geometry.dispose();
 
-  const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+  const materials = Array.isArray(renderable.material)
+    ? renderable.material
+    : [renderable.material];
   for (const material of materials) {
     material.dispose();
   }

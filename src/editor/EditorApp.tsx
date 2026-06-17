@@ -59,6 +59,7 @@ export function EditorApp() {
   const [timelinePreviewStatus, setTimelinePreviewStatus] = useState('Ready to scrub');
   const [timelinePlaybackStatus, setTimelinePlaybackStatus] =
     useState<TimelinePlaybackStatus>('stopped');
+  const [showTriggerDebug, setShowTriggerDebug] = useState(true);
   const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
   const projectRef = useRef<ProjectData | null>(null);
   const commandHistoryRef = useRef(new CommandHistory());
@@ -630,6 +631,14 @@ export function EditorApp() {
           </button>
         </div>
         <div className="toolbar-group" aria-label="Project commands">
+          <button
+            type="button"
+            className={showTriggerDebug ? 'is-active' : undefined}
+            aria-pressed={showTriggerDebug}
+            onClick={() => setShowTriggerDebug((current) => !current)}
+          >
+            Trigger Bounds
+          </button>
           <button type="button" onClick={saveLevel} disabled={!project || saveStatus === 'saving'}>
             Save
           </button>
@@ -654,6 +663,7 @@ export function EditorApp() {
           <Viewport
             project={project}
             selectionEnabled={editorState.mode === 'edit' && editorState.activeTool === 'select'}
+            showTriggerDebug={editorState.mode === 'edit' && showTriggerDebug}
             selectedEntityId={editorState.selectedEntityId}
             activeTool={editorState.activeTool}
             onSelectEntity={(entityId) => dispatch({ type: 'selectEntity', entityId })}

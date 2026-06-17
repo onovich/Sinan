@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AssetManifestData } from '../schemas/asset.schema';
+import type { EventData } from '../schemas/event.schema';
 import type { LevelData } from '../schemas/level.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 import { validateProject } from './validateProject';
@@ -47,6 +48,24 @@ const level: LevelData = {
   events: [],
   timelines: [],
   cameraShots: [],
+};
+
+const triggerEvent: EventData = {
+  schemaVersion: 1,
+  id: 'ev_gate_trigger_enter',
+  name: 'Gate trigger enter',
+  trigger: {
+    type: 'trigger.enter',
+    triggerId: 'switch_a',
+    entityId: 'switch_a',
+  },
+  actions: [
+    {
+      type: 'flag.set',
+      flag: 'gate_triggered',
+      value: true,
+    },
+  ],
 };
 
 describe('validateProject', () => {
@@ -105,5 +124,30 @@ describe('validateProject', () => {
     }).issues;
 
     expect(issues.map((issue) => issue.message)).toContain('Duplicate entity id "switch_a".');
+  });
+
+  it('reports missing event trigger entity references', () => {
+    const issues = validateProject({
+      assets,
+      prefabs: [switchPrefab],
+      levels: [level],
+      events: [
+        {
+          ...triggerEvent,
+          trigger: {
+            type: 'trigger.enter',
+            triggerId: 'missing_trigger',
+            entityId: 'missing_actor',
+          },
+        },
+      ],
+    }).issues;
+
+    expect(issues.map((issue) => issue.message)).toEqual(
+      expect.arrayContaining([
+        'Missing trigger target "missing_trigger".',
+        'Missing trigger entity "missing_actor".',
+      ]),
+    );
   });
 });

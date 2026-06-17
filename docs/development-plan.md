@@ -149,7 +149,7 @@ Work:
 - Add collider schemas and trigger zone visualization.
 - Implement AABB trigger MVP.
 - Add debug draw.
-- Evaluate Rapier integration only after trigger semantics are stable.
+- Keep the MVP on data-backed AABB trigger zones; evaluate Rapier integration only after trigger semantics, validation, and editor visualization are stable.
 
 Acceptance:
 

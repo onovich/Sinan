@@ -154,6 +154,7 @@ function createRuntimeMock(calls: string[]): WebRuntime {
       calls.push(`time ${options.entityId} ${options.clip} ${options.time}`);
     },
     setCameraPose: () => undefined,
+    setDebugAabb: () => undefined,
     pick: () => null,
     attachTransformGizmo: () => undefined,
     detachTransformGizmo: () => undefined,

@@ -1,4 +1,5 @@
 import type { AssetManifestData } from '../schemas/asset.schema';
+import type { EventData } from '../schemas/event.schema';
 import type { LevelData } from '../schemas/level.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 import { getRenderableModelAssetId } from './projectDataSelectors';
@@ -15,6 +16,7 @@ export interface ReferenceValidationInput {
   assets: AssetManifestData;
   prefabs: readonly PrefabData[];
   levels: readonly LevelData[];
+  events?: readonly EventData[];
   availableEventIds?: ReadonlySet<string>;
   availableTimelineIds?: ReadonlySet<string>;
   availableCameraShotIds?: ReadonlySet<string>;
@@ -106,7 +108,88 @@ export function validateProjectReferences(
     );
   }
 
+  const entityIds = new Set(
+    input.levels.flatMap((level) => level.entities.map((entity) => entity.id)),
+  );
+
+  if (input.events) {
+    addDuplicateIdIssues(
+      input.events.map((event) => event.id),
+      'data/events',
+      'event',
+      issues,
+    );
+
+    for (const event of input.events) {
+      addEventTriggerReferenceIssues(event, entityIds, input.availableTimelineIds, issues);
+    }
+  }
+
   return issues;
+}
+
+function addEventTriggerReferenceIssues(
+  event: EventData,
+  entityIds: ReadonlySet<string>,
+  timelineIds: ReadonlySet<string> | undefined,
+  issues: ReferenceValidationIssue[],
+): void {
+  const trigger = event.trigger;
+  const path = `data/events/${event.id}.json.trigger`;
+
+  if (trigger.type === 'entity.interact') {
+    addMissingEntityReference(trigger.entityId, entityIds, `${path}.entityId`, 'entity', issues);
+    return;
+  }
+
+  if (trigger.type === 'trigger.enter' || trigger.type === 'trigger.exit') {
+    addMissingEntityReference(
+      trigger.triggerId,
+      entityIds,
+      `${path}.triggerId`,
+      'trigger target',
+      issues,
+    );
+
+    if (trigger.entityId) {
+      addMissingEntityReference(
+        trigger.entityId,
+        entityIds,
+        `${path}.entityId`,
+        'trigger entity',
+        issues,
+      );
+    }
+    return;
+  }
+
+  if (trigger.type === 'timeline.finished') {
+    addMissingSetReferences(
+      [trigger.timelineId],
+      timelineIds,
+      `${path}.timelineId`,
+      'timeline',
+      issues,
+    );
+  }
+}
+
+function addMissingEntityReference(
+  entityId: string,
+  entityIds: ReadonlySet<string>,
+  path: string,
+  label: string,
+  issues: ReferenceValidationIssue[],
+): void {
+  if (entityIds.has(entityId)) {
+    return;
+  }
+
+  issues.push({
+    severity: 'error',
+    path,
+    message: `Missing ${label} "${entityId}".`,
+  });
 }
 
 function addDuplicateIdIssues(

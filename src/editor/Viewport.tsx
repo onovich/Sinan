@@ -2,9 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { ProjectData } from '../data/DataRepository';
 import { getRenderableModelAssetId } from '../data/projectDataSelectors';
-import type { RuntimeTransform, TransformGizmoMode } from '../runtime/RuntimeTypes';
+import type {
+  RuntimeDebugAabb,
+  RuntimeTransform,
+  TransformGizmoMode,
+} from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
 import { ThreeRuntime } from '../runtime/three/ThreeRuntime';
+import {
+  AabbColliderComponentSchema,
+  TriggerZoneComponentSchema,
+} from '../schemas/collider.schema';
+import type { EntityData } from '../schemas/entity.schema';
 import type { TransformData } from '../schemas/transform.schema';
 import type { ActiveTool } from './store/editorStore';
 import { SelectionTool } from './tools/SelectionTool';
@@ -18,6 +27,7 @@ type ViewportStatus =
 export interface ViewportProps {
   project: ProjectData | null;
   selectionEnabled: boolean;
+  showTriggerDebug: boolean;
   selectedEntityId: string | undefined;
   activeTool: ActiveTool;
   onSelectEntity: (entityId: string | undefined) => void;
@@ -27,6 +37,7 @@ export interface ViewportProps {
 export function Viewport({
   project,
   selectionEnabled,
+  showTriggerDebug,
   selectedEntityId,
   activeTool,
   onSelectEntity,
@@ -38,6 +49,7 @@ export function Viewport({
   const selectionToolRef = useRef<SelectionTool | null>(null);
   const selectEntityRef = useRef(onSelectEntity);
   const transformCommitRef = useRef(onTransformCommit);
+  const showTriggerDebugRef = useRef(showTriggerDebug);
   const [status, setStatus] = useState<ViewportStatus>('Waiting for level data');
 
   useEffect(() => {
@@ -47,6 +59,10 @@ export function Viewport({
   useEffect(() => {
     transformCommitRef.current = onTransformCommit;
   }, [onTransformCommit]);
+
+  useEffect(() => {
+    showTriggerDebugRef.current = showTriggerDebug;
+  }, [showTriggerDebug]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -120,6 +136,7 @@ export function Viewport({
     void loadProjectIntoRuntime(runtime, project, () => disposed)
       .then(() => {
         if (!disposed) {
+          syncTriggerDebug(runtime, project, showTriggerDebugRef.current);
           setStatus('Level loaded');
         }
       })
@@ -134,6 +151,16 @@ export function Viewport({
       disposed = true;
     };
   }, [project]);
+
+  useEffect(() => {
+    const runtime = runtimeRef.current;
+
+    if (!runtime || !project) {
+      return;
+    }
+
+    syncTriggerDebug(runtime, project, showTriggerDebug);
+  }, [project, showTriggerDebug]);
 
   useEffect(() => {
     const runtime = runtimeRef.current;
@@ -174,6 +201,51 @@ export function Viewport({
       </div>
     </div>
   );
+}
+
+function syncTriggerDebug(
+  runtime: WebRuntime,
+  project: ProjectData,
+  showTriggerDebug: boolean,
+): void {
+  for (const entity of project.level.entities) {
+    runtime.setDebugAabb(entity.id, showTriggerDebug ? createTriggerDebugAabb(entity) : undefined);
+  }
+}
+
+function createTriggerDebugAabb(entity: EntityData): RuntimeDebugAabb | undefined {
+  const colliderResult = AabbColliderComponentSchema.safeParse(entity.components.Collider);
+
+  if (!colliderResult.success) {
+    return undefined;
+  }
+
+  const triggerZoneResult = TriggerZoneComponentSchema.safeParse(entity.components.TriggerZone);
+  const isTrigger =
+    colliderResult.data.isTrigger === true ||
+    (triggerZoneResult.success && triggerZoneResult.data.enabled !== false);
+
+  if (!isTrigger) {
+    return undefined;
+  }
+
+  const { center, size, debugColor } = colliderResult.data;
+  const { position, scale } = entity.transform;
+
+  return {
+    center: [
+      position[0] + center[0] * scale[0],
+      position[1] + center[1] * scale[1],
+      position[2] + center[2] * scale[2],
+    ],
+    size: [
+      Math.abs(size[0] * scale[0]),
+      Math.abs(size[1] * scale[1]),
+      Math.abs(size[2] * scale[2]),
+    ],
+    color: debugColor,
+    visible: true,
+  };
 }
 
 function getTransformGizmoMode(activeTool: ActiveTool): TransformGizmoMode | undefined {

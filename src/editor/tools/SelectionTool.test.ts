@@ -47,6 +47,7 @@ function createRuntimeMock(entityId: string | undefined): WebRuntime {
     stopAnimation: () => undefined,
     setAnimationTime: () => undefined,
     setCameraPose: () => undefined,
+    setDebugAabb: () => undefined,
     pick: () => (entityId ? { entityId, point: [0, 0, 0] } : null),
     attachTransformGizmo: () => undefined,
     detachTransformGizmo: () => undefined,

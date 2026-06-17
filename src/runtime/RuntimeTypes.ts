@@ -63,3 +63,10 @@ export interface RuntimeCameraPose {
   near?: number;
   far?: number;
 }
+
+export interface RuntimeDebugAabb {
+  center: Vec3;
+  size: Vec3;
+  color?: string;
+  visible: boolean;
+}
