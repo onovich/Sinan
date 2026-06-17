@@ -54,10 +54,11 @@ Acceptance:
 - Invalid JSON produces actionable schema errors.
 - Entity transforms are correctly applied and reference errors are caught.
 
-MVP limitation:
+MVP to Post-MVP transition note:
 
-- `ThreeRuntime.loadModel()` currently registers model metadata and instantiates deterministic placeholder geometry. This keeps the data, schema, editor, and runtime adapter contracts testable before real assets exist, but it is not a completed GLB pipeline.
-- A production-ready model pipeline must add `GLTFLoader` inside `src/runtime/three/**`, preserve the renderer-neutral `WebRuntime` boundary, cache loaded GLB scenes/animations, and keep placeholder fallback for missing or invalid local assets.
+- The Phase 0-7 MVP used deterministic placeholder geometry to keep data, schema, editor, and runtime adapter contracts testable before real assets existed.
+- Post-MVP Phase 8 now adds `GLTFLoader` inside `src/runtime/three/**`, preserves the renderer-neutral `WebRuntime` boundary, caches loaded GLB scenes/animations, and keeps placeholder fallback for missing or invalid local assets.
+- See `docs/phase-8-real-asset-runtime.md` for current GLB loading behavior, generated development assets, fallback behavior, and remaining limitations.
 
 ### Phase 2: Editor MVP
 
@@ -196,3 +197,12 @@ npm run validate-data
 ```
 
 After those scripts exist, wire them into `.codex/project-ops-workflow.json` and `.codex/project-git-workflow.json` so future commits use the repository wrappers instead of ad hoc commands.
+
+## Post-MVP Plan
+
+Phase 0-7 now define the architecture MVP. Continue with:
+
+- `docs/post-mvp-development-plan.md` for Phase 8-15 scope, acceptance criteria, and estimated session rounds.
+- `docs/post-mvp-execution-workflow.md` for the goal-mode execution workflow, phase gates, validation commands, and commit rhythm.
+
+The post-MVP route explicitly prioritizes rendering quality and editor UI/UX maturity. Phase 9 is the demo visual pass, Phase 11 is the editor UI/UX redesign, and Phase 12 carries detailed authoring workflows plus data safety.

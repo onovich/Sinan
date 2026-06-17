@@ -41,6 +41,7 @@ export interface RuntimeAnimationPlayOptions {
   loop?: boolean;
   fadeIn?: number;
   fadeOut?: number;
+  timeScale?: number;
 }
 
 export interface RuntimeAnimationStopOptions {

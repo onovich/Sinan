@@ -16,9 +16,29 @@ import type {
 } from '../RuntimeTypes';
 import type { RuntimeTransform } from '../RuntimeTypes';
 import type { WebRuntime } from '../WebRuntime';
+import {
+  cloneLoadedModelScene,
+  ThreeAssetLoader,
+  type ThreeLoadedModelAsset,
+} from './ThreeAssetLoader';
+import { disposeObjectResources } from './ThreeObjectResources';
 import { pickThreeObject } from './ThreePicking';
 
+export interface ThreeRuntimeOptions {
+  modelAssets?: ThreeAssetLoader;
+  logger?: Pick<Console, 'warn'>;
+}
+
+interface EntityAnimationBinding {
+  mixer: THREE.AnimationMixer;
+  clipsByName: Map<string, THREE.AnimationClip>;
+  actionsByClip: Map<string, THREE.AnimationAction>;
+  activeClips: Set<string>;
+}
+
 export class ThreeRuntime implements WebRuntime {
+  private readonly modelAssets: ThreeAssetLoader;
+  private readonly logger: Pick<Console, 'warn'>;
   private renderer: THREE.WebGLRenderer | undefined;
   private canvas: HTMLCanvasElement | undefined;
   private scene: THREE.Scene | undefined;
@@ -30,14 +50,19 @@ export class ThreeRuntime implements WebRuntime {
   private transformGizmoCallbacks: TransformGizmoCallbacks | undefined;
   private objectByEntityId = new Map<string, THREE.Object3D>();
   private debugAabbByEntityId = new Map<string, THREE.LineSegments>();
-  private modelByAssetId = new Map<string, ModelHandle & { url: string }>();
-  private animationByEntityId = new Map<
+  private animationStateByEntityId = new Map<
     string,
     { clip: string; loop?: boolean; playing: boolean; time: number }
   >();
+  private animationBindingByEntityId = new Map<string, EntityAnimationBinding>();
   private width = 1;
   private height = 1;
   private disposed = false;
+
+  constructor(options: ThreeRuntimeOptions = {}) {
+    this.modelAssets = options.modelAssets ?? new ThreeAssetLoader();
+    this.logger = options.logger ?? console;
+  }
 
   init(options: RuntimeInitOptions): void {
     this.canvas = options.canvas;
@@ -107,21 +132,31 @@ export class ThreeRuntime implements WebRuntime {
     this.transformControlsHelper = transformControlsHelper;
   }
 
-  loadModel(assetId: string, url: string): Promise<ModelHandle> {
-    const handle = { assetId, url };
-    this.modelByAssetId.set(assetId, handle);
+  async loadModel(assetId: string, url: string): Promise<ModelHandle> {
+    try {
+      await this.modelAssets.loadModel(assetId, url);
+    } catch (error) {
+      this.logger.warn(
+        `GLB asset "${assetId}" failed to load from "${url}"; using placeholder fallback.`,
+        error,
+      );
+    }
 
-    return Promise.resolve({ assetId });
+    return { assetId };
   }
 
   instantiateModel(assetId: string, entityId: string): RuntimeObjectHandle {
     this.destroyObject(entityId);
 
-    const object = createPlaceholderObject(assetId);
+    const loadedAsset = this.modelAssets.getLoadedModel(assetId);
+    const object = loadedAsset
+      ? cloneLoadedModelScene(loadedAsset)
+      : createPlaceholderObject(assetId);
     object.name = entityId;
     tagRuntimeObject(object, entityId, assetId);
     this.objectRoot?.add(object);
     this.objectByEntityId.set(entityId, object);
+    this.bindEntityAnimations(entityId, object, loadedAsset);
 
     return { entityId, runtimeObjectId: entityId };
   }
@@ -140,6 +175,7 @@ export class ThreeRuntime implements WebRuntime {
 
   destroyObject(entityId: string): void {
     this.disposeDebugAabb(entityId);
+    this.disposeEntityAnimations(entityId);
 
     const object = this.objectByEntityId.get(entityId);
     if (!object) {
@@ -151,6 +187,7 @@ export class ThreeRuntime implements WebRuntime {
       disposeObjectResources(child);
     });
     this.objectByEntityId.delete(entityId);
+    this.animationStateByEntityId.delete(entityId);
   }
 
   setTransform(entityId: string, transform: RuntimeTransform): void {
@@ -190,7 +227,39 @@ export class ThreeRuntime implements WebRuntime {
   }
 
   playAnimation(options: RuntimeAnimationPlayOptions): void {
-    this.animationByEntityId.set(options.entityId, {
+    const binding = this.animationBindingByEntityId.get(options.entityId);
+
+    if (binding) {
+      const clipAction = this.getClipAction(binding, options.clip);
+
+      if (clipAction) {
+        for (const activeClip of binding.activeClips) {
+          if (activeClip !== options.clip) {
+            this.stopClipAction(binding, activeClip, options.fadeOut);
+          }
+        }
+
+        const { action } = clipAction;
+        action.reset();
+        action.enabled = true;
+        action.paused = false;
+        action.clampWhenFinished = options.loop !== true;
+        action.timeScale = options.timeScale ?? 1;
+        action.setLoop(
+          options.loop === true ? THREE.LoopRepeat : THREE.LoopOnce,
+          options.loop ? Infinity : 1,
+        );
+        if (options.fadeIn && options.fadeIn > 0) {
+          action.fadeIn(options.fadeIn);
+        }
+        action.play();
+        binding.activeClips.add(options.clip);
+      } else {
+        this.warnMissingAnimationClip(options.entityId, options.clip);
+      }
+    }
+
+    this.animationStateByEntityId.set(options.entityId, {
       clip: options.clip,
       loop: options.loop,
       playing: true,
@@ -199,23 +268,59 @@ export class ThreeRuntime implements WebRuntime {
   }
 
   stopAnimation(options: RuntimeAnimationStopOptions): void {
-    const current = this.animationByEntityId.get(options.entityId);
+    const binding = this.animationBindingByEntityId.get(options.entityId);
+
+    if (binding) {
+      if (options.clip) {
+        this.stopClipAction(binding, options.clip, options.fadeOut);
+      } else {
+        for (const clipName of binding.activeClips) {
+          this.stopClipAction(binding, clipName, options.fadeOut);
+        }
+      }
+    }
+
+    const current = this.animationStateByEntityId.get(options.entityId);
 
     if (!current || (options.clip && current.clip !== options.clip)) {
       return;
     }
 
-    this.animationByEntityId.set(options.entityId, { ...current, playing: false });
+    this.animationStateByEntityId.set(options.entityId, { ...current, playing: false });
   }
 
   setAnimationTime(options: RuntimeAnimationTimeOptions): void {
-    const current = this.animationByEntityId.get(options.entityId);
+    const time = Math.max(0, options.time);
+    const binding = this.animationBindingByEntityId.get(options.entityId);
 
-    this.animationByEntityId.set(options.entityId, {
+    if (binding) {
+      const clipAction = this.getClipAction(binding, options.clip);
+
+      if (clipAction) {
+        binding.mixer.stopAllAction();
+        binding.activeClips.clear();
+        const { action, clip } = clipAction;
+        action.reset();
+        action.enabled = true;
+        action.paused = false;
+        action.clampWhenFinished = true;
+        action.setLoop(THREE.LoopOnce, 1);
+        action.play();
+        binding.mixer.setTime(Math.min(time, clip.duration));
+        action.paused = true;
+        binding.activeClips.add(options.clip);
+      } else {
+        this.warnMissingAnimationClip(options.entityId, options.clip);
+      }
+    }
+
+    const current = this.animationStateByEntityId.get(options.entityId);
+
+    this.animationStateByEntityId.set(options.entityId, {
       clip: options.clip,
       loop: current?.loop,
       playing: false,
-      time: Math.max(0, options.time),
+      time,
     });
   }
 
@@ -318,9 +423,13 @@ export class ThreeRuntime implements WebRuntime {
   }
 
   update(deltaSeconds: number): void {
-    for (const [entityId, animation] of this.animationByEntityId) {
+    for (const binding of this.animationBindingByEntityId.values()) {
+      binding.mixer.update(deltaSeconds);
+    }
+
+    for (const [entityId, animation] of this.animationStateByEntityId) {
       if (animation.playing) {
-        this.animationByEntityId.set(entityId, {
+        this.animationStateByEntityId.set(entityId, {
           ...animation,
           time: animation.time + deltaSeconds,
         });
@@ -378,8 +487,9 @@ export class ThreeRuntime implements WebRuntime {
     this.transformGizmoCallbacks = undefined;
     this.objectByEntityId.clear();
     this.debugAabbByEntityId.clear();
-    this.modelByAssetId.clear();
-    this.animationByEntityId.clear();
+    this.modelAssets.dispose();
+    this.animationStateByEntityId.clear();
+    this.animationBindingByEntityId.clear();
   }
 
   private disposeDebugAabb(entityId: string): void {
@@ -408,6 +518,80 @@ export class ThreeRuntime implements WebRuntime {
     }
 
     callback({ entityId, transform });
+  }
+
+  private bindEntityAnimations(
+    entityId: string,
+    object: THREE.Object3D,
+    loadedAsset: ThreeLoadedModelAsset | undefined,
+  ): void {
+    if (!loadedAsset || loadedAsset.animations.length === 0) {
+      return;
+    }
+
+    this.animationBindingByEntityId.set(entityId, {
+      mixer: new THREE.AnimationMixer(object),
+      clipsByName: new Map(loadedAsset.animations.map((clip) => [clip.name, clip])),
+      actionsByClip: new Map(),
+      activeClips: new Set(),
+    });
+  }
+
+  private disposeEntityAnimations(entityId: string): void {
+    const binding = this.animationBindingByEntityId.get(entityId);
+
+    if (!binding) {
+      return;
+    }
+
+    binding.mixer.stopAllAction();
+    binding.actionsByClip.clear();
+    binding.activeClips.clear();
+    this.animationBindingByEntityId.delete(entityId);
+  }
+
+  private getClipAction(
+    binding: EntityAnimationBinding,
+    clipName: string,
+  ): { clip: THREE.AnimationClip; action: THREE.AnimationAction } | undefined {
+    const clip = binding.clipsByName.get(clipName);
+
+    if (!clip) {
+      return undefined;
+    }
+
+    const cachedAction = binding.actionsByClip.get(clipName);
+    if (cachedAction) {
+      return { clip, action: cachedAction };
+    }
+
+    const action = binding.mixer.clipAction(clip);
+    binding.actionsByClip.set(clipName, action);
+
+    return { clip, action };
+  }
+
+  private stopClipAction(
+    binding: EntityAnimationBinding,
+    clipName: string,
+    fadeOut: number | undefined,
+  ): void {
+    const clipAction = this.getClipAction(binding, clipName);
+
+    if (!clipAction) {
+      return;
+    }
+
+    if (fadeOut && fadeOut > 0) {
+      clipAction.action.fadeOut(fadeOut);
+    } else {
+      clipAction.action.stop();
+    }
+    binding.activeClips.delete(clipName);
+  }
+
+  private warnMissingAnimationClip(entityId: string, clipName: string): void {
+    this.logger.warn(`Animation clip "${clipName}" was not found for entity "${entityId}".`);
   }
 }
 
@@ -471,22 +655,4 @@ function createBoxObject(
   group.add(mesh);
 
   return group;
-}
-
-function disposeObjectResources(object: THREE.Object3D): void {
-  if (!(object instanceof THREE.Mesh) && !(object instanceof THREE.LineSegments)) {
-    return;
-  }
-
-  const renderable = object as
-    | THREE.Mesh<THREE.BufferGeometry, THREE.Material | THREE.Material[]>
-    | THREE.LineSegments<THREE.BufferGeometry, THREE.Material | THREE.Material[]>;
-  renderable.geometry.dispose();
-
-  const materials = Array.isArray(renderable.material)
-    ? renderable.material
-    : [renderable.material];
-  for (const material of materials) {
-    material.dispose();
-  }
 }

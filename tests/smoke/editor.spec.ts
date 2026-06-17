@@ -3,6 +3,7 @@ import { inflateSync } from 'node:zlib';
 
 test('editor workflow loads, renders, and supports core timeline controls', async ({ page }) => {
   const browserErrors: string[] = [];
+  const modelResponses = new Map<string, number>();
 
   page.on('console', (message) => {
     if (message.type() === 'error') {
@@ -12,10 +13,20 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   page.on('pageerror', (error) => {
     browserErrors.push(error.message);
   });
+  page.on('response', (response) => {
+    const url = new URL(response.url());
+    if (url.pathname.startsWith('/models/') && url.pathname.endsWith('.glb')) {
+      modelResponses.set(url.pathname, response.status());
+    }
+  });
 
   await page.goto('/');
   await expect(page.getByTestId('editor-shell')).toBeVisible();
   await expect(page.getByText('Level loaded')).toBeVisible();
+  await expect
+    .poll(() => Array.from(modelResponses.values()).filter((status) => status === 200).length)
+    .toBeGreaterThanOrEqual(4);
+  expect(Array.from(modelResponses.values()).every((status) => status === 200)).toBe(true);
   expect(browserErrors).toEqual([]);
 
   const canvas = page.locator('canvas.runtime-canvas');

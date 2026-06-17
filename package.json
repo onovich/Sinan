@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "typecheck": "tsc -b --pretty false",
     "validate-data": "tsx scripts/validate-data.ts",
+    "generate:dev-assets": "tsx scripts/generate-dev-glb-assets.ts",
     "format": "prettier \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.ts\" \"tests/**/*.ts\" \"*.{json,js,ts,html}\" --write",
     "format:check": "prettier \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.ts\" \"tests/**/*.ts\" \"*.{json,js,ts,html}\" --check",
     "preview": "vite preview --host 127.0.0.1"
