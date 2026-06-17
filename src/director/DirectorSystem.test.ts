@@ -94,6 +94,32 @@ describe('DirectorSystem', () => {
       },
     ]);
   });
+
+  it('keeps preview playback from running runtime-only action side effects', () => {
+    const runtimeCalls: string[] = [];
+    const cameraPoses: RuntimeCameraPose[] = [];
+    const context = {
+      ...createDirectorContext(createRuntimeMock(runtimeCalls, cameraPoses)),
+      previewMode: true,
+    };
+    const director = new DirectorSystem(
+      createTimelineLookup(openGateTimeline),
+      new EventSystem([]),
+      { [gateRevealCameraShot.id]: gateRevealCameraShot },
+    );
+
+    director.playTimeline('tl_open_gate');
+    director.update(4, context);
+
+    expect(director.getTimelineStatus('tl_open_gate')).toBe('playing');
+    expect(context.state.flags.gate_a_opened).toBeUndefined();
+    expect(context.directorCommands).toEqual(
+      expect.arrayContaining<DirectorCommand>([
+        { type: 'sound.play', soundId: 'audio.switch_click' },
+        { type: 'subtitle.show', text: 'Gate open.', duration: 2 },
+      ]),
+    );
+  });
 });
 
 function createTimelineLookup(timeline: TimelineData): Record<string, TimelineData> {

@@ -3,7 +3,7 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { createDemoDataRepository } from '../data/demoDataLoader';
 import type { ProjectData } from '../data/DataRepository';
 import { saveJson } from '../data/saveJsonClient';
-import { DirectorSystem } from '../director/DirectorSystem';
+import { DirectorSystem, type DirectorSystemContext } from '../director/DirectorSystem';
 import { EventSystem } from '../events/EventSystem';
 import { TriggerSystem } from '../events/TriggerSystem';
 import { createEventRuntimeState, type DirectorCommand, type FlagValue } from '../events/types';
@@ -57,6 +57,8 @@ export function EditorApp() {
   const [cameraShotSaveStatus, setCameraShotSaveStatus] = useState<CameraShotSaveStatus>('idle');
   const [cameraPreviewStatus, setCameraPreviewStatus] = useState('No camera preview');
   const [timelinePreviewStatus, setTimelinePreviewStatus] = useState('Ready to scrub');
+  const [timelinePlaybackStatus, setTimelinePlaybackStatus] =
+    useState<TimelinePlaybackStatus>('stopped');
   const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
   const projectRef = useRef<ProjectData | null>(null);
   const commandHistoryRef = useRef(new CommandHistory());
@@ -67,6 +69,7 @@ export function EditorApp() {
     }),
   );
   const directorCommandsRef = useRef<DirectorCommand[]>([]);
+  const timelinePlaybackRef = useRef<TimelinePlaybackSession | null>(null);
   const [eventDebugState, setEventDebugState] = useState<EventDebugState>({
     firedEventIds: [],
     flags: { power_enabled: true },
@@ -127,6 +130,16 @@ export function EditorApp() {
   useEffect(() => {
     projectRef.current = project;
   }, [project]);
+
+  useEffect(() => {
+    return () => {
+      const session = timelinePlaybackRef.current;
+
+      if (session?.timerId !== undefined) {
+        clearInterval(session.timerId);
+      }
+    };
+  }, []);
 
   const commitTransform = (entityId: string, transform: TransformData) => {
     const current = projectRef.current;
@@ -372,14 +385,7 @@ export function EditorApp() {
     }
 
     const safeTime = roundTimelineTime(time);
-    const previewDirectorCommands: DirectorCommand[] = [];
-    const previewContext = {
-      state: createEventRuntimeState({
-        flags: { ...eventRuntimeStateRef.current.flags },
-        inventory: eventRuntimeStateRef.current.inventory,
-      }),
-      directorCommands: previewDirectorCommands,
-    };
+    const previewContext = createTimelinePreviewContext();
     const director = new DirectorSystem(
       project.timelines,
       new EventSystem(Object.values(project.events)),
@@ -390,6 +396,155 @@ export function EditorApp() {
     dispatch({ type: 'selectTimeline', timelineId });
     dispatch({ type: 'setTimelineTime', timelineTime: safeTime });
     setTimelinePreviewStatus(formatTimelinePreviewStatus(timelineId, safeTime, director));
+  };
+
+  const playTimeline = (timelineId: string) => {
+    const current = projectRef.current;
+    const timeline = current?.timelines[timelineId];
+
+    if (!current || !timeline) {
+      return;
+    }
+
+    cancelTimelinePlaybackFrame();
+    const director = new DirectorSystem(
+      current.timelines,
+      new EventSystem(Object.values(current.events)),
+      current.cameraShots,
+    );
+    const startTime = clampNumber(editorState.timelineTime, 0, timeline.duration);
+    const session: TimelinePlaybackSession = {
+      director,
+      context: createTimelinePreviewContext(),
+      timelineId,
+      timerId: undefined,
+    };
+
+    director.playTimeline(timelineId, { startTime });
+    timelinePlaybackRef.current = session;
+    dispatch({ type: 'setMode', mode: 'preview' });
+    dispatch({ type: 'selectTimeline', timelineId });
+    dispatch({ type: 'setTimelineTime', timelineTime: startTime });
+    setTimelinePlaybackStatus('playing');
+    setTimelinePreviewStatus(`${timelineId} preview playing`);
+    scheduleTimelinePlaybackFrame(session);
+  };
+
+  const pauseTimeline = () => {
+    const session = timelinePlaybackRef.current;
+
+    if (!session) {
+      return;
+    }
+
+    if (session.timerId !== undefined) {
+      clearInterval(session.timerId);
+      session.timerId = undefined;
+    }
+
+    session.director.pauseTimeline(session.timelineId);
+    setTimelinePlaybackStatus('paused');
+    setTimelinePreviewStatus(`${session.timelineId} paused`);
+  };
+
+  const resumeTimeline = () => {
+    const session = timelinePlaybackRef.current;
+
+    if (!session) {
+      return;
+    }
+
+    session.director.resumeTimeline(session.timelineId);
+    setTimelinePlaybackStatus('playing');
+    setTimelinePreviewStatus(`${session.timelineId} preview playing`);
+    scheduleTimelinePlaybackFrame(session);
+  };
+
+  const stopTimeline = () => {
+    const session = timelinePlaybackRef.current;
+    const timelineId = session?.timelineId ?? selectedTimeline?.id;
+
+    cancelTimelinePlaybackFrame();
+
+    if (session) {
+      session.director.stopTimeline(session.timelineId);
+    }
+
+    timelinePlaybackRef.current = null;
+    setTimelinePlaybackStatus('stopped');
+    dispatch({ type: 'setTimelineTime', timelineTime: 0 });
+    setTimelinePreviewStatus(timelineId ? `${timelineId} stopped` : 'Timeline stopped');
+  };
+
+  const seekTimeline = (timelineId: string, time: number) => {
+    const timeline = projectRef.current?.timelines[timelineId];
+
+    if (!timeline) {
+      return;
+    }
+
+    const safeTime = roundTimelineTime(clampNumber(time, 0, timeline.duration));
+    const session = timelinePlaybackRef.current;
+
+    if (session?.timelineId === timelineId) {
+      session.director.seekTimeline(timelineId, safeTime);
+      dispatch({ type: 'setTimelineTime', timelineTime: safeTime });
+      setTimelinePreviewStatus(`${timelineId} seek ${safeTime.toFixed(2)}s`);
+      return;
+    }
+
+    scrubTimeline(timelineId, safeTime);
+  };
+
+  const createTimelinePreviewContext = (): DirectorSystemContext => ({
+    state: createEventRuntimeState({
+      flags: { ...eventRuntimeStateRef.current.flags },
+      inventory: eventRuntimeStateRef.current.inventory,
+    }),
+    directorCommands: [],
+    previewMode: true,
+  });
+
+  const cancelTimelinePlaybackFrame = () => {
+    const session = timelinePlaybackRef.current;
+
+    if (session?.timerId !== undefined) {
+      clearInterval(session.timerId);
+      session.timerId = undefined;
+    }
+  };
+
+  const scheduleTimelinePlaybackFrame = (session: TimelinePlaybackSession) => {
+    session.timerId = window.setInterval(() => {
+      if (timelinePlaybackRef.current !== session) {
+        return;
+      }
+
+      session.director.update(0.1, session.context);
+      const state = session.director.getTimelineState(session.timelineId);
+
+      if (!state) {
+        if (session.timerId !== undefined) {
+          clearInterval(session.timerId);
+          session.timerId = undefined;
+        }
+        timelinePlaybackRef.current = null;
+        setTimelinePlaybackStatus('stopped');
+        return;
+      }
+
+      dispatch({ type: 'setTimelineTime', timelineTime: roundTimelineTime(state.time) });
+      setTimelinePlaybackStatus(state.status);
+      setTimelinePreviewStatus(`${session.timelineId} @ ${state.time.toFixed(2)}s`);
+
+      if (state.status !== 'playing') {
+        if (session.timerId !== undefined) {
+          clearInterval(session.timerId);
+          session.timerId = undefined;
+        }
+        timelinePlaybackRef.current = null;
+      }
+    }, 100);
   };
 
   const translateSelectedEntity = (delta: readonly [number, number, number]) => {
@@ -544,6 +699,7 @@ export function EditorApp() {
           selectedTrackId={editorState.selectedTimelineTrackId}
           currentTime={editorState.timelineTime}
           saveStatus={timelineSaveStatus}
+          playbackStatus={timelinePlaybackStatus}
           previewStatus={timelinePreviewStatus}
           entityIds={getEntityIds(project)}
           cameraShotIds={cameraShots.map((shot) => shot.id)}
@@ -551,6 +707,11 @@ export function EditorApp() {
           onSelectTimeline={selectTimeline}
           onSelectTrack={(trackId) => dispatch({ type: 'selectTimelineTrack', trackId })}
           onScrubTimeline={scrubTimeline}
+          onPlayTimeline={playTimeline}
+          onPauseTimeline={pauseTimeline}
+          onResumeTimeline={resumeTimeline}
+          onStopTimeline={stopTimeline}
+          onSeekTimeline={seekTimeline}
           onAddTrack={addTimelineTrack}
           onApplyTrack={applyTimelineTrack}
           onApplyTrackItem={applyTimelineTrackItem}
@@ -563,6 +724,14 @@ export function EditorApp() {
 }
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
+type TimelinePlaybackStatus = 'stopped' | 'playing' | 'paused';
+
+interface TimelinePlaybackSession {
+  director: DirectorSystem;
+  context: DirectorSystemContext;
+  timelineId: string;
+  timerId: number | undefined;
+}
 
 function formatMode(mode: EditorMode): string {
   return mode[0].toUpperCase() + mode.slice(1);
@@ -924,6 +1093,10 @@ function transformsEqual(left: TransformData, right: TransformData): boolean {
 
 function roundTimelineTime(time: number): number {
   return Math.round(time * 100) / 100;
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }
 
 function formatTimelinePreviewStatus(

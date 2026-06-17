@@ -566,6 +566,23 @@ button:hover {
   opacity: 0.48;
 }
 
+.timeline-playback-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(72px, 1fr));
+  gap: 8px;
+}
+
+.timeline-playback-row button {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.timeline-playback-row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
 .timeline-ruler {
   position: relative;
   display: grid;
@@ -702,5 +719,9 @@ button:hover {
   .timeline-controls,
   .timeline-track-fields {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .timeline-playback-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

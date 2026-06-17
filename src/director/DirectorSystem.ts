@@ -10,10 +10,16 @@ import { CameraShotTrackPlayer } from './CameraShotTrackPlayer';
 import { DirectorCameraSystem } from './DirectorCameraSystem';
 import { PropertyTrackPlayer, type PropertyTrackSample } from './PropertyTrackPlayer';
 import { SubtitleTrackPlayer } from './SubtitleTrackPlayer';
-import { TimelinePlayer } from './TimelinePlayer';
+import {
+  TimelinePlayer,
+  type TimelinePlaybackStatus,
+  type TimelinePlayOptions,
+  type TimelinePlayerState,
+} from './TimelinePlayer';
 
 export interface DirectorSystemContext extends Omit<ActionExecutionContext, 'runtime'> {
   runtime?: WebRuntime;
+  previewMode?: boolean;
 }
 
 export class DirectorSystem {
@@ -61,6 +67,34 @@ export class DirectorSystem {
     }
   }
 
+  playTimeline(timelineId: string, options: TimelinePlayOptions = {}): void {
+    this.timelinePlayer.play(timelineId, options);
+  }
+
+  pauseTimeline(timelineId: string): void {
+    this.timelinePlayer.pause(timelineId);
+  }
+
+  resumeTimeline(timelineId: string): void {
+    this.timelinePlayer.resume(timelineId);
+  }
+
+  stopTimeline(timelineId: string): void {
+    this.timelinePlayer.stop(timelineId);
+  }
+
+  seekTimeline(timelineId: string, time: number): void {
+    this.timelinePlayer.seek(timelineId, time);
+  }
+
+  getTimelineState(timelineId: string): TimelinePlayerState | undefined {
+    return this.timelinePlayer.getState(timelineId);
+  }
+
+  getTimelineStatus(timelineId: string): TimelinePlaybackStatus {
+    return this.timelinePlayer.getState(timelineId)?.status ?? 'stopped';
+  }
+
   getLastPropertySamples(): readonly PropertyTrackSample[] {
     return this.lastPropertySamples;
   }
@@ -96,7 +130,11 @@ export class DirectorSystem {
 
     switch (track.type) {
       case 'action':
-        this.actionTrackPlayer.play(track, context);
+        if (context.previewMode) {
+          this.actionTrackPlayer.scrub(track, context);
+        } else {
+          this.actionTrackPlayer.play(track, context);
+        }
         break;
       case 'animation.play':
         if (context.runtime) {

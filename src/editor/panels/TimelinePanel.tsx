@@ -20,6 +20,7 @@ export interface TimelinePanelProps {
   selectedTrackId: string | undefined;
   currentTime: number;
   saveStatus: TimelineSaveStatus;
+  playbackStatus: 'stopped' | 'playing' | 'paused';
   previewStatus: string;
   entityIds: readonly string[];
   cameraShotIds: readonly string[];
@@ -27,6 +28,11 @@ export interface TimelinePanelProps {
   onSelectTimeline: (timelineId: string) => void;
   onSelectTrack: (trackId: string | undefined) => void;
   onScrubTimeline: (timelineId: string, time: number) => void;
+  onPlayTimeline: (timelineId: string) => void;
+  onPauseTimeline: () => void;
+  onResumeTimeline: () => void;
+  onStopTimeline: () => void;
+  onSeekTimeline: (timelineId: string, time: number) => void;
   onAddTrack: (timelineId: string, trackType: TimelineTrackKind) => void;
   onApplyTrack: (timelineId: string, track: TimelineTrackData) => void;
   onApplyTrackItem: (
@@ -54,6 +60,7 @@ export function TimelinePanel({
   selectedTrackId,
   currentTime,
   saveStatus,
+  playbackStatus,
   previewStatus,
   entityIds,
   cameraShotIds,
@@ -61,6 +68,11 @@ export function TimelinePanel({
   onSelectTimeline,
   onSelectTrack,
   onScrubTimeline,
+  onPlayTimeline,
+  onPauseTimeline,
+  onResumeTimeline,
+  onStopTimeline,
+  onSeekTimeline,
   onAddTrack,
   onApplyTrack,
   onApplyTrackItem,
@@ -358,6 +370,34 @@ export function TimelinePanel({
 
       {selectedTimeline ? (
         <>
+          <div className="timeline-playback-row" aria-label="Timeline playback controls">
+            {playbackStatus === 'playing' ? (
+              <button type="button" onClick={onPauseTimeline}>
+                Pause
+              </button>
+            ) : playbackStatus === 'paused' ? (
+              <button type="button" onClick={onResumeTimeline}>
+                Resume
+              </button>
+            ) : (
+              <button type="button" onClick={() => onPlayTimeline(selectedTimeline.id)}>
+                Play
+              </button>
+            )}
+            <button type="button" onClick={onStopTimeline} disabled={playbackStatus === 'stopped'}>
+              Stop
+            </button>
+            <button type="button" onClick={() => onSeekTimeline(selectedTimeline.id, 0)}>
+              Start
+            </button>
+            <button
+              type="button"
+              onClick={() => onSeekTimeline(selectedTimeline.id, selectedTimeline.duration)}
+            >
+              End
+            </button>
+          </div>
+
           <label className="timeline-scrubber" htmlFor="timeline-scrub">
             <span>{timelineTime.toFixed(2)}s</span>
             <input
