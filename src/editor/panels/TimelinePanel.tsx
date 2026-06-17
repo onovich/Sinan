@@ -297,7 +297,11 @@ export function TimelinePanel({
 
   if (timelines.length === 0) {
     return (
-      <section className="timeline-panel" aria-labelledby="timeline-heading">
+      <section
+        className="timeline-panel"
+        data-testid="timeline-panel"
+        aria-labelledby="timeline-heading"
+      >
         <div className="timeline-header">
           <strong id="timeline-heading">Timeline</strong>
           <span>No timelines loaded</span>
@@ -307,7 +311,11 @@ export function TimelinePanel({
   }
 
   return (
-    <section className="timeline-panel" aria-labelledby="timeline-heading">
+    <section
+      className="timeline-panel"
+      data-testid="timeline-panel"
+      aria-labelledby="timeline-heading"
+    >
       <div className="timeline-header">
         <strong id="timeline-heading">Timeline</strong>
         <span role="status">{previewStatus}</span>
@@ -416,7 +424,11 @@ export function TimelinePanel({
             {buildTicks(selectedTimeline.duration).map((time) => (
               <span key={time}>{time}s</span>
             ))}
-            <div className="timeline-playhead" style={{ left: playheadPercent }} />
+            <div
+              className="timeline-playhead"
+              data-testid="timeline-playhead"
+              style={{ left: playheadPercent }}
+            />
           </div>
 
           <ol className="timeline-track-list" aria-label="Timeline tracks">
