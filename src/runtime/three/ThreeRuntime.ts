@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 
 import type { ModelHandle, RuntimeObjectHandle } from '../RuntimeObjectHandle';
-import type { RuntimeInitOptions, RuntimeSize } from '../RuntimeTypes';
+import type { PickResult, RuntimeInitOptions, RuntimeSize } from '../RuntimeTypes';
 import type { RuntimeTransform } from '../RuntimeTypes';
 import type { WebRuntime } from '../WebRuntime';
+import { pickThreeObject } from './ThreePicking';
 
 export class ThreeRuntime implements WebRuntime {
   private renderer: THREE.WebGLRenderer | undefined;
+  private canvas: HTMLCanvasElement | undefined;
   private scene: THREE.Scene | undefined;
   private objectRoot: THREE.Group | undefined;
   private camera: THREE.PerspectiveCamera | undefined;
@@ -17,6 +19,7 @@ export class ThreeRuntime implements WebRuntime {
   private disposed = false;
 
   init(options: RuntimeInitOptions): void {
+    this.canvas = options.canvas;
     this.width = Math.max(1, Math.floor(options.width));
     this.height = Math.max(1, Math.floor(options.height));
     this.disposed = false;
@@ -81,7 +84,7 @@ export class ThreeRuntime implements WebRuntime {
 
     const object = createPlaceholderObject(assetId);
     object.name = entityId;
-    object.userData = { entityId, assetId };
+    tagRuntimeObject(object, entityId, assetId);
     this.objectRoot?.add(object);
     this.objectByEntityId.set(entityId, object);
 
@@ -93,7 +96,7 @@ export class ThreeRuntime implements WebRuntime {
 
     const object = createEmptyObject();
     object.name = entityId;
-    object.userData = { entityId };
+    tagRuntimeObject(object, entityId);
     this.objectRoot?.add(object);
     this.objectByEntityId.set(entityId, object);
 
@@ -149,6 +152,20 @@ export class ThreeRuntime implements WebRuntime {
     }
   }
 
+  pick(clientX: number, clientY: number): PickResult | null {
+    if (!this.canvas || !this.camera || !this.objectRoot) {
+      return null;
+    }
+
+    return pickThreeObject({
+      canvas: this.canvas,
+      camera: this.camera,
+      root: this.objectRoot,
+      clientX,
+      clientY,
+    });
+  }
+
   update(deltaSeconds: number): void {
     for (const object of this.objectByEntityId.values()) {
       if (object.userData.assetId === 'model.player_spawn') {
@@ -190,12 +207,23 @@ export class ThreeRuntime implements WebRuntime {
 
     this.renderer?.dispose();
     this.renderer = undefined;
+    this.canvas = undefined;
     this.scene = undefined;
     this.objectRoot = undefined;
     this.camera = undefined;
     this.objectByEntityId.clear();
     this.modelByAssetId.clear();
   }
+}
+
+function tagRuntimeObject(object: THREE.Object3D, entityId: string, assetId?: string): void {
+  object.traverse((child) => {
+    child.userData = {
+      ...child.userData,
+      entityId,
+      assetId,
+    };
+  });
 }
 
 function createPlaceholderObject(assetId: string): THREE.Object3D {

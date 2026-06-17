@@ -16,3 +16,9 @@ export interface RuntimeSize {
 export interface RuntimeInitOptions extends RuntimeSize {
   canvas: HTMLCanvasElement;
 }
+
+export interface PickResult {
+  entityId: string;
+  point: Vec3;
+  normal?: Vec3;
+}

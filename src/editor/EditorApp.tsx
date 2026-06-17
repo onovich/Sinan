@@ -74,7 +74,11 @@ export function EditorApp() {
         </aside>
 
         <section className="viewport-region" aria-label={editorPanelLayout[1].title}>
-          <Viewport project={project} />
+          <Viewport
+            project={project}
+            selectionEnabled={editorState.mode === 'edit'}
+            onSelectEntity={(entityId) => dispatch({ type: 'selectEntity', entityId })}
+          />
         </section>
 
         <aside className="editor-panel editor-panel-right" aria-labelledby="inspector-heading">

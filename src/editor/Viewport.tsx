@@ -4,6 +4,7 @@ import type { ProjectData } from '../data/DataRepository';
 import { getRenderableModelAssetId } from '../data/projectDataSelectors';
 import type { WebRuntime } from '../runtime/WebRuntime';
 import { ThreeRuntime } from '../runtime/three/ThreeRuntime';
+import { SelectionTool } from './tools/SelectionTool';
 
 type ViewportStatus =
   | 'Waiting for level data'
@@ -13,13 +14,21 @@ type ViewportStatus =
 
 export interface ViewportProps {
   project: ProjectData | null;
+  selectionEnabled: boolean;
+  onSelectEntity: (entityId: string | undefined) => void;
 }
 
-export function Viewport({ project }: ViewportProps) {
+export function Viewport({ project, selectionEnabled, onSelectEntity }: ViewportProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const runtimeRef = useRef<WebRuntime | null>(null);
+  const selectionToolRef = useRef<SelectionTool | null>(null);
+  const selectEntityRef = useRef(onSelectEntity);
   const [status, setStatus] = useState<ViewportStatus>('Waiting for level data');
+
+  useEffect(() => {
+    selectEntityRef.current = onSelectEntity;
+  }, [onSelectEntity]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -31,6 +40,9 @@ export function Viewport({ project }: ViewportProps) {
 
     const runtime = new ThreeRuntime();
     runtimeRef.current = runtime;
+    selectionToolRef.current = new SelectionTool(runtime, (entityId) => {
+      selectEntityRef.current(entityId);
+    });
 
     const readSize = () => {
       const rect = host.getBoundingClientRect();
@@ -73,6 +85,7 @@ export function Viewport({ project }: ViewportProps) {
       resizeObserver.disconnect();
       runtime.dispose();
       runtimeRef.current = null;
+      selectionToolRef.current = null;
     };
   }, []);
 
@@ -106,7 +119,16 @@ export function Viewport({ project }: ViewportProps) {
 
   return (
     <div ref={hostRef} className="viewport-placeholder" data-testid="viewport-placeholder">
-      <canvas ref={canvasRef} className="runtime-canvas" aria-label="Runtime viewport" />
+      <canvas
+        ref={canvasRef}
+        className="runtime-canvas"
+        aria-label="Runtime viewport"
+        onPointerDown={(event) => {
+          if (selectionEnabled) {
+            selectionToolRef.current?.handlePointerDown(event);
+          }
+        }}
+      />
       <div className="viewport-status">
         <strong>Editor Viewport</strong>
         <span>{status}</span>

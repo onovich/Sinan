@@ -1,4 +1,4 @@
-import type { RuntimeInitOptions, RuntimeSize } from './RuntimeTypes';
+import type { PickResult, RuntimeInitOptions, RuntimeSize } from './RuntimeTypes';
 import type { ModelHandle, RuntimeObjectHandle } from './RuntimeObjectHandle';
 import type { RuntimeTransform } from './RuntimeTypes';
 
@@ -11,6 +11,7 @@ export interface WebRuntime {
   setTransform(entityId: string, transform: RuntimeTransform): void;
   getTransform(entityId: string): RuntimeTransform | null;
   setVisible(entityId: string, visible: boolean): void;
+  pick(clientX: number, clientY: number): PickResult | null;
   update(deltaSeconds: number): void;
   render(): void;
   resize(size: RuntimeSize): void;
