@@ -23,6 +23,20 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   await page.goto('/');
   await expect(page.getByTestId('editor-shell')).toBeVisible();
   await expect(page.getByText('Level loaded')).toBeVisible();
+  const layout = await page.evaluate(() => {
+    const shell = document.querySelector('[data-testid="editor-shell"]');
+    const timeline = document.querySelector('[data-testid="timeline-panel"]');
+
+    return {
+      viewportHeight: document.documentElement.clientHeight,
+      pageScrollHeight: document.documentElement.scrollHeight,
+      shellHeight: shell?.getBoundingClientRect().height ?? 0,
+      timelineTop: timeline?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY,
+    };
+  });
+  expect(layout.pageScrollHeight).toBeLessThanOrEqual(layout.viewportHeight + 1);
+  expect(layout.shellHeight).toBeLessThanOrEqual(layout.viewportHeight + 1);
+  expect(layout.timelineTop).toBeLessThan(layout.viewportHeight);
   await expect
     .poll(() => Array.from(modelResponses.values()).filter((status) => status === 200).length)
     .toBeGreaterThanOrEqual(4);
