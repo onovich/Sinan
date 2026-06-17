@@ -3,11 +3,13 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { createDemoDataRepository } from '../data/demoDataLoader';
 import type { ProjectData } from '../data/DataRepository';
 import { saveJson } from '../data/saveJsonClient';
+import { DirectorSystem } from '../director/DirectorSystem';
 import { EventSystem } from '../events/EventSystem';
 import { TriggerSystem } from '../events/TriggerSystem';
 import { createEventRuntimeState, type DirectorCommand, type FlagValue } from '../events/types';
 import type { CameraShotData } from '../schemas/cameraShot.schema';
 import type { EventData } from '../schemas/event.schema';
+import type { TimelineData } from '../schemas/timeline.schema';
 import type { TransformData } from '../schemas/transform.schema';
 import type { EditorCommandContext } from './commands/Command';
 import { CommandHistory } from './commands/CommandHistory';
@@ -22,6 +24,7 @@ import { EventDebugPanel, type EventDebugState } from './panels/EventDebugPanel'
 import { EventInspector, type EventSaveStatus } from './panels/EventInspector';
 import { HierarchyPanel } from './panels/HierarchyPanel';
 import { InspectorPanel } from './panels/InspectorPanel';
+import { TimelinePanel } from './panels/TimelinePanel';
 import {
   createInitialEditorState,
   editorReducer,
@@ -37,6 +40,7 @@ export function EditorApp() {
   const [eventSaveStatus, setEventSaveStatus] = useState<EventSaveStatus>('idle');
   const [cameraShotSaveStatus, setCameraShotSaveStatus] = useState<CameraShotSaveStatus>('idle');
   const [cameraPreviewStatus, setCameraPreviewStatus] = useState('No camera preview');
+  const [timelinePreviewStatus, setTimelinePreviewStatus] = useState('Ready to scrub');
   const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
   const projectRef = useRef<ProjectData | null>(null);
   const commandHistoryRef = useRef(new CommandHistory());
@@ -58,6 +62,8 @@ export function EditorApp() {
   );
   const selectedEvent = getSelectedEvent(project, editorState.selectedEventId);
   const events = getSortedEvents(project);
+  const selectedTimeline = getSelectedTimeline(project, editorState.selectedTimelineId);
+  const timelines = getSortedTimelines(project);
   const selectedCameraShot = getSelectedCameraShot(project, editorState.selectedCameraShotId);
   const cameraShots = getSortedCameraShots(project);
   const commandContext: EditorCommandContext = {
@@ -240,6 +246,38 @@ export function EditorApp() {
     setCameraPreviewStatus(`${shot.id} @ ${Number(time.toFixed(2))}s`);
   };
 
+  const selectTimeline = (timelineId: string) => {
+    dispatch({ type: 'selectTimeline', timelineId });
+    dispatch({ type: 'setTimelineTime', timelineTime: 0 });
+    setTimelinePreviewStatus(`${timelineId} selected`);
+  };
+
+  const scrubTimeline = (timelineId: string, time: number) => {
+    if (!project) {
+      return;
+    }
+
+    const safeTime = roundTimelineTime(time);
+    const previewDirectorCommands: DirectorCommand[] = [];
+    const previewContext = {
+      state: createEventRuntimeState({
+        flags: { ...eventRuntimeStateRef.current.flags },
+        inventory: eventRuntimeStateRef.current.inventory,
+      }),
+      directorCommands: previewDirectorCommands,
+    };
+    const director = new DirectorSystem(
+      project.timelines,
+      new EventSystem(Object.values(project.events)),
+      project.cameraShots,
+    );
+
+    director.scrub(timelineId, safeTime, previewContext);
+    dispatch({ type: 'selectTimeline', timelineId });
+    dispatch({ type: 'setTimelineTime', timelineTime: safeTime });
+    setTimelinePreviewStatus(formatTimelinePreviewStatus(timelineId, safeTime, director));
+  };
+
   const translateSelectedEntity = (delta: readonly [number, number, number]) => {
     if (!selectedEntity) {
       return;
@@ -386,15 +424,14 @@ export function EditorApp() {
       </main>
 
       <footer className="timeline-shell" aria-label={editorPanelLayout[3].title}>
-        <div className="timeline-header">
-          <strong>Timeline</strong>
-          <span>00:00.000</span>
-        </div>
-        <div className="timeline-ruler">
-          {Array.from({ length: 8 }, (_, index) => (
-            <span key={index}>{index}s</span>
-          ))}
-        </div>
+        <TimelinePanel
+          timelines={timelines}
+          selectedTimeline={selectedTimeline}
+          currentTime={editorState.timelineTime}
+          previewStatus={timelinePreviewStatus}
+          onSelectTimeline={selectTimeline}
+          onScrubTimeline={scrubTimeline}
+        />
       </footer>
     </div>
   );
@@ -447,6 +484,29 @@ function getSortedEvents(project: ProjectData | null): EventData[] {
   }
 
   return Object.values(project.events).sort((left, right) => left.id.localeCompare(right.id));
+}
+
+function getSelectedTimeline(
+  project: ProjectData | null,
+  selectedTimelineId: string | undefined,
+): TimelineData | undefined {
+  if (!project) {
+    return undefined;
+  }
+
+  if (selectedTimelineId && project.timelines[selectedTimelineId]) {
+    return project.timelines[selectedTimelineId];
+  }
+
+  return getSortedTimelines(project)[0];
+}
+
+function getSortedTimelines(project: ProjectData | null): TimelineData[] {
+  if (!project) {
+    return [];
+  }
+
+  return Object.values(project.timelines).sort((left, right) => left.id.localeCompare(right.id));
 }
 
 function getSelectedCameraShot(
@@ -595,6 +655,24 @@ function transformsEqual(left: TransformData, right: TransformData): boolean {
     tupleEqual(left.rotation, right.rotation) &&
     tupleEqual(left.scale, right.scale)
   );
+}
+
+function roundTimelineTime(time: number): number {
+  return Math.round(time * 100) / 100;
+}
+
+function formatTimelinePreviewStatus(
+  timelineId: string,
+  time: number,
+  director: DirectorSystem,
+): string {
+  const propertySamples = director.getLastPropertySamples().length;
+
+  if (propertySamples > 0) {
+    return `${timelineId} @ ${time.toFixed(2)}s, ${propertySamples} sampled`;
+  }
+
+  return `${timelineId} @ ${time.toFixed(2)}s`;
 }
 
 function tupleEqual(left: readonly number[], right: readonly number[]): boolean {

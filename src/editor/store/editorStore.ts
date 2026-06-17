@@ -17,6 +17,7 @@ export type EditorAction =
   | { type: 'setMode'; mode: EditorMode }
   | { type: 'selectEntity'; entityId: string | undefined }
   | { type: 'selectEvent'; eventId: string | undefined }
+  | { type: 'selectTimeline'; timelineId: string | undefined }
   | { type: 'selectCameraShot'; cameraShotId: string | undefined }
   | { type: 'setActiveTool'; activeTool: ActiveTool }
   | { type: 'setInspectorTab'; inspectorTab: InspectorTab }
@@ -39,6 +40,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return { ...state, selectedEntityId: action.entityId };
     case 'selectEvent':
       return { ...state, selectedEventId: action.eventId };
+    case 'selectTimeline':
+      return { ...state, selectedTimelineId: action.timelineId };
     case 'selectCameraShot':
       return { ...state, selectedCameraShotId: action.cameraShotId };
     case 'setActiveTool':
