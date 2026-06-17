@@ -14,7 +14,10 @@ export function InspectorPanel({
   if (!entity) {
     return (
       <section aria-labelledby="inspector-heading">
-        <h2 id="inspector-heading">Inspector</h2>
+        <div className="panel-heading-row">
+          <h2 id="inspector-heading">Inspector</h2>
+          <span className="panel-count">No selection</span>
+        </div>
         <p className="panel-empty">No entity selected</p>
       </section>
     );
@@ -22,7 +25,16 @@ export function InspectorPanel({
 
   return (
     <section aria-labelledby="inspector-heading">
-      <h2 id="inspector-heading">Inspector</h2>
+      <div className="panel-heading-row">
+        <h2 id="inspector-heading">Inspector</h2>
+        <span className="panel-count">
+          {formatCount(Object.keys(entity.components).length, 'component')}
+        </span>
+      </div>
+      <div className="inspector-entity-card">
+        <strong>{entity.name ?? entity.id}</strong>
+        <span>{entity.prefab ?? 'No prefab'}</span>
+      </div>
       <dl className="inspector-list">
         <div>
           <dt>Entity</dt>
@@ -74,14 +86,18 @@ export function InspectorPanel({
       ) : null}
       <section className="component-section" aria-labelledby="components-heading">
         <h3 id="components-heading">Components</h3>
-        <ul className="component-list">
-          {Object.entries(entity.components).map(([componentType, payload]) => (
-            <li key={componentType}>
-              <strong>{componentType}</strong>
-              <pre>{JSON.stringify(payload, null, 2)}</pre>
-            </li>
-          ))}
-        </ul>
+        {Object.keys(entity.components).length > 0 ? (
+          <ul className="component-list">
+            {Object.entries(entity.components).map(([componentType, payload]) => (
+              <li key={componentType}>
+                <strong>{componentType}</strong>
+                <pre>{JSON.stringify(payload, null, 2)}</pre>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="panel-empty">None</p>
+        )}
       </section>
     </section>
   );
@@ -89,4 +105,8 @@ export function InspectorPanel({
 
 function formatTuple(values: readonly number[]): string {
   return values.map((value) => Number(value.toFixed(3))).join(', ');
+}
+
+function formatCount(count: number, label: string): string {
+  return `${count} ${label}${count === 1 ? '' : 's'}`;
 }

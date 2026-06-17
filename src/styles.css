@@ -43,16 +43,16 @@ button:hover {
   display: grid;
   height: 100vh;
   min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr) minmax(180px, 28vh);
+  grid-template-rows: auto minmax(0, 1fr) minmax(220px, 30vh);
   background: #151a1f;
 }
 
 .editor-topbar {
   display: grid;
-  grid-template-columns: minmax(190px, 240px) minmax(0, 1fr);
+  grid-template-columns: minmax(180px, 210px) minmax(0, 1fr);
   min-height: 64px;
   align-items: center;
-  gap: 18px;
+  gap: 12px;
   border-bottom: 1px solid #2b343d;
   padding: 10px 16px;
   background: #1c232a;
@@ -118,8 +118,8 @@ button:hover {
   display: flex;
   min-width: 0;
   flex-wrap: nowrap;
-  justify-content: flex-end;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 8px;
   overflow-x: auto;
   scrollbar-width: thin;
 }
@@ -161,11 +161,16 @@ button:hover {
   flex-wrap: nowrap;
 }
 
-.editor-topbar button,
+.editor-topbar button {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
 .entity-list button {
   min-height: 32px;
   border-radius: 6px;
-  padding: 6px 12px;
+  padding: 8px 10px;
 }
 
 .segmented-control button {
@@ -205,11 +210,13 @@ button:hover {
 }
 
 .editor-panel {
+  display: block;
   min-width: 0;
   overflow: auto;
   border-color: #2b343d;
   background: #1a2027;
   padding: 14px;
+  scrollbar-color: #46515d #151b21;
 }
 
 .editor-panel-left {
@@ -221,17 +228,47 @@ button:hover {
 }
 
 .editor-panel h2 {
-  margin: 0 0 12px;
+  margin: 0;
   color: #cfd7df;
   font-size: 13px;
   letter-spacing: 0;
   text-transform: uppercase;
 }
 
+.editor-panel > section + section {
+  margin-top: 18px;
+  border-top: 1px solid #2b343d;
+  padding-top: 16px;
+}
+
+.panel-heading-row {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.panel-count,
+.panel-badge {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  border: 1px solid #38444f;
+  border-radius: 999px;
+  padding: 3px 7px;
+  color: #aeb9c4;
+  background: #151b21;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .entity-list,
 .asset-list {
   display: grid;
-  gap: 8px;
+  gap: 7px;
   margin: 0 0 22px;
   padding: 0;
   list-style: none;
@@ -239,12 +276,13 @@ button:hover {
 
 .entity-list button {
   display: grid;
-  gap: 2px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 8px;
   width: 100%;
   overflow: hidden;
+  align-items: center;
   text-align: left;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .entity-list button.is-selected {
@@ -252,30 +290,43 @@ button:hover {
   background: #294034;
 }
 
-.entity-list small,
+.entity-name,
+.asset-id {
+  min-width: 0;
+  overflow: hidden;
+  color: #e0e6eb;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entity-id,
 .asset-list small {
+  grid-column: 1 / -1;
   overflow: hidden;
   color: #8fa0ad;
   font-size: 11px;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.entity-list span,
-.asset-list span {
-  overflow: hidden;
-  text-overflow: ellipsis;
+.entity-list .panel-badge,
+.asset-list .panel-badge {
+  justify-self: end;
+  max-width: 96px;
 }
 
 .asset-list li {
   display: grid;
-  gap: 2px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 8px;
   overflow: hidden;
   border: 1px solid #313c46;
   border-radius: 6px;
   padding: 8px 10px;
   color: #c5ced6;
   text-overflow: ellipsis;
-  white-space: nowrap;
   background: #202830;
 }
 
@@ -399,7 +450,7 @@ button:hover {
 
 .inspector-list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   margin: 0;
 }
 
@@ -418,6 +469,32 @@ button:hover {
 
 .inspector-list dd {
   margin: 0;
+}
+
+.inspector-entity-card {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 12px;
+  border: 1px solid #38444f;
+  border-radius: 6px;
+  padding: 10px;
+  background: #202830;
+}
+
+.inspector-entity-card strong {
+  overflow: hidden;
+  color: #e8ecef;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspector-entity-card span {
+  overflow: hidden;
+  color: #8fa0ad;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .component-section,
@@ -462,14 +539,24 @@ button:hover {
 
 .panel-title-row {
   display: flex;
+  min-height: 24px;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  margin-bottom: 12px;
 }
 
 .panel-title-row span {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #38444f;
+  border-radius: 999px;
+  padding: 3px 7px;
   color: #aeb9c4;
+  background: #151b21;
   font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .field-stack {
@@ -569,6 +656,23 @@ button:hover {
   opacity: 0.48;
 }
 
+.debug-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.debug-summary span {
+  border: 1px solid #313c46;
+  border-radius: 6px;
+  padding: 7px 8px;
+  color: #c5ced6;
+  background: #202830;
+  font-size: 12px;
+  text-align: center;
+}
+
 .event-actions {
   margin-top: 18px;
 }
@@ -634,15 +738,19 @@ button:hover {
   display: grid;
   gap: 12px;
   min-height: 0;
+  align-content: start;
   border-top: 1px solid #2b343d;
   overflow: auto;
+  overscroll-behavior: contain;
   padding: 12px 16px 16px;
   background: #1b2229;
+  scrollbar-color: #46515d #151b21;
 }
 
 .timeline-panel {
   display: grid;
   gap: 10px;
+  min-height: 0;
   min-width: 620px;
 }
 
@@ -655,7 +763,7 @@ button:hover {
 
 .timeline-controls {
   display: grid;
-  grid-template-columns: minmax(220px, 360px) auto minmax(180px, 260px) minmax(190px, auto);
+  grid-template-columns: minmax(220px, 340px) auto minmax(160px, 220px) minmax(180px, auto);
   gap: 12px;
   align-items: end;
 }
@@ -843,7 +951,7 @@ button:hover {
 
 .timeline-track-fields {
   display: grid;
-  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
   gap: 10px;
   align-items: end;
 }

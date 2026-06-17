@@ -26,6 +26,7 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   const layout = await page.evaluate(() => {
     const shell = document.querySelector('[data-testid="editor-shell"]');
     const timeline = document.querySelector('[data-testid="timeline-panel"]');
+    const timelineShell = document.querySelector('.timeline-shell');
 
     return {
       viewportHeight: document.documentElement.clientHeight,
@@ -33,12 +34,19 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
       shellHeight: shell?.getBoundingClientRect().height ?? 0,
       topbarHeight: document.querySelector('.editor-topbar')?.getBoundingClientRect().height ?? 0,
       timelineTop: timeline?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY,
+      timelineShellBottom:
+        timelineShell?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
+      timelineShellClientHeight: timelineShell?.clientHeight ?? 0,
+      timelineShellScrollHeight: timelineShell?.scrollHeight ?? 0,
     };
   });
   expect(layout.pageScrollHeight).toBeLessThanOrEqual(layout.viewportHeight + 1);
   expect(layout.shellHeight).toBeLessThanOrEqual(layout.viewportHeight + 1);
   expect(layout.topbarHeight).toBeLessThanOrEqual(96);
   expect(layout.timelineTop).toBeLessThan(layout.viewportHeight);
+  expect(layout.timelineShellBottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+  expect(layout.timelineShellClientHeight).toBeGreaterThan(0);
+  expect(layout.timelineShellScrollHeight).toBeGreaterThanOrEqual(layout.timelineShellClientHeight);
   const shell = page.getByTestId('editor-shell');
   const modeNav = page.getByRole('navigation', { name: 'Editor modes' });
   const tools = page.getByRole('group', { name: 'Transform tools' });
@@ -58,6 +66,9 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
     .poll(() => Array.from(modelResponses.values()).filter((status) => status === 200).length)
     .toBeGreaterThanOrEqual(4);
   expect(Array.from(modelResponses.values()).every((status) => status === 200)).toBe(true);
+  await expect(page.getByText('5 entities')).toBeVisible();
+  await expect(page.getByText('5 assets')).toBeVisible();
+  await expect(page.getByText('/models/props/switch_wall.glb')).toBeVisible();
   await expect(page.getByRole('button', { name: /room_blockout_01/ })).toBeVisible();
   const switchClick = await page.request.get('/audio/switch_click.wav');
   expect(switchClick.ok()).toBe(true);
@@ -104,6 +115,11 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   await expect(triggerBounds).toHaveAttribute('aria-pressed', 'true');
 
   await page.getByRole('button', { name: /^switch_a/ }).click();
+  await expect(page.getByRole('button', { name: /^switch_a/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(page.getByText('2 components')).toBeVisible();
   await page.getByRole('button', { name: 'Interact' }).click();
   await expect(page.getByText('cam_gate_reveal runtime')).toBeVisible();
   await expect(timelinePanel.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();

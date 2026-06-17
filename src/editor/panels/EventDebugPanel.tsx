@@ -12,9 +12,20 @@ export interface EventDebugPanelProps {
 }
 
 export function EventDebugPanel({ debugState }: EventDebugPanelProps) {
+  const firedCount = debugState.firedEventIds.length;
+  const activeFlagCount = countDefined(debugState.flags);
+  const directorCommandCount = debugState.directorCommands.length;
+
   return (
     <section className="event-debug" aria-labelledby="event-debug-heading">
-      <h2 id="event-debug-heading">Event Debug</h2>
+      <div className="panel-heading-row">
+        <h2 id="event-debug-heading">Event Debug</h2>
+        <span className="panel-count">{formatFiredCount(firedCount)}</span>
+      </div>
+      <div className="debug-summary" aria-label="Event debug summary">
+        <span>{formatCount(activeFlagCount, 'flag')}</span>
+        <span>{formatCount(directorCommandCount, 'command')}</span>
+      </div>
       <dl className="inspector-list">
         <div>
           <dt>Fired</dt>
@@ -37,6 +48,18 @@ export function EventDebugPanel({ debugState }: EventDebugPanelProps) {
       </dl>
     </section>
   );
+}
+
+function countDefined(record: Record<string, unknown>): number {
+  return Object.values(record).filter((value) => value !== undefined).length;
+}
+
+function formatCount(count: number, label: string): string {
+  return `${count} ${label}${count === 1 ? '' : 's'}`;
+}
+
+function formatFiredCount(count: number): string {
+  return `${count} fired`;
 }
 
 function formatRecord(record: Record<string, unknown>): string {
