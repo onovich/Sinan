@@ -6,7 +6,13 @@
   "repoRoot": "D:\\LabProjects\\Sinan",
   "safeDirectory": "D:/LabProjects/Sinan",
   "statusCommand": "git -c safe.directory=D:/LabProjects/Sinan status --short --branch",
-  "validationCommands": [],
+  "validationCommands": [
+    "npm run format:check",
+    "npm run typecheck",
+    "npm run lint",
+    "npm run build",
+    "npm run test"
+  ],
   "stagingPolicy": "all changes",
   "commitCommand": "",
   "pushCommand": "git -c safe.directory=D:/LabProjects/Sinan push -u origin HEAD",

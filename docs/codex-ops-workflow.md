@@ -34,13 +34,23 @@ C:\Users\Administrator\.codex\skills\project-ops-workflow\scripts\ops\Smoke.cmd
 
 ## Validate Sequence
 
-No operations are configured yet. Phase 0 should add package scripts, then wire `lint`, `typecheck`, `build`, `test`, and `validate-data` into `.codex/project-ops-workflow.json`.
+Configured operations now run the Phase 0 package checks:
+
+```powershell
+npm run format:check
+npm run typecheck
+npm run lint
+npm run build
+npm run test
+```
+
+`validate-data` is not established yet. Phase 1.3 should add `npm run validate-data` and wire it into this sequence.
 
 ## Dev Server
 
-Start command: ``
-Health URL: ``
-Ready text: ``
+Start command: `npm run dev -- --port 5174 --strictPort`
+Health URL: `http://127.0.0.1:5174/`
+Ready text: `Sinan Scene Director`
 Timeout seconds: 30
 
 ## Safety Policy

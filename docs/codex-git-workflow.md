@@ -31,7 +31,17 @@ git -c safe.directory=D:/LabProjects/Sinan status --short --branch
 
 ## Validation
 
-No validation commands are configured yet because the repository currently contains only documentation and bootstrap workflow files. After Phase 0 creates the Vite/React/TypeScript project, update `.codex/project-git-workflow.json` to run the project validation sequence before commit/push.
+The git wrapper validates commits with the Phase 0 package checks:
+
+```powershell
+npm run format:check
+npm run typecheck
+npm run lint
+npm run build
+npm run test
+```
+
+`validate-data` is not established yet. Phase 1.3 should add `npm run validate-data` and wire it into `.codex/project-git-workflow.json`.
 
 ## Staging Policy
 

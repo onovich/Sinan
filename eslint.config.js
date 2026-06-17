@@ -43,15 +43,7 @@ export default tseslint.config(
     },
   },
   {
-    files: [
-      'src/game/**/*.{ts,tsx}',
-      'src/events/**/*.{ts,tsx}',
-      'src/director/**/*.{ts,tsx}',
-      'src/world/**/*.{ts,tsx}',
-      'src/schemas/**/*.{ts,tsx}',
-      'src/data/**/*.{ts,tsx}',
-      'src/migrations/**/*.{ts,tsx}',
-    ],
+    files: ['src/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -60,6 +52,12 @@ export default tseslint.config(
           patterns: [{ group: ['three/*'], message: threeForbiddenMessage }],
         },
       ],
+    },
+  },
+  {
+    files: ['src/runtime/three/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': 'off',
     },
   },
 );

@@ -4,31 +4,54 @@
   "initializedAt": "2026-06-17 13:24:00 +08:00",
   "projectName": "Sinan Scene Director",
   "repoRoot": "D:\\LabProjects\\Sinan",
-  "validateSequence": [],
+  "validateSequence": [
+    "Format",
+    "Typecheck",
+    "Lint",
+    "Build",
+    "Test"
+  ],
   "operations": {
     "envCheck": {
-      "commands": []
+      "commands": [
+        "node --version",
+        "npm --version"
+      ]
     },
     "restoreDeps": {
-      "commands": []
+      "commands": [
+        "npm ci"
+      ]
     },
     "installDeps": {
-      "commands": []
+      "commands": [
+        "npm install"
+      ]
     },
     "build": {
-      "commands": []
+      "commands": [
+        "npm run build"
+      ]
     },
     "test": {
-      "commands": []
+      "commands": [
+        "npm run test"
+      ]
     },
     "lint": {
-      "commands": []
+      "commands": [
+        "npm run lint"
+      ]
     },
     "format": {
-      "commands": []
+      "commands": [
+        "npm run format:check"
+      ]
     },
     "typecheck": {
-      "commands": []
+      "commands": [
+        "npm run typecheck"
+      ]
     },
     "structureCheck": {
       "commands": []
@@ -41,7 +64,9 @@
     },
     "smoke": {
       "commands": [],
-      "urls": []
+      "urls": [
+        "http://127.0.0.1:5174/"
+      ]
     },
     "package": {
       "commands": []
@@ -51,9 +76,9 @@
     }
   },
   "devServer": {
-    "startCommand": "",
-    "healthUrl": "",
-    "readyText": "",
+    "startCommand": "npm run dev -- --port 5174 --strictPort",
+    "healthUrl": "http://127.0.0.1:5174/",
+    "readyText": "Sinan Scene Director",
     "startupTimeoutSeconds": 30,
     "pidFile": ".codex/project-ops-devserver.pid"
   },
