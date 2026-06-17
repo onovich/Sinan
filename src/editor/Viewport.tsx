@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { ProjectData } from '../data/DataRepository';
 import { getRenderableModelAssetId } from '../data/projectDataSelectors';
+import type { RuntimeTransform, TransformGizmoMode } from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
 import { ThreeRuntime } from '../runtime/three/ThreeRuntime';
+import type { TransformData } from '../schemas/transform.schema';
+import type { ActiveTool } from './store/editorStore';
 import { SelectionTool } from './tools/SelectionTool';
 
 type ViewportStatus =
@@ -15,20 +18,35 @@ type ViewportStatus =
 export interface ViewportProps {
   project: ProjectData | null;
   selectionEnabled: boolean;
+  selectedEntityId: string | undefined;
+  activeTool: ActiveTool;
   onSelectEntity: (entityId: string | undefined) => void;
+  onTransformCommit: (entityId: string, transform: TransformData) => void;
 }
 
-export function Viewport({ project, selectionEnabled, onSelectEntity }: ViewportProps) {
+export function Viewport({
+  project,
+  selectionEnabled,
+  selectedEntityId,
+  activeTool,
+  onSelectEntity,
+  onTransformCommit,
+}: ViewportProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const runtimeRef = useRef<WebRuntime | null>(null);
   const selectionToolRef = useRef<SelectionTool | null>(null);
   const selectEntityRef = useRef(onSelectEntity);
+  const transformCommitRef = useRef(onTransformCommit);
   const [status, setStatus] = useState<ViewportStatus>('Waiting for level data');
 
   useEffect(() => {
     selectEntityRef.current = onSelectEntity;
   }, [onSelectEntity]);
+
+  useEffect(() => {
+    transformCommitRef.current = onTransformCommit;
+  }, [onTransformCommit]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -117,6 +135,27 @@ export function Viewport({ project, selectionEnabled, onSelectEntity }: Viewport
     };
   }, [project]);
 
+  useEffect(() => {
+    const runtime = runtimeRef.current;
+    const mode = getTransformGizmoMode(activeTool);
+
+    if (!runtime || !selectedEntityId || !mode) {
+      runtime?.detachTransformGizmo();
+      return;
+    }
+
+    runtime.setTransformGizmoMode(mode);
+    runtime.attachTransformGizmo(selectedEntityId, {
+      onCommit: (event) => {
+        transformCommitRef.current(event.entityId, toTransformData(event.transform));
+      },
+    });
+
+    return () => {
+      runtime.detachTransformGizmo();
+    };
+  }, [activeTool, selectedEntityId, project]);
+
   return (
     <div ref={hostRef} className="viewport-placeholder" data-testid="viewport-placeholder">
       <canvas
@@ -135,6 +174,26 @@ export function Viewport({ project, selectionEnabled, onSelectEntity }: Viewport
       </div>
     </div>
   );
+}
+
+function getTransformGizmoMode(activeTool: ActiveTool): TransformGizmoMode | undefined {
+  if (activeTool === 'move') {
+    return 'translate';
+  }
+
+  if (activeTool === 'rotate' || activeTool === 'scale') {
+    return activeTool;
+  }
+
+  return undefined;
+}
+
+function toTransformData(transform: RuntimeTransform): TransformData {
+  return {
+    position: [...transform.position],
+    rotation: [...transform.rotation],
+    scale: [...transform.scale],
+  };
 }
 
 async function loadProjectIntoRuntime(

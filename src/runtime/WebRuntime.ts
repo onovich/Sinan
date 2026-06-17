@@ -1,4 +1,10 @@
-import type { PickResult, RuntimeInitOptions, RuntimeSize } from './RuntimeTypes';
+import type {
+  PickResult,
+  RuntimeInitOptions,
+  RuntimeSize,
+  TransformGizmoCallbacks,
+  TransformGizmoMode,
+} from './RuntimeTypes';
 import type { ModelHandle, RuntimeObjectHandle } from './RuntimeObjectHandle';
 import type { RuntimeTransform } from './RuntimeTypes';
 
@@ -12,6 +18,9 @@ export interface WebRuntime {
   getTransform(entityId: string): RuntimeTransform | null;
   setVisible(entityId: string, visible: boolean): void;
   pick(clientX: number, clientY: number): PickResult | null;
+  attachTransformGizmo(entityId: string, callbacks?: TransformGizmoCallbacks): void;
+  detachTransformGizmo(): void;
+  setTransformGizmoMode(mode: TransformGizmoMode): void;
   update(deltaSeconds: number): void;
   render(): void;
   resize(size: RuntimeSize): void;

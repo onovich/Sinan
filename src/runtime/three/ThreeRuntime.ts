@@ -1,7 +1,14 @@
 import * as THREE from 'three';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 
 import type { ModelHandle, RuntimeObjectHandle } from '../RuntimeObjectHandle';
-import type { PickResult, RuntimeInitOptions, RuntimeSize } from '../RuntimeTypes';
+import type {
+  PickResult,
+  RuntimeInitOptions,
+  RuntimeSize,
+  TransformGizmoCallbacks,
+  TransformGizmoMode,
+} from '../RuntimeTypes';
 import type { RuntimeTransform } from '../RuntimeTypes';
 import type { WebRuntime } from '../WebRuntime';
 import { pickThreeObject } from './ThreePicking';
@@ -12,6 +19,10 @@ export class ThreeRuntime implements WebRuntime {
   private scene: THREE.Scene | undefined;
   private objectRoot: THREE.Group | undefined;
   private camera: THREE.PerspectiveCamera | undefined;
+  private transformControls: TransformControls | undefined;
+  private transformControlsHelper: THREE.Object3D | undefined;
+  private transformGizmoEntityId: string | undefined;
+  private transformGizmoCallbacks: TransformGizmoCallbacks | undefined;
   private objectByEntityId = new Map<string, THREE.Object3D>();
   private modelByAssetId = new Map<string, ModelHandle & { url: string }>();
   private width = 1;
@@ -66,10 +77,24 @@ export class ThreeRuntime implements WebRuntime {
     const fillLight = new THREE.HemisphereLight(0xa7c7ff, 0x1e2a20, 1.9);
     scene.add(fillLight);
 
+    const transformControls = new TransformControls(camera, renderer.domElement);
+    transformControls.enabled = false;
+    const transformControlsHelper = transformControls.getHelper();
+    transformControlsHelper.visible = false;
+    transformControls.addEventListener('objectChange', () => {
+      this.emitTransformGizmoChange('onChange');
+    });
+    transformControls.addEventListener('mouseUp', () => {
+      this.emitTransformGizmoChange('onCommit');
+    });
+    scene.add(transformControlsHelper);
+
     this.renderer = renderer;
     this.scene = scene;
     this.objectRoot = objectRoot;
     this.camera = camera;
+    this.transformControls = transformControls;
+    this.transformControlsHelper = transformControlsHelper;
   }
 
   loadModel(assetId: string, url: string): Promise<ModelHandle> {
@@ -166,6 +191,38 @@ export class ThreeRuntime implements WebRuntime {
     });
   }
 
+  attachTransformGizmo(entityId: string, callbacks?: TransformGizmoCallbacks): void {
+    const object = this.objectByEntityId.get(entityId);
+
+    if (!object || !this.transformControls) {
+      return;
+    }
+
+    this.transformGizmoEntityId = entityId;
+    this.transformGizmoCallbacks = callbacks;
+    this.transformControls.attach(object);
+    if (this.transformControlsHelper) {
+      this.transformControlsHelper.visible = true;
+    }
+    this.transformControls.enabled = true;
+  }
+
+  detachTransformGizmo(): void {
+    this.transformControls?.detach();
+    if (this.transformControlsHelper) {
+      this.transformControlsHelper.visible = false;
+    }
+    if (this.transformControls) {
+      this.transformControls.enabled = false;
+    }
+    this.transformGizmoEntityId = undefined;
+    this.transformGizmoCallbacks = undefined;
+  }
+
+  setTransformGizmoMode(mode: TransformGizmoMode): void {
+    this.transformControls?.setMode(mode);
+  }
+
   update(deltaSeconds: number): void {
     for (const object of this.objectByEntityId.values()) {
       if (object.userData.assetId === 'model.player_spawn') {
@@ -206,13 +263,35 @@ export class ThreeRuntime implements WebRuntime {
     });
 
     this.renderer?.dispose();
+    this.transformControls?.dispose();
     this.renderer = undefined;
     this.canvas = undefined;
     this.scene = undefined;
     this.objectRoot = undefined;
     this.camera = undefined;
+    this.transformControls = undefined;
+    this.transformControlsHelper = undefined;
+    this.transformGizmoEntityId = undefined;
+    this.transformGizmoCallbacks = undefined;
     this.objectByEntityId.clear();
     this.modelByAssetId.clear();
+  }
+
+  private emitTransformGizmoChange(callbackName: keyof TransformGizmoCallbacks): void {
+    const entityId = this.transformGizmoEntityId;
+    const callback = this.transformGizmoCallbacks?.[callbackName];
+
+    if (!entityId || !callback) {
+      return;
+    }
+
+    const transform = this.getTransform(entityId);
+
+    if (!transform) {
+      return;
+    }
+
+    callback({ entityId, transform });
   }
 }
 

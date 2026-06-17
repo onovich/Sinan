@@ -1,21 +1,38 @@
-import { useEffect, useReducer, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 
 import { createDemoDataRepository } from '../data/demoDataLoader';
 import type { ProjectData } from '../data/DataRepository';
+import type { TransformData } from '../schemas/transform.schema';
+import type { EditorCommandContext } from './commands/Command';
+import { CommandHistory } from './commands/CommandHistory';
+import { TransformEntityCommand } from './commands/TransformEntityCommand';
 import { Viewport } from './Viewport';
 import { editorPanelLayout } from './editorLayout';
 import { AssetPanel } from './panels/AssetPanel';
 import { HierarchyPanel } from './panels/HierarchyPanel';
 import { InspectorPanel } from './panels/InspectorPanel';
-import { createInitialEditorState, editorReducer, type EditorMode } from './store/editorStore';
+import {
+  createInitialEditorState,
+  editorReducer,
+  type ActiveTool,
+  type EditorMode,
+} from './store/editorStore';
 
 export function EditorApp() {
   const [editorState, dispatch] = useReducer(editorReducer, undefined, createInitialEditorState);
   const [project, setProject] = useState<ProjectData | null>(null);
   const [projectError, setProjectError] = useState<string | null>(null);
+  const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
+  const projectRef = useRef<ProjectData | null>(null);
+  const commandHistoryRef = useRef(new CommandHistory());
   const selectedEntity = project?.level.entities.find(
     (entity) => entity.id === editorState.selectedEntityId,
   );
+  const commandContext: EditorCommandContext = {
+    updateEntityTransform: (entityId, transform) => {
+      setProject((current) => updateProjectEntityTransform(current, entityId, transform));
+    },
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -41,6 +58,56 @@ export function EditorApp() {
     };
   }, []);
 
+  useEffect(() => {
+    projectRef.current = project;
+  }, [project]);
+
+  const commitTransform = (entityId: string, transform: TransformData) => {
+    const current = projectRef.current;
+    const entity = current?.level.entities.find((item) => item.id === entityId);
+
+    if (!entity || transformsEqual(entity.transform, transform)) {
+      return;
+    }
+
+    commandHistoryRef.current.execute(
+      new TransformEntityCommand(entityId, entity.transform, transform),
+      commandContext,
+    );
+    refreshHistoryState(commandHistoryRef.current, setHistoryState);
+  };
+
+  const undo = () => {
+    commandHistoryRef.current.undo(commandContext);
+    refreshHistoryState(commandHistoryRef.current, setHistoryState);
+  };
+
+  const redo = () => {
+    commandHistoryRef.current.redo(commandContext);
+    refreshHistoryState(commandHistoryRef.current, setHistoryState);
+  };
+
+  const translateSelectedEntity = (delta: readonly [number, number, number]) => {
+    if (!selectedEntity) {
+      return;
+    }
+
+    const nextTransform: TransformData = {
+      ...selectedEntity.transform,
+      position: [
+        selectedEntity.transform.position[0] + delta[0],
+        selectedEntity.transform.position[1] + delta[1],
+        selectedEntity.transform.position[2] + delta[2],
+      ],
+    };
+
+    commandHistoryRef.current.execute(
+      new TransformEntityCommand(selectedEntity.id, selectedEntity.transform, nextTransform),
+      commandContext,
+    );
+    refreshHistoryState(commandHistoryRef.current, setHistoryState);
+  };
+
   return (
     <div className="editor-shell" data-testid="editor-shell">
       <header className="editor-topbar">
@@ -60,6 +127,26 @@ export function EditorApp() {
             </button>
           ))}
         </nav>
+        <div className="toolbar-group" aria-label="Transform tools">
+          {(['select', 'move', 'rotate', 'scale'] as const).map((activeTool) => (
+            <button
+              key={activeTool}
+              type="button"
+              className={editorState.activeTool === activeTool ? 'is-active' : undefined}
+              onClick={() => dispatch({ type: 'setActiveTool', activeTool })}
+            >
+              {formatTool(activeTool)}
+            </button>
+          ))}
+        </div>
+        <div className="toolbar-group" aria-label="Command history">
+          <button type="button" onClick={undo} disabled={!historyState.canUndo}>
+            Undo
+          </button>
+          <button type="button" onClick={redo} disabled={!historyState.canRedo}>
+            Redo
+          </button>
+        </div>
       </header>
 
       <main className="editor-workbench">
@@ -76,13 +163,16 @@ export function EditorApp() {
         <section className="viewport-region" aria-label={editorPanelLayout[1].title}>
           <Viewport
             project={project}
-            selectionEnabled={editorState.mode === 'edit'}
+            selectionEnabled={editorState.mode === 'edit' && editorState.activeTool === 'select'}
+            selectedEntityId={editorState.selectedEntityId}
+            activeTool={editorState.activeTool}
             onSelectEntity={(entityId) => dispatch({ type: 'selectEntity', entityId })}
+            onTransformCommit={commitTransform}
           />
         </section>
 
         <aside className="editor-panel editor-panel-right" aria-labelledby="inspector-heading">
-          <InspectorPanel entity={selectedEntity} />
+          <InspectorPanel entity={selectedEntity} onTranslateSelected={translateSelectedEntity} />
         </aside>
       </main>
 
@@ -103,4 +193,50 @@ export function EditorApp() {
 
 function formatMode(mode: EditorMode): string {
   return mode[0].toUpperCase() + mode.slice(1);
+}
+
+function formatTool(tool: ActiveTool): string {
+  return tool[0].toUpperCase() + tool.slice(1);
+}
+
+function updateProjectEntityTransform(
+  project: ProjectData | null,
+  entityId: string,
+  transform: TransformData,
+): ProjectData | null {
+  if (!project) {
+    return project;
+  }
+
+  return {
+    ...project,
+    level: {
+      ...project.level,
+      entities: project.level.entities.map((entity) =>
+        entity.id === entityId ? { ...entity, transform } : entity,
+      ),
+    },
+  };
+}
+
+function transformsEqual(left: TransformData, right: TransformData): boolean {
+  return (
+    tupleEqual(left.position, right.position) &&
+    tupleEqual(left.rotation, right.rotation) &&
+    tupleEqual(left.scale, right.scale)
+  );
+}
+
+function tupleEqual(left: readonly number[], right: readonly number[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function refreshHistoryState(
+  history: CommandHistory,
+  setHistoryState: (state: { canUndo: boolean; canRedo: boolean }) => void,
+): void {
+  setHistoryState({
+    canUndo: history.canUndo(),
+    canRedo: history.canRedo(),
+  });
 }

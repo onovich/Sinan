@@ -22,3 +22,15 @@ export interface PickResult {
   point: Vec3;
   normal?: Vec3;
 }
+
+export type TransformGizmoMode = 'translate' | 'rotate' | 'scale';
+
+export interface TransformGizmoEvent {
+  entityId: string;
+  transform: RuntimeTransform;
+}
+
+export interface TransformGizmoCallbacks {
+  onChange?: (event: TransformGizmoEvent) => void;
+  onCommit?: (event: TransformGizmoEvent) => void;
+}
