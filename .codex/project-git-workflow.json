@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "initializedMarker": "codex-project-git-workflow: initialized",
+  "initializedAt": "2026-06-17 13:24:00 +08:00",
+  "projectName": "Sinan Scene Director",
+  "repoRoot": "D:\\LabProjects\\Sinan",
+  "safeDirectory": "D:/LabProjects/Sinan",
+  "statusCommand": "git -c safe.directory=D:/LabProjects/Sinan status --short --branch",
+  "validationCommands": [],
+  "stagingPolicy": "all changes",
+  "commitCommand": "",
+  "pushCommand": "git -c safe.directory=D:/LabProjects/Sinan push -u origin HEAD",
+  "docsRequirement": "Keep docs/development-plan.md and the architecture guide aligned when project scope changes.",
+  "forbiddenCommands": "Do not force-push or run destructive git commands unless the user explicitly requests the exact operation."
+}

@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "initializedMarker": "codex-project-ops-workflow: initialized",
+  "initializedAt": "2026-06-17 13:24:00 +08:00",
+  "projectName": "Sinan Scene Director",
+  "repoRoot": "D:\\LabProjects\\Sinan",
+  "validateSequence": [],
+  "operations": {
+    "envCheck": {
+      "commands": []
+    },
+    "restoreDeps": {
+      "commands": []
+    },
+    "installDeps": {
+      "commands": []
+    },
+    "build": {
+      "commands": []
+    },
+    "test": {
+      "commands": []
+    },
+    "lint": {
+      "commands": []
+    },
+    "format": {
+      "commands": []
+    },
+    "typecheck": {
+      "commands": []
+    },
+    "structureCheck": {
+      "commands": []
+    },
+    "codegen": {
+      "commands": []
+    },
+    "docsCheck": {
+      "commands": []
+    },
+    "smoke": {
+      "commands": [],
+      "urls": []
+    },
+    "package": {
+      "commands": []
+    },
+    "releaseDryRun": {
+      "commands": []
+    }
+  },
+  "devServer": {
+    "startCommand": "",
+    "healthUrl": "",
+    "readyText": "",
+    "startupTimeoutSeconds": 30,
+    "pidFile": ".codex/project-ops-devserver.pid"
+  },
+  "forbiddenPolicy": "Do not run destructive clean/reset/deploy commands unless the user explicitly asks."
+}
