@@ -4,6 +4,9 @@ import { TransformControls } from 'three/examples/jsm/controls/TransformControls
 import type { ModelHandle, RuntimeObjectHandle } from '../RuntimeObjectHandle';
 import type {
   PickResult,
+  RuntimeAnimationPlayOptions,
+  RuntimeAnimationStopOptions,
+  RuntimeAnimationTimeOptions,
   RuntimeInitOptions,
   RuntimeSize,
   TransformGizmoCallbacks,
@@ -25,6 +28,10 @@ export class ThreeRuntime implements WebRuntime {
   private transformGizmoCallbacks: TransformGizmoCallbacks | undefined;
   private objectByEntityId = new Map<string, THREE.Object3D>();
   private modelByAssetId = new Map<string, ModelHandle & { url: string }>();
+  private animationByEntityId = new Map<
+    string,
+    { clip: string; loop?: boolean; playing: boolean; time: number }
+  >();
   private width = 1;
   private height = 1;
   private disposed = false;
@@ -177,6 +184,36 @@ export class ThreeRuntime implements WebRuntime {
     }
   }
 
+  playAnimation(options: RuntimeAnimationPlayOptions): void {
+    this.animationByEntityId.set(options.entityId, {
+      clip: options.clip,
+      loop: options.loop,
+      playing: true,
+      time: 0,
+    });
+  }
+
+  stopAnimation(options: RuntimeAnimationStopOptions): void {
+    const current = this.animationByEntityId.get(options.entityId);
+
+    if (!current || (options.clip && current.clip !== options.clip)) {
+      return;
+    }
+
+    this.animationByEntityId.set(options.entityId, { ...current, playing: false });
+  }
+
+  setAnimationTime(options: RuntimeAnimationTimeOptions): void {
+    const current = this.animationByEntityId.get(options.entityId);
+
+    this.animationByEntityId.set(options.entityId, {
+      clip: options.clip,
+      loop: current?.loop,
+      playing: false,
+      time: Math.max(0, options.time),
+    });
+  }
+
   pick(clientX: number, clientY: number): PickResult | null {
     if (!this.canvas || !this.camera || !this.objectRoot) {
       return null;
@@ -224,6 +261,15 @@ export class ThreeRuntime implements WebRuntime {
   }
 
   update(deltaSeconds: number): void {
+    for (const [entityId, animation] of this.animationByEntityId) {
+      if (animation.playing) {
+        this.animationByEntityId.set(entityId, {
+          ...animation,
+          time: animation.time + deltaSeconds,
+        });
+      }
+    }
+
     for (const object of this.objectByEntityId.values()) {
       if (object.userData.assetId === 'model.player_spawn') {
         object.rotation.y += deltaSeconds * 0.8;
@@ -275,6 +321,7 @@ export class ThreeRuntime implements WebRuntime {
     this.transformGizmoCallbacks = undefined;
     this.objectByEntityId.clear();
     this.modelByAssetId.clear();
+    this.animationByEntityId.clear();
   }
 
   private emitTransformGizmoChange(callbackName: keyof TransformGizmoCallbacks): void {

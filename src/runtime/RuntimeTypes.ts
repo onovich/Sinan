@@ -34,3 +34,23 @@ export interface TransformGizmoCallbacks {
   onChange?: (event: TransformGizmoEvent) => void;
   onCommit?: (event: TransformGizmoEvent) => void;
 }
+
+export interface RuntimeAnimationPlayOptions {
+  entityId: string;
+  clip: string;
+  loop?: boolean;
+  fadeIn?: number;
+  fadeOut?: number;
+}
+
+export interface RuntimeAnimationStopOptions {
+  entityId: string;
+  clip?: string;
+  fadeOut?: number;
+}
+
+export interface RuntimeAnimationTimeOptions {
+  entityId: string;
+  clip: string;
+  time: number;
+}

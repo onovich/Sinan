@@ -4,6 +4,9 @@ import type {
   RuntimeSize,
   TransformGizmoCallbacks,
   TransformGizmoMode,
+  RuntimeAnimationPlayOptions,
+  RuntimeAnimationStopOptions,
+  RuntimeAnimationTimeOptions,
 } from './RuntimeTypes';
 import type { ModelHandle, RuntimeObjectHandle } from './RuntimeObjectHandle';
 import type { RuntimeTransform } from './RuntimeTypes';
@@ -17,6 +20,9 @@ export interface WebRuntime {
   setTransform(entityId: string, transform: RuntimeTransform): void;
   getTransform(entityId: string): RuntimeTransform | null;
   setVisible(entityId: string, visible: boolean): void;
+  playAnimation(options: RuntimeAnimationPlayOptions): void;
+  stopAnimation(options: RuntimeAnimationStopOptions): void;
+  setAnimationTime(options: RuntimeAnimationTimeOptions): void;
   pick(clientX: number, clientY: number): PickResult | null;
   attachTransformGizmo(entityId: string, callbacks?: TransformGizmoCallbacks): void;
   detachTransformGizmo(): void;

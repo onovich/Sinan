@@ -1,5 +1,9 @@
 import type { ActionData } from '../schemas/action.schema';
-import { createDefaultActionRegistry, type ActionRegistry } from './actionRegistry';
+import {
+  createDefaultActionRegistry,
+  type ActionRegistry,
+  type ActionSideEffect,
+} from './actionRegistry';
 import type { ActionExecutionContext } from './types';
 
 export class ActionSystem {
@@ -13,5 +17,9 @@ export class ActionSystem {
     for (const action of actions) {
       this.dispatch(action, context);
     }
+  }
+
+  getSideEffect(action: ActionData): ActionSideEffect {
+    return this.registry.getSideEffect(action.type);
   }
 }
