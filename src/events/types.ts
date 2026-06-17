@@ -27,6 +27,16 @@ export type DirectorCommand =
       type: 'camera.shot.sample';
       shotId: string;
       time: number;
+    }
+  | {
+      type: 'sound.play';
+      soundId: string;
+    }
+  | {
+      type: 'subtitle.show';
+      text: string;
+      duration: number;
+      speaker?: string;
     };
 
 export interface ActionExecutionContext {

@@ -4,6 +4,7 @@ import level01 from '../../data/levels/level_01.json';
 import doorWood from '../../data/prefabs/door_wood.json';
 import playerSpawn from '../../data/prefabs/player_spawn.json';
 import switchWall from '../../data/prefabs/switch_wall.json';
+import openGateTimeline from '../../data/timelines/tl_open_gate.json';
 import { DataRepository } from './DataRepository';
 import type { ProjectJsonLoader } from './loadJson';
 
@@ -14,6 +15,7 @@ const demoJsonByPath: Record<string, unknown> = {
   'data/prefabs/door_wood.json': doorWood,
   'data/prefabs/player_spawn.json': playerSpawn,
   'data/prefabs/switch_wall.json': switchWall,
+  'data/timelines/tl_open_gate.json': openGateTimeline,
 };
 
 export function createDemoDataRepository(): DataRepository {

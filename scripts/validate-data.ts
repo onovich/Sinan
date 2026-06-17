@@ -6,6 +6,7 @@ import { AssetManifestSchema } from '../src/schemas/asset.schema';
 import { EventSchema } from '../src/schemas/event.schema';
 import { LevelSchema } from '../src/schemas/level.schema';
 import { PrefabSchema } from '../src/schemas/prefab.schema';
+import { TimelineSchema } from '../src/schemas/timeline.schema';
 import { validateProject } from '../src/data/validateProject';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -13,6 +14,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 async function main(): Promise<void> {
   const assets = AssetManifestSchema.parse(await readJson('data/assets.manifest.json'));
   const events = await readSchemaDirectory('data/events', EventSchema);
+  const timelines = await readSchemaDirectory('data/timelines', TimelineSchema);
   const prefabs = await readSchemaDirectory('data/prefabs', PrefabSchema);
   const levels = await readSchemaDirectory('data/levels', LevelSchema);
   const result = validateProject({
@@ -20,7 +22,7 @@ async function main(): Promise<void> {
     availableEventIds: new Set(events.map((event) => event.id)),
     prefabs,
     levels,
-    availableTimelineIds: await readJsonIdStems('data/timelines'),
+    availableTimelineIds: new Set(timelines.map((timeline) => timeline.id)),
     availableCameraShotIds: await readJsonIdStems('data/cameraShots'),
   });
 
@@ -34,7 +36,7 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    `Data validation passed: ${prefabs.length} prefabs, ${levels.length} levels, ${events.length} events, ${Object.keys(assets.assets).length} assets.`,
+    `Data validation passed: ${prefabs.length} prefabs, ${levels.length} levels, ${events.length} events, ${timelines.length} timelines, ${Object.keys(assets.assets).length} assets.`,
   );
 }
 

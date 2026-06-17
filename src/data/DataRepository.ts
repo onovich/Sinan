@@ -6,6 +6,8 @@ import type { LevelData } from '../schemas/level.schema';
 import { LevelSchema } from '../schemas/level.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 import { PrefabSchema } from '../schemas/prefab.schema';
+import type { TimelineData } from '../schemas/timeline.schema';
+import { TimelineSchema } from '../schemas/timeline.schema';
 import { FetchJsonLoader, loadAndParseJson, type ProjectJsonLoader } from './loadJson';
 
 export interface ProjectData {
@@ -13,6 +15,7 @@ export interface ProjectData {
   level: LevelData;
   prefabs: Record<string, PrefabData>;
   events: Record<string, EventData>;
+  timelines: Record<string, TimelineData>;
 }
 
 export class DataRepository {
@@ -34,6 +37,10 @@ export class DataRepository {
     return loadAndParseJson(this.loader, `data/events/${eventId}.json`, EventSchema);
   }
 
+  loadTimeline(timelineId: string): Promise<TimelineData> {
+    return loadAndParseJson(this.loader, `data/timelines/${timelineId}.json`, TimelineSchema);
+  }
+
   async loadProjectLevel(levelId: string): Promise<ProjectData> {
     const [assets, level] = await Promise.all([this.loadAssetManifest(), this.loadLevel(levelId)]);
     const prefabIds = Array.from(
@@ -41,12 +48,16 @@ export class DataRepository {
     );
     const prefabs = await Promise.all(prefabIds.map(async (prefabId) => this.loadPrefab(prefabId)));
     const events = await Promise.all(level.events.map(async (eventId) => this.loadEvent(eventId)));
+    const timelines = await Promise.all(
+      level.timelines.map(async (timelineId) => this.loadTimeline(timelineId)),
+    );
 
     return {
       assets,
       level,
       prefabs: Object.fromEntries(prefabs.map((prefab) => [prefab.id, prefab])),
       events: Object.fromEntries(events.map((event) => [event.id, event])),
+      timelines: Object.fromEntries(timelines.map((timeline) => [timeline.id, timeline])),
     };
   }
 }

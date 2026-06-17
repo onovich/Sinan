@@ -97,6 +97,8 @@
   "events": [
     "ev_switch_a_open_gate"
   ],
-  "timelines": [],
+  "timelines": [
+    "tl_open_gate"
+  ],
   "cameraShots": []
 }

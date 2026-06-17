@@ -95,6 +95,23 @@ const fixtures: Record<string, unknown> = {
       },
     ],
   },
+  'data/timelines/tl_open_gate.json': {
+    schemaVersion: 1,
+    id: 'tl_open_gate',
+    duration: 4,
+    tracks: [
+      {
+        id: 'track_set_flag',
+        type: 'action',
+        time: 3,
+        action: {
+          type: 'flag.set',
+          flag: 'gate_a_opened',
+          value: true,
+        },
+      },
+    ],
+  },
 };
 
 describe('DataRepository', () => {
@@ -105,6 +122,7 @@ describe('DataRepository', () => {
     expect(project.assets.assets['model.door_wood']?.type).toBe('model');
     expect(Object.keys(project.prefabs).sort()).toEqual(['door_wood', 'switch_wall']);
     expect(Object.keys(project.events)).toEqual(['ev_switch_a_open_gate']);
+    expect(Object.keys(project.timelines)).toEqual(['tl_open_gate']);
     expect(project.level.entities.map((entity) => entity.id)).toEqual(['switch_a', 'gate_a']);
   });
 

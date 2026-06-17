@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "id": "tl_open_gate",
+  "name": "Open Gate Timeline",
+  "duration": 4.5,
+  "settings": {
+    "skippable": true,
+    "lockPlayerControl": true,
+    "restoreCameraOnFinish": true
+  },
+  "tracks": [
+    {
+      "id": "track_camera_gate_reveal",
+      "type": "camera.shot",
+      "start": 0,
+      "duration": 3.5,
+      "shotId": "cam_gate_reveal",
+      "blendIn": 0.25,
+      "blendOut": 0.4
+    },
+    {
+      "id": "track_gate_open_anim",
+      "type": "animation.play",
+      "start": 0.4,
+      "entityId": "gate_a",
+      "clip": "Open",
+      "loop": false,
+      "fadeIn": 0.1
+    },
+    {
+      "id": "track_sound_switch",
+      "type": "sound",
+      "time": 0.2,
+      "soundId": "audio.switch_click"
+    },
+    {
+      "id": "track_gate_open_amount",
+      "type": "property",
+      "target": "gate_a",
+      "property": "Door.openAmount",
+      "keys": [
+        {
+          "time": 0.4,
+          "value": 0,
+          "ease": "linear"
+        },
+        {
+          "time": 2,
+          "value": 1,
+          "ease": "easeOutCubic"
+        }
+      ]
+    },
+    {
+      "id": "track_subtitle_gate_open",
+      "type": "subtitle",
+      "time": 1.2,
+      "text": "Gate open.",
+      "duration": 2
+    },
+    {
+      "id": "track_set_flag",
+      "type": "action",
+      "time": 3.8,
+      "action": {
+        "type": "flag.set",
+        "flag": "gate_a_opened",
+        "value": true
+      }
+    }
+  ]
+}
