@@ -39,7 +39,8 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   expect(canvasPixels.sampledUniqueColors).toBeGreaterThan(8);
   expect(canvasPixels.maxLuma - canvasPixels.minLuma).toBeGreaterThan(20);
 
-  await expect(page.getByTestId('timeline-panel')).toBeVisible();
+  const timelinePanel = page.getByTestId('timeline-panel');
+  await expect(timelinePanel).toBeVisible();
   await page.locator('#timeline-scrub').evaluate((element) => {
     const input = element as HTMLInputElement;
     input.value = '2.25';
@@ -49,6 +50,15 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   await expect(page.getByTestId('timeline-playhead')).toHaveAttribute('style', /left:\s*50%/);
   await page.waitForTimeout(200);
   expect(sampleAveragePngDelta(initialCanvas, await canvas.screenshot())).toBeGreaterThan(1);
+
+  await timelinePanel.getByRole('button', { name: 'Start' }).click();
+  await expect(page.getByTestId('timeline-playhead')).toHaveAttribute('style', /left:\s*0%/);
+  const playbackStartCanvas = await canvas.screenshot();
+  await timelinePanel.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect(timelinePanel.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
+  await page.waitForTimeout(800);
+  expect(sampleAveragePngDelta(playbackStartCanvas, await canvas.screenshot())).toBeGreaterThan(1);
+  await timelinePanel.getByRole('button', { name: 'Stop' }).click();
 
   await page.getByRole('button', { name: /track_set_flag/ }).click();
   await expect(page.getByText('Action Marker')).toBeVisible();
