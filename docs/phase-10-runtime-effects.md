@@ -16,4 +16,5 @@ This document records the current runtime/editor effect integration.
 - Preview scrub still uses `previewMode: true`, so destructive action tracks are not executed during unsafe scrub.
 - `sound.play` commands are consumed by an editor-safe audio bridge that creates an `Audio` element from the asset manifest URL.
 - Audio playback surfaces a short viewport status for queued, played, blocked, or missing sounds, so browser autoplay failures are visible instead of silent.
-- Camera and transform action effects are still pending Phase 10 follow-up work.
+- `camera.shot.play` commands are consumed through `DirectorCameraSystem`, which applies camera samples through the renderer-neutral runtime adapter.
+- `entity.animateTransform` commands are sampled in the editor effect bridge and apply transforms through `WebRuntime.setTransform`.

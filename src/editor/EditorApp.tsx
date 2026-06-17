@@ -3,10 +3,12 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { createDemoDataRepository } from '../data/demoDataLoader';
 import type { ProjectData } from '../data/DataRepository';
 import { saveJson } from '../data/saveJsonClient';
+import { DirectorCameraSystem } from '../director/DirectorCameraSystem';
 import { DirectorSystem, type DirectorSystemContext } from '../director/DirectorSystem';
 import { EventSystem } from '../events/EventSystem';
 import { TriggerSystem } from '../events/TriggerSystem';
 import { createEventRuntimeState, type DirectorCommand, type FlagValue } from '../events/types';
+import type { RuntimeTransform } from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
 import type { CameraShotData } from '../schemas/cameraShot.schema';
 import type { EventData } from '../schemas/event.schema';
@@ -77,6 +79,7 @@ export function EditorApp() {
   const timelinePlaybackRef = useRef<TimelinePlaybackSession | null>(null);
   const subtitleTimerRef = useRef<number | undefined>(undefined);
   const audioTimerRef = useRef<number | undefined>(undefined);
+  const transformAnimationFrameRef = useRef<Record<string, number | undefined>>({});
   const [eventDebugState, setEventDebugState] = useState<EventDebugState>({
     firedEventIds: [],
     flags: { power_enabled: true },
@@ -139,6 +142,8 @@ export function EditorApp() {
   }, [project]);
 
   useEffect(() => {
+    const transformAnimationFrames = transformAnimationFrameRef.current;
+
     return () => {
       const session = timelinePlaybackRef.current;
 
@@ -150,6 +155,11 @@ export function EditorApp() {
       }
       if (audioTimerRef.current !== undefined) {
         clearTimeout(audioTimerRef.current);
+      }
+      for (const frameId of Object.values(transformAnimationFrames)) {
+        if (frameId !== undefined) {
+          cancelAnimationFrame(frameId);
+        }
       }
     };
   }, []);
@@ -599,14 +609,11 @@ export function EditorApp() {
     const firedEventIds = new TriggerSystem(
       new EventSystem(Object.values(project.events)),
     ).interact(selectedEntity.id, context);
+    const debugCommands = [...directorCommandsRef.current];
     consumeRuntimeEffectCommands(directorCommandsRef.current);
 
     setEventDebugState(
-      createEventDebugState(
-        firedEventIds,
-        eventRuntimeStateRef.current,
-        directorCommandsRef.current,
-      ),
+      createEventDebugState(firedEventIds, eventRuntimeStateRef.current, debugCommands),
     );
   };
 
@@ -630,6 +637,30 @@ export function EditorApp() {
         commands.splice(index, 1);
         playSound(command.soundId);
         sounds += 1;
+        continue;
+      }
+
+      if (command.type === 'camera.shot.play') {
+        commands.splice(index, 1);
+        playCameraShot(command.shotId);
+        continue;
+      }
+
+      if (command.type === 'entity.animateTransform') {
+        commands.splice(index, 1);
+        playTransformAnimation(command);
+        continue;
+      }
+
+      if (command.type === 'timeline.play') {
+        commands.splice(index, 1);
+        playTimeline(command.timelineId);
+        continue;
+      }
+
+      if (command.type === 'timeline.stop') {
+        commands.splice(index, 1);
+        stopTimeline();
       }
     }
 
@@ -691,6 +722,52 @@ export function EditorApp() {
       setAudioHud(null);
       audioTimerRef.current = undefined;
     }, 1600);
+  };
+
+  const playCameraShot = (shotId: string) => {
+    const runtime = runtimeRef.current;
+    const shot = projectRef.current?.cameraShots[shotId];
+
+    if (!runtime || !shot) {
+      return;
+    }
+
+    new DirectorCameraSystem(runtime).applyShot(shot, 0);
+    setCameraPreviewStatus(`${shotId} runtime`);
+  };
+
+  const playTransformAnimation = (
+    command: Extract<DirectorCommand, { type: 'entity.animateTransform' }>,
+  ) => {
+    const runtime = runtimeRef.current;
+    const runtimeTransform = runtime?.getTransform(command.entityId);
+
+    if (!runtime || !runtimeTransform) {
+      return;
+    }
+
+    const from = toMutableTransform(runtimeTransform);
+    const currentFrameId = transformAnimationFrameRef.current[command.entityId];
+    if (currentFrameId !== undefined) {
+      cancelAnimationFrame(currentFrameId);
+    }
+
+    const startedAt = performance.now();
+    const durationMs = Math.max(1, command.duration * 1000);
+
+    const sample = (now: number) => {
+      const alpha = clampNumber((now - startedAt) / durationMs, 0, 1);
+      const easedAlpha = sampleEase(alpha, command.ease);
+      runtime.setTransform(command.entityId, interpolateTransform(from, command.to, easedAlpha));
+
+      if (alpha < 1) {
+        transformAnimationFrameRef.current[command.entityId] = requestAnimationFrame(sample);
+      } else {
+        transformAnimationFrameRef.current[command.entityId] = undefined;
+      }
+    };
+
+    transformAnimationFrameRef.current[command.entityId] = requestAnimationFrame(sample);
   };
 
   return (
@@ -1256,6 +1333,65 @@ function roundTimelineTime(time: number): number {
 
 function clampNumber(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+function interpolateTransform(
+  from: TransformData,
+  to: TransformData,
+  alpha: number,
+): TransformData {
+  return {
+    position: [
+      lerp(from.position[0], to.position[0], alpha),
+      lerp(from.position[1], to.position[1], alpha),
+      lerp(from.position[2], to.position[2], alpha),
+    ],
+    rotation: normalizeQuat([
+      lerp(from.rotation[0], to.rotation[0], alpha),
+      lerp(from.rotation[1], to.rotation[1], alpha),
+      lerp(from.rotation[2], to.rotation[2], alpha),
+      lerp(from.rotation[3], to.rotation[3], alpha),
+    ]),
+    scale: [
+      lerp(from.scale[0], to.scale[0], alpha),
+      lerp(from.scale[1], to.scale[1], alpha),
+      lerp(from.scale[2], to.scale[2], alpha),
+    ],
+  };
+}
+
+function toMutableTransform(transform: RuntimeTransform): TransformData {
+  return {
+    position: [...transform.position],
+    rotation: [...transform.rotation],
+    scale: [...transform.scale],
+  };
+}
+
+function sampleEase(alpha: number, ease: string | undefined): number {
+  if (ease === 'easeOutCubic') {
+    return 1 - (1 - alpha) ** 3;
+  }
+
+  if (ease === 'easeInOutCubic') {
+    return alpha < 0.5 ? 4 * alpha ** 3 : 1 - (-2 * alpha + 2) ** 3 / 2;
+  }
+
+  return alpha;
+}
+
+function lerp(from: number, to: number, alpha: number): number {
+  return from + (to - from) * alpha;
+}
+
+function normalizeQuat(quat: [number, number, number, number]): [number, number, number, number] {
+  const length = Math.hypot(...quat);
+
+  if (length <= 0) {
+    return [0, 0, 0, 1];
+  }
+
+  return [quat[0] / length, quat[1] / length, quat[2] / length, quat[3] / length];
 }
 
 function formatTimelinePreviewStatus(

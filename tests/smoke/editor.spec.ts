@@ -71,6 +71,12 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   await expect(triggerBounds).toHaveAttribute('aria-pressed', 'false');
   await triggerBounds.click();
   await expect(triggerBounds).toHaveAttribute('aria-pressed', 'true');
+
+  await page.getByRole('button', { name: /^switch_a/ }).click();
+  await page.getByRole('button', { name: 'Interact' }).click();
+  await expect(page.getByText('cam_gate_reveal runtime')).toBeVisible();
+  await expect(timelinePanel.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
+  await timelinePanel.getByRole('button', { name: 'Stop' }).click();
   expect(browserErrors).toEqual([]);
 });
 

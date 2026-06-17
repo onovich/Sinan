@@ -30,6 +30,21 @@
       "entityId": "gate_a"
     },
     {
+      "type": "camera.playShot",
+      "shotId": "cam_gate_reveal"
+    },
+    {
+      "type": "entity.animateTransform",
+      "entityId": "switch_a",
+      "to": {
+        "position": [3.2, 1.05, 4.6],
+        "rotation": [0, 0, 0, 1],
+        "scale": [1.55, 1.55, 1.55]
+      },
+      "duration": 0.2,
+      "ease": "easeOutCubic"
+    },
+    {
       "type": "flag.set",
       "flag": "gate_a_opened",
       "value": true
