@@ -86,6 +86,7 @@ export function TimelinePanel({
   const [draftTrackState, setDraftTrackState] = useState<{
     timelineId: string;
     trackId: string;
+    sourceSignature: string;
     track: TimelineTrackData;
   }>();
   const [keyIndexState, setKeyIndexState] = useState({ timelineId: '', trackId: '', index: 0 });
@@ -93,21 +94,25 @@ export function TimelinePanel({
     timelineId: string;
     trackId: string;
     index: number;
+    sourceSignature: string;
     key: PropertyTimelineKey;
   }>();
   const [actionPayloadState, setActionPayloadState] = useState({
     timelineId: '',
     trackId: '',
+    sourceSignature: '',
     json: '',
   });
   const selectedTrack =
     selectedTimeline?.tracks.find((track) => track.id === selectedTrackId) ??
     selectedTimeline?.tracks[0];
+  const selectedTrackSignature = selectedTrack ? JSON.stringify(selectedTrack) : '';
   const draftTrack =
     selectedTimeline &&
     selectedTrack &&
     draftTrackState?.timelineId === selectedTimeline.id &&
-    draftTrackState.trackId === selectedTrack.id
+    draftTrackState.trackId === selectedTrack.id &&
+    draftTrackState.sourceSignature === selectedTrackSignature
       ? draftTrackState.track
       : selectedTrack;
   const timelineTime = clampTime(currentTime, selectedTimeline?.duration ?? 0);
@@ -142,13 +147,15 @@ export function TimelinePanel({
       ? Math.min(keyIndexState.index, propertyTrack.keys.length - 1)
       : 0;
   const selectedKey = propertyTrack?.keys[keyIndex];
+  const selectedKeySignature = selectedKey ? JSON.stringify(selectedKey) : '';
   const draftKey =
     selectedTimeline &&
     propertyTrack &&
     selectedKey &&
     draftKeyState?.timelineId === selectedTimeline.id &&
     draftKeyState.trackId === propertyTrack.id &&
-    draftKeyState.index === keyIndex
+    draftKeyState.index === keyIndex &&
+    draftKeyState.sourceSignature === selectedKeySignature
       ? draftKeyState.key
       : selectedKey;
   const draftKeyTrack =
@@ -172,7 +179,8 @@ export function TimelinePanel({
     selectedTimeline &&
     draftTrack?.type === 'action' &&
     actionPayloadState.timelineId === selectedTimeline.id &&
-    actionPayloadState.trackId === draftTrack.id
+    actionPayloadState.trackId === draftTrack.id &&
+    actionPayloadState.sourceSignature === selectedTrackSignature
       ? actionPayloadState.json
       : draftTrack?.type === 'action'
         ? JSON.stringify(draftTrack.action, null, 2)
@@ -205,6 +213,7 @@ export function TimelinePanel({
     setDraftTrackState({
       timelineId: selectedTimeline.id,
       trackId: track.id,
+      sourceSignature: selectedTrackSignature,
       track,
     });
   };
@@ -218,6 +227,7 @@ export function TimelinePanel({
 
     if (parsedTrack) {
       onApplyTrack(selectedTimeline.id, parsedTrack);
+      setDraftTrackState(undefined);
     }
   };
 
@@ -230,6 +240,7 @@ export function TimelinePanel({
       timelineId: selectedTimeline.id,
       trackId: propertyTrack.id,
       index: keyIndex,
+      sourceSignature: selectedKeySignature,
       key,
     });
   };
@@ -251,6 +262,12 @@ export function TimelinePanel({
     };
 
     onApplyTrackItem(selectedTimeline.id, nextTrack, 'add', `${propertyTrack.id} key`);
+    setDraftKeyState(undefined);
+    setKeyIndexState({
+      timelineId: selectedTimeline.id,
+      trackId: propertyTrack.id,
+      index: nextTrack.keys.length - 1,
+    });
   };
 
   const applyPropertyKey = () => {
@@ -264,7 +281,33 @@ export function TimelinePanel({
 
     if (parsedTrack) {
       onApplyTrackItem(selectedTimeline.id, parsedTrack, 'update', `${draftKeyTrack.id} key`);
+      setDraftKeyState(undefined);
     }
+  };
+
+  const movePropertyKey = (direction: -1 | 1) => {
+    if (!selectedTimeline || !propertyTrack) {
+      return;
+    }
+
+    const nextIndex = keyIndex + direction;
+
+    if (nextIndex < 0 || nextIndex >= propertyTrack.keys.length) {
+      return;
+    }
+
+    const nextTrack: PropertyTimelineTrack = {
+      ...propertyTrack,
+      keys: swapPropertyKeyTimes(propertyTrack.keys, keyIndex, nextIndex),
+    };
+
+    onApplyTrackItem(selectedTimeline.id, nextTrack, 'update', `${propertyTrack.id} key order`);
+    setDraftKeyState(undefined);
+    setKeyIndexState({
+      timelineId: selectedTimeline.id,
+      trackId: propertyTrack.id,
+      index: nextIndex,
+    });
   };
 
   const removePropertyKey = () => {
@@ -278,6 +321,7 @@ export function TimelinePanel({
     };
 
     onApplyTrackItem(selectedTimeline.id, nextTrack, 'remove', `${propertyTrack.id} key`);
+    setDraftKeyState(undefined);
     setKeyIndexState({
       timelineId: selectedTimeline.id,
       trackId: propertyTrack.id,
@@ -300,6 +344,12 @@ export function TimelinePanel({
       'update',
       `${draftTrack.id} action`,
     );
+    setActionPayloadState({
+      timelineId: '',
+      trackId: '',
+      sourceSignature: '',
+      json: '',
+    });
   };
 
   if (timelines.length === 0) {
@@ -507,6 +557,7 @@ export function TimelinePanel({
                         setActionPayloadState({
                           timelineId: selectedTimeline.id,
                           trackId: draftTrack.id,
+                          sourceSignature: selectedTrackSignature,
                           json: event.target.value,
                         })
                       }
@@ -529,6 +580,7 @@ export function TimelinePanel({
                           setActionPayloadState({
                             timelineId: selectedTimeline.id,
                             trackId: draftTrack.id,
+                            sourceSignature: selectedTrackSignature,
                             json: JSON.stringify(
                               {
                                 ...parsedFlagSetAction,
@@ -630,9 +682,23 @@ export function TimelinePanel({
                     </ul>
                   ) : null}
 
-                  <div className="timeline-command-row">
+                  <div className="key-command-row">
                     <button type="button" onClick={addPropertyKey}>
                       Add Key
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => movePropertyKey(-1)}
+                      disabled={keyIndex === 0}
+                    >
+                      Move Up
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => movePropertyKey(1)}
+                      disabled={keyIndex >= propertyTrack.keys.length - 1}
+                    >
+                      Move Down
                     </button>
                     <button type="button" onClick={applyPropertyKey} disabled={!canApplyKey}>
                       Apply Keyframe
@@ -819,6 +885,24 @@ function replacePropertyKey(
 
 function sortPropertyKeys(keys: readonly PropertyTimelineKey[]): PropertyTimelineKey[] {
   return [...keys].sort((left, right) => left.time - right.time);
+}
+
+function swapPropertyKeyTimes(
+  keys: readonly PropertyTimelineKey[],
+  leftIndex: number,
+  rightIndex: number,
+): PropertyTimelineKey[] {
+  return keys.map((key, index) => {
+    if (index === leftIndex) {
+      return { ...key, time: keys[rightIndex].time };
+    }
+
+    if (index === rightIndex) {
+      return { ...key, time: keys[leftIndex].time };
+    }
+
+    return key;
+  });
 }
 
 function parseActionPayload(

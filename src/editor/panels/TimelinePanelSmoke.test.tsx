@@ -48,4 +48,41 @@ describe('TimelinePanel smoke', () => {
     expect(markup).toContain('End');
     expect(markup).toContain('Clean');
   });
+
+  it('renders property keyframe authoring commands', () => {
+    const markup = renderToStaticMarkup(
+      <TimelinePanel
+        timelines={[openGateTimeline]}
+        selectedTimeline={openGateTimeline}
+        selectedTrackId="track_gate_open_amount"
+        currentTime={0.4}
+        saveStatus="idle"
+        isDirty={false}
+        playbackStatus="stopped"
+        previewStatus="Ready"
+        entityIds={['gate_a', 'switch_a']}
+        cameraShotIds={['cam_gate_reveal']}
+        soundAssetIds={['audio.switch_click']}
+        onSelectTimeline={() => undefined}
+        onSelectTrack={() => undefined}
+        onScrubTimeline={() => undefined}
+        onPlayTimeline={() => undefined}
+        onPauseTimeline={() => undefined}
+        onResumeTimeline={() => undefined}
+        onStopTimeline={() => undefined}
+        onSeekTimeline={() => undefined}
+        onAddTrack={() => undefined}
+        onApplyTrack={() => undefined}
+        onApplyTrackItem={() => undefined}
+        onRemoveTrack={() => undefined}
+        onSaveTimeline={() => undefined}
+      />,
+    );
+
+    expect(markup).toContain('Keyframe');
+    expect(markup).toContain('Add Key');
+    expect(markup).toContain('Move Up');
+    expect(markup).toContain('Move Down');
+    expect(markup).toContain('Remove Key');
+  });
 });

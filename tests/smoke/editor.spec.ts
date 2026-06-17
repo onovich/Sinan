@@ -155,6 +155,34 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
 
   await page.getByRole('button', { name: /track_set_flag/ }).click();
   await expect(page.getByText('Action Marker')).toBeVisible();
+  await page.getByRole('button', { name: /track_gate_open_amount/ }).click();
+  await expect(timelinePanel.getByRole('heading', { name: 'Keyframe' })).toBeVisible();
+  const timelineKeySelect = timelinePanel.locator('#timeline-key-select');
+  await expect(timelineKeySelect.locator('option')).toHaveCount(2);
+  await timelinePanel.getByRole('button', { name: 'Add Key', exact: true }).click();
+  await expect(timelineKeySelect.locator('option')).toHaveCount(3);
+  await expect(timelinePanel.locator('.timeline-meta .status-pill')).toHaveText('Unsaved');
+  await timelinePanel.getByRole('button', { name: 'Move Up', exact: true }).click();
+  await timelinePanel.getByRole('button', { name: 'Remove Key', exact: true }).click();
+  await expect(timelineKeySelect.locator('option')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(timelineKeySelect.locator('option')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Redo' }).click();
+  await expect(timelineKeySelect.locator('option')).toHaveCount(2);
+
+  const cameraPanel = page.locator('.camera-shot-panel');
+  const cameraKeySelect = cameraPanel.locator('#camera-key-select');
+  await expect(cameraKeySelect.locator('option')).toHaveCount(3);
+  await cameraPanel.getByRole('button', { name: 'Add Key', exact: true }).click();
+  await expect(cameraKeySelect.locator('option')).toHaveCount(4);
+  await expect(cameraPanel.locator('.panel-title-row .status-pill').first()).toHaveText('Unsaved');
+  await cameraPanel.getByRole('button', { name: 'Move Up', exact: true }).click();
+  await cameraPanel.getByRole('button', { name: 'Remove Key', exact: true }).click();
+  await expect(cameraKeySelect.locator('option')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(cameraKeySelect.locator('option')).toHaveCount(4);
+  await page.getByRole('button', { name: 'Redo' }).click();
+  await expect(cameraKeySelect.locator('option')).toHaveCount(3);
 
   const triggerBounds = page.getByRole('button', { name: 'Trigger Bounds' });
   await expect(triggerBounds).toHaveAttribute('aria-pressed', 'true');

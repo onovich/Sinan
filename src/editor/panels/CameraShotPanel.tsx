@@ -42,6 +42,7 @@ export function CameraShotPanel({
   const [draftKeyState, setDraftKeyState] = useState<{
     shotId: string;
     index: number;
+    sourceSignature: string;
     key: CameraShotKeyData;
   }>();
 
@@ -51,8 +52,12 @@ export function CameraShotPanel({
       ? Math.min(keyIndexState.index, keyframedShot.keys.length - 1)
       : 0;
   const currentKey = keyframedShot?.keys[keyIndex];
+  const currentKeySignature = currentKey ? JSON.stringify(currentKey) : '';
   const draftKey =
-    keyframedShot && draftKeyState?.shotId === keyframedShot.id && draftKeyState.index === keyIndex
+    keyframedShot &&
+    draftKeyState?.shotId === keyframedShot.id &&
+    draftKeyState.index === keyIndex &&
+    draftKeyState.sourceSignature === currentKeySignature
       ? draftKeyState.key
       : currentKey;
   const draftShot =
@@ -84,6 +89,7 @@ export function CameraShotPanel({
     setDraftKeyState({
       shotId: keyframedShot.id,
       index: keyIndex,
+      sourceSignature: currentKeySignature,
       key: {
         ...draftKey,
         ...patch,
@@ -94,7 +100,59 @@ export function CameraShotPanel({
   const applyDraft = () => {
     if (validationResult?.success) {
       onApplyShot(validationResult.data);
+      setDraftKeyState(undefined);
     }
+  };
+
+  const addKey = () => {
+    if (!keyframedShot || !currentKey) {
+      return;
+    }
+
+    const nextIndex = keyIndex + 1;
+    const nextKey: CameraShotKeyData = {
+      ...currentKey,
+      time: clampTime(currentKey.time + 0.5, keyframedShot.duration),
+    };
+
+    onApplyShot({
+      ...keyframedShot,
+      keys: insertArrayItem(keyframedShot.keys, nextIndex, nextKey),
+    });
+    setDraftKeyState(undefined);
+    setKeyIndexState({ shotId: keyframedShot.id, index: nextIndex });
+  };
+
+  const removeKey = () => {
+    if (!keyframedShot || keyframedShot.keys.length <= 1) {
+      return;
+    }
+
+    onApplyShot({
+      ...keyframedShot,
+      keys: keyframedShot.keys.filter((_, index) => index !== keyIndex),
+    });
+    setDraftKeyState(undefined);
+    setKeyIndexState({ shotId: keyframedShot.id, index: Math.max(0, keyIndex - 1) });
+  };
+
+  const moveKey = (direction: -1 | 1) => {
+    if (!keyframedShot) {
+      return;
+    }
+
+    const nextIndex = keyIndex + direction;
+
+    if (nextIndex < 0 || nextIndex >= keyframedShot.keys.length) {
+      return;
+    }
+
+    onApplyShot({
+      ...keyframedShot,
+      keys: swapKeyTimes(keyframedShot.keys, keyIndex, nextIndex),
+    });
+    setDraftKeyState(undefined);
+    setKeyIndexState({ shotId: keyframedShot.id, index: nextIndex });
   };
 
   const lookAtSelected = () => {
@@ -108,6 +166,7 @@ export function CameraShotPanel({
     });
 
     onApplyShot(nextShot);
+    setDraftKeyState(undefined);
   };
 
   return (
@@ -172,6 +231,25 @@ export function CameraShotPanel({
               ))}
             </select>
           </label>
+
+          <div className="key-command-row" aria-label="Camera keyframe commands">
+            <button type="button" onClick={addKey}>
+              Add Key
+            </button>
+            <button type="button" onClick={() => moveKey(-1)} disabled={keyIndex === 0}>
+              Move Up
+            </button>
+            <button
+              type="button"
+              onClick={() => moveKey(1)}
+              disabled={keyIndex >= keyframedShot.keys.length - 1}
+            >
+              Move Down
+            </button>
+            <button type="button" onClick={removeKey} disabled={keyframedShot.keys.length <= 1}>
+              Remove Key
+            </button>
+          </div>
 
           <div className="camera-grid">
             <label className="field-stack" htmlFor="camera-key-time">
@@ -241,7 +319,13 @@ export function CameraShotPanel({
             <button type="button" onClick={lookAtSelected} disabled={!selectedEntityId}>
               Look At Selected
             </button>
-            <button type="button" onClick={() => onSetKeyFromView(keyframedShot, keyIndex)}>
+            <button
+              type="button"
+              onClick={() => {
+                onSetKeyFromView(keyframedShot, keyIndex);
+                setDraftKeyState(undefined);
+              }}
+            >
               Set Key From View
             </button>
             <button type="button" onClick={() => onPreviewShot(keyframedShot, draftKey.time)}>
@@ -267,4 +351,30 @@ function replaceKey(
     ...shot,
     keys: shot.keys.map((item, index) => (index === keyIndex ? key : item)),
   };
+}
+
+function insertArrayItem<T>(items: readonly T[], index: number, item: T): T[] {
+  return [...items.slice(0, index), item, ...items.slice(index)];
+}
+
+function swapKeyTimes(
+  keys: readonly CameraShotKeyData[],
+  leftIndex: number,
+  rightIndex: number,
+): CameraShotKeyData[] {
+  return keys.map((key, index) => {
+    if (index === leftIndex) {
+      return { ...key, time: keys[rightIndex].time };
+    }
+
+    if (index === rightIndex) {
+      return { ...key, time: keys[leftIndex].time };
+    }
+
+    return key;
+  });
+}
+
+function clampTime(time: number, duration: number): number {
+  return Math.min(Math.max(time, 0), duration);
 }

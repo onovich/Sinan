@@ -26,14 +26,23 @@ This document tracks Phase 12 authoring workflow and data safety behavior.
 - Event drafts are validated with `EventSchema`; invalid action or condition data is shown inline and cannot be applied.
 - Trigger editing remains read-only in this checkpoint.
 
+## Timeline And Camera Key Authoring
+
+- Property timeline tracks expose keyframe selection plus add, move earlier/later, apply, and remove commands.
+- Property keyframe operations go through timeline item commands, so undo/redo and timeline dirty state remain consistent.
+- Camera shot keyframed shots expose key selection plus add, move earlier/later, apply, remove, look-at-selected, set-from-view, and preview commands.
+- Camera key operations go through `UpdateCameraShotCommand`, so undo/redo and camera-shot dirty state remain consistent.
+- Key move commands swap neighboring key times instead of only swapping array order, because runtime sampling sorts property and camera keys by time.
+
 ## Current Smoke Coverage
 
 - Browser smoke selects `switch_a`, edits the `Interactable.prompt` field, checks the level dirty state, and verifies undo/redo restores the prompt value.
 - Browser smoke edits event conditions and actions through structured controls, checks the event dirty state, and verifies undo/redo restores the event action/condition counts.
+- Browser smoke adds, reorders, removes, undoes, and redoes a property timeline keyframe.
+- Browser smoke adds, reorders, removes, undoes, and redoes a camera shot keyframe.
 
 ## Remaining Phase 12 Work
 
-- Timeline marker/keyframe and camera keyframe add/remove/reorder improvements.
 - Save-time validation before writing JSON through the dev save API.
 - Dirty-state exactness after save/reload comparisons.
 - Migration scaffolding and migration tests.
