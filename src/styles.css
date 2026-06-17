@@ -1004,31 +1004,58 @@ button:hover {
 
 @media (max-width: 820px) {
   .editor-shell {
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto minmax(0, 1fr) minmax(240px, 38vh);
   }
 
   .editor-topbar {
-    align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    align-items: stretch;
+    padding: 10px 14px;
+  }
+
+  .topbar-brand {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: baseline;
+  }
+
+  .editor-topbar h1 {
+    font-size: 16px;
+  }
+
+  .editor-topbar span {
+    font-size: 12px;
+  }
+
+  .topbar-controls {
+    width: 100%;
+    padding-bottom: 2px;
   }
 
   .editor-workbench {
+    min-height: 0;
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(96px, 0.28fr) minmax(180px, 1fr) minmax(104px, 0.32fr);
+    overflow: hidden;
   }
 
   .editor-panel-left,
   .editor-panel-right {
-    max-height: 220px;
+    max-height: none;
     border-right: 0;
     border-left: 0;
+    padding: 12px 14px;
   }
 
   .viewport-placeholder {
-    height: 54vh;
+    height: 100%;
+    min-height: 0;
   }
 
   .timeline-panel {
-    min-width: 560px;
+    min-width: 0;
   }
 
   .timeline-controls,
@@ -1038,5 +1065,127 @@ button:hover {
 
   .timeline-playback-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .editor-shell {
+    grid-template-rows: auto minmax(0, 1fr) minmax(240px, 37vh);
+  }
+
+  .editor-topbar {
+    gap: 6px;
+    padding: 8px 12px;
+  }
+
+  .topbar-brand {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    overflow-x: visible;
+    padding-bottom: 0;
+  }
+
+  .toolbar-cluster {
+    min-width: 0;
+    gap: 0;
+  }
+
+  .toolbar-cluster-project {
+    grid-column: 1 / -1;
+  }
+
+  .toolbar-label {
+    display: none;
+  }
+
+  .editor-topbar .toolbar-group,
+  .editor-topbar .segmented-control {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .editor-topbar button {
+    min-width: 0;
+    padding: 6px 8px;
+    font-size: 14px;
+  }
+
+  .segmented-control button {
+    flex: 1 1 62px;
+  }
+
+  .toolbar-cluster-mode .segmented-control button {
+    flex-basis: 0;
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .toolbar-cluster-project .toolbar-group {
+    display: grid;
+    grid-template-columns: 1fr minmax(64px, 0.7fr) minmax(70px, 0.7fr);
+    gap: 8px;
+  }
+
+  .toolbar-cluster-project button,
+  .toolbar-cluster-project .status-pill {
+    width: 100%;
+  }
+
+  .editor-workbench {
+    grid-template-rows: minmax(70px, 0.24fr) minmax(130px, 1fr) minmax(70px, 0.28fr);
+  }
+
+  .editor-panel-left,
+  .editor-panel-right {
+    padding: 10px 12px;
+  }
+
+  .viewport-status {
+    left: 12px;
+    bottom: 12px;
+    padding: 8px 10px;
+  }
+
+  .runtime-subtitle {
+    max-width: calc(100% - 32px);
+    padding: 8px 12px;
+  }
+
+  .runtime-audio-status {
+    top: 12px;
+    right: 12px;
+    min-width: 120px;
+  }
+
+  .timeline-shell {
+    padding: 10px 12px 12px;
+  }
+
+  .timeline-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .timeline-controls,
+  .timeline-track-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-command-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .timeline-track-list {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-track-list button {
+    grid-template-columns: minmax(68px, 0.8fr) minmax(0, 1fr) minmax(48px, auto);
   }
 }

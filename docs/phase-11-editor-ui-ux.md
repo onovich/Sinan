@@ -2,6 +2,9 @@
 
 This document records the current editor shell layout conventions.
 
+For the next redesign brief, Variant exploration prompt, and implementation handoff, see
+`docs/editor-ui-ux-redesign-brief.md`.
+
 ## Layout
 
 - The editor shell is constrained to `100vh`.
@@ -9,6 +12,8 @@ This document records the current editor shell layout conventions.
 - Whole-page vertical scrolling is disabled; scrolling is contained inside side panels and the timeline.
 - The timeline remains visible in the first desktop viewport.
 - The viewport, hierarchy/assets column, inspector column, and timeline use `minmax(0, 1fr)`/`min-height: 0` constraints to avoid layout expansion.
+- Narrow viewports stack the hierarchy, viewport, and inspector vertically while keeping the timeline in its own contained bottom row.
+- On phone-width screens, the top toolbar wraps into compact command clusters instead of relying on horizontally clipped controls.
 
 ## Toolbar And Modes
 
@@ -39,6 +44,7 @@ This document records the current editor shell layout conventions.
 
 - Browser smoke asserts that the page does not create document-level vertical scroll.
 - Browser smoke asserts that the timeline shell is contained in the viewport and owns its internal scroll area.
+- Browser smoke asserts that phone-width layout keeps the shell, canvas, timeline, and top toolbar controls contained without document-level or toolbar-level horizontal scroll.
 - Browser smoke asserts hierarchy/asset summaries, asset URL visibility, selected entity state, and inspector component counts.
 - Browser smoke asserts initial clean status, event validation issue status, timeline preview status, and level dirty status after an inspector transform edit.
 - Browser smoke covers mode switching, mode shell state, transform tool disabled/enabled state, and save status visibility.
@@ -46,4 +52,4 @@ This document records the current editor shell layout conventions.
 
 ## Remaining Phase 11 Work
 
-- Narrow viewport/responsive pass.
+- Run the Phase 11 gate after responsive smoke, validation, and visual screenshot review complete.

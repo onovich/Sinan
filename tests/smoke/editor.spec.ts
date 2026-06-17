@@ -142,6 +142,84 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   expect(browserErrors).toEqual([]);
 });
 
+test('editor shell remains contained and readable on a narrow viewport', async ({ page }) => {
+  const browserErrors: string[] = [];
+
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      browserErrors.push(message.text());
+    }
+  });
+  page.on('pageerror', (error) => {
+    browserErrors.push(error.message);
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await expect(page.getByTestId('editor-shell')).toBeVisible();
+  await expect(page.locator('.save-status')).toHaveText('Clean');
+  await expect(page.getByTestId('timeline-panel')).toBeVisible();
+  await expect(page.locator('canvas.runtime-canvas')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
+  await expect(page.getByText('5 entities')).toBeVisible();
+
+  const layout = await page.evaluate(() => {
+    const shell = document.querySelector('[data-testid="editor-shell"]');
+    const topbarControls = document.querySelector('.topbar-controls');
+    const editButton = document.querySelector('.mode-button.mode-edit');
+    const viewportRegion = document.querySelector('.viewport-region');
+    const canvas = document.querySelector('canvas.runtime-canvas');
+    const timelineShell = document.querySelector('.timeline-shell');
+    const timelinePanel = document.querySelector('[data-testid="timeline-panel"]');
+    const leftPanel = document.querySelector('.editor-panel-left');
+    const rightPanel = document.querySelector('.editor-panel-right');
+    const viewportHeight = document.documentElement.clientHeight;
+    const topbarControlsRect = topbarControls?.getBoundingClientRect();
+    const editRect = editButton?.getBoundingClientRect();
+    const viewportRect = viewportRegion?.getBoundingClientRect();
+    const canvasRect = canvas?.getBoundingClientRect();
+    const timelineShellRect = timelineShell?.getBoundingClientRect();
+
+    return {
+      viewportHeight,
+      pageScrollHeight: document.documentElement.scrollHeight,
+      pageScrollWidth: document.documentElement.scrollWidth,
+      viewportWidth: document.documentElement.clientWidth,
+      shellHeight: shell?.getBoundingClientRect().height ?? 0,
+      editVisibleInToolbar:
+        topbarControlsRect && editRect
+          ? editRect.left >= topbarControlsRect.left - 1 &&
+            editRect.right <= topbarControlsRect.right + 1
+          : false,
+      canvasContained:
+        viewportRect && canvasRect
+          ? canvasRect.top >= viewportRect.top - 1 && canvasRect.bottom <= viewportRect.bottom + 1
+          : false,
+      timelineContained: timelineShellRect ? timelineShellRect.bottom <= viewportHeight + 1 : false,
+      timelineHorizontalScroll:
+        (timelineShell?.scrollWidth ?? 0) - (timelineShell?.clientWidth ?? 0),
+      topbarControlsHorizontalScroll:
+        (topbarControls?.scrollWidth ?? 0) - (topbarControls?.clientWidth ?? 0),
+      timelinePanelWidth: timelinePanel?.getBoundingClientRect().width ?? 0,
+      leftPanelScrollable: (leftPanel?.scrollHeight ?? 0) > (leftPanel?.clientHeight ?? 0),
+      rightPanelScrollable: (rightPanel?.scrollHeight ?? 0) > (rightPanel?.clientHeight ?? 0),
+    };
+  });
+
+  expect(layout.pageScrollHeight).toBeLessThanOrEqual(layout.viewportHeight + 1);
+  expect(layout.pageScrollWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.shellHeight).toBeLessThanOrEqual(layout.viewportHeight + 1);
+  expect(layout.editVisibleInToolbar).toBe(true);
+  expect(layout.canvasContained).toBe(true);
+  expect(layout.timelineContained).toBe(true);
+  expect(layout.timelineHorizontalScroll).toBeLessThanOrEqual(1);
+  expect(layout.topbarControlsHorizontalScroll).toBeLessThanOrEqual(1);
+  expect(layout.timelinePanelWidth).toBeGreaterThan(320);
+  expect(layout.leftPanelScrollable).toBe(true);
+  expect(layout.rightPanelScrollable).toBe(true);
+  expect(browserErrors).toEqual([]);
+});
+
 interface PngInspection {
   sampledUniqueColors: number;
   minLuma: number;
