@@ -31,12 +31,29 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
       viewportHeight: document.documentElement.clientHeight,
       pageScrollHeight: document.documentElement.scrollHeight,
       shellHeight: shell?.getBoundingClientRect().height ?? 0,
+      topbarHeight: document.querySelector('.editor-topbar')?.getBoundingClientRect().height ?? 0,
       timelineTop: timeline?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY,
     };
   });
   expect(layout.pageScrollHeight).toBeLessThanOrEqual(layout.viewportHeight + 1);
   expect(layout.shellHeight).toBeLessThanOrEqual(layout.viewportHeight + 1);
+  expect(layout.topbarHeight).toBeLessThanOrEqual(96);
   expect(layout.timelineTop).toBeLessThan(layout.viewportHeight);
+  const shell = page.getByTestId('editor-shell');
+  const modeNav = page.getByRole('navigation', { name: 'Editor modes' });
+  const tools = page.getByRole('group', { name: 'Transform tools' });
+  await expect(shell).toHaveAttribute('data-mode', 'edit');
+  await expect(modeNav.getByRole('button', { name: 'Edit', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await modeNav.getByRole('button', { name: 'Preview', exact: true }).click();
+  await expect(shell).toHaveAttribute('data-mode', 'preview');
+  await expect(tools.getByRole('button', { name: 'Move', exact: true })).toBeDisabled();
+  await modeNav.getByRole('button', { name: 'Edit', exact: true }).click();
+  await expect(shell).toHaveAttribute('data-mode', 'edit');
+  await expect(tools.getByRole('button', { name: 'Move', exact: true })).toBeEnabled();
+  await expect(page.locator('.save-status')).toHaveText('Not saved');
   await expect
     .poll(() => Array.from(modelResponses.values()).filter((status) => status === 200).length)
     .toBeGreaterThanOrEqual(4);

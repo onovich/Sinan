@@ -771,59 +771,79 @@ export function EditorApp() {
   };
 
   return (
-    <div className="editor-shell" data-testid="editor-shell">
+    <div className="editor-shell" data-mode={editorState.mode} data-testid="editor-shell">
       <header className="editor-topbar">
-        <div>
+        <div className="topbar-brand">
           <h1>Sinan Scene Director</h1>
           <span>Scene editing workspace</span>
         </div>
-        <nav aria-label="Editor modes">
-          {(['edit', 'play', 'preview'] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              className={editorState.mode === mode ? 'is-active' : undefined}
-              onClick={() => dispatch({ type: 'setMode', mode })}
-            >
-              {formatMode(mode)}
-            </button>
-          ))}
-        </nav>
-        <div className="toolbar-group" aria-label="Transform tools">
-          {(['select', 'move', 'rotate', 'scale'] as const).map((activeTool) => (
-            <button
-              key={activeTool}
-              type="button"
-              className={editorState.activeTool === activeTool ? 'is-active' : undefined}
-              onClick={() => dispatch({ type: 'setActiveTool', activeTool })}
-            >
-              {formatTool(activeTool)}
-            </button>
-          ))}
-        </div>
-        <div className="toolbar-group" aria-label="Command history">
-          <button type="button" onClick={undo} disabled={!historyState.canUndo}>
-            Undo
-          </button>
-          <button type="button" onClick={redo} disabled={!historyState.canRedo}>
-            Redo
-          </button>
-        </div>
-        <div className="toolbar-group" aria-label="Project commands">
-          <button
-            type="button"
-            className={showTriggerDebug ? 'is-active' : undefined}
-            aria-pressed={showTriggerDebug}
-            onClick={() => setShowTriggerDebug((current) => !current)}
-          >
-            Trigger Bounds
-          </button>
-          <button type="button" onClick={saveLevel} disabled={!project || saveStatus === 'saving'}>
-            Save
-          </button>
-          <span className="save-status" role="status">
-            {formatSaveStatus(saveStatus)}
-          </span>
+        <div className="topbar-controls">
+          <div className="toolbar-cluster toolbar-cluster-mode">
+            <span className="toolbar-label">Mode</span>
+            <nav className="segmented-control" aria-label="Editor modes">
+              {(['edit', 'play', 'preview'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={`mode-button mode-${mode}`}
+                  aria-pressed={editorState.mode === mode}
+                  onClick={() => dispatch({ type: 'setMode', mode })}
+                >
+                  {formatMode(mode)}
+                </button>
+              ))}
+            </nav>
+          </div>
+          <div className="toolbar-cluster">
+            <span className="toolbar-label">Tool</span>
+            <div className="segmented-control" role="group" aria-label="Transform tools">
+              {(['select', 'move', 'rotate', 'scale'] as const).map((activeTool) => (
+                <button
+                  key={activeTool}
+                  type="button"
+                  aria-pressed={editorState.activeTool === activeTool}
+                  disabled={editorState.mode !== 'edit'}
+                  onClick={() => dispatch({ type: 'setActiveTool', activeTool })}
+                >
+                  {formatTool(activeTool)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="toolbar-cluster">
+            <span className="toolbar-label">History</span>
+            <div className="toolbar-group" role="group" aria-label="Command history">
+              <button type="button" onClick={undo} disabled={!historyState.canUndo}>
+                Undo
+              </button>
+              <button type="button" onClick={redo} disabled={!historyState.canRedo}>
+                Redo
+              </button>
+            </div>
+          </div>
+          <div className="toolbar-cluster toolbar-cluster-project">
+            <span className="toolbar-label">Project</span>
+            <div className="toolbar-group" role="group" aria-label="Project commands">
+              <button
+                type="button"
+                className={showTriggerDebug ? 'is-active' : undefined}
+                aria-pressed={showTriggerDebug}
+                onClick={() => setShowTriggerDebug((current) => !current)}
+              >
+                Trigger Bounds
+              </button>
+              <button
+                type="button"
+                onClick={saveLevel}
+                disabled={!project || saveStatus === 'saving'}
+              >
+                Save
+              </button>
+              <span className={`save-status is-${saveStatus}`} role="status">
+                {formatSaveStatus(saveStatus)}
+              </span>
+            </div>
+          </div>
         </div>
       </header>
 
