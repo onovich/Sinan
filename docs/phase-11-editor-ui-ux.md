@@ -4,6 +4,12 @@ This document records the current editor shell layout conventions.
 
 For the next redesign brief, Variant exploration prompt, and implementation handoff, see
 `docs/editor-ui-ux-redesign-brief.md`.
+For the selected Variant visual direction, local reference image, and derived style rules, see
+`docs/editor-ui-ux-variant-style-guide.md`.
+For the interaction audit, engine-standard behavior matrix, and production handoff constraints, see
+`docs/editor-ui-ux-interaction-audit.md`.
+For the art adjustment task sheet aimed at the logic-layer implementation session, see
+`docs/editor-ui-art-adjustment-handoff.md`.
 
 ## Layout
 

@@ -1,0 +1,2977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sinan Editor Static Prototype</title>
+  <style>
+    :root {
+      --sinan-bg-chrome: #141518;
+      --sinan-bg-panel: #1c1d21;
+      --sinan-bg-active: #2a2b2f;
+      --sinan-bg-viewport: #252528;
+      --sinan-bg-field: #111216;
+      --sinan-border: #3f4247;
+      --sinan-border-soft: #303338;
+      --sinan-text-primary: #e0e0e0;
+      --sinan-text-secondary: #a0a0a5;
+      --sinan-text-muted: #747982;
+      --sinan-accent-green: #72b053;
+      --sinan-accent-yellow: #d4b24c;
+      --sinan-accent-blue: #4a9eff;
+      --sinan-accent-red: #cc5a5a;
+      --sinan-radius-sm: 2px;
+      --sinan-radius-md: 4px;
+      --sinan-toolbar-height: 40px;
+      --sinan-left-rail-width: 240px;
+      --sinan-right-rail-width: 300px;
+      --sinan-timeline-height: 220px;
+      --sinan-font-ui: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --sinan-font-mono: "JetBrains Mono", "Fira Code", Consolas, "Liberation Mono", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-width: 320px;
+      background: var(--sinan-bg-chrome);
+      color: var(--sinan-text-primary);
+      font-family: var(--sinan-font-ui);
+      font-size: 12px;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      background: var(--sinan-bg-chrome);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .prototype-frame {
+      display: grid;
+      height: 100vh;
+      min-height: 680px;
+      grid-template-rows: var(--sinan-toolbar-height) minmax(0, 1fr) var(--sinan-timeline-height);
+      overflow: hidden;
+      border-bottom: 1px solid var(--sinan-border);
+      background: var(--sinan-bg-chrome);
+    }
+
+    .toolbar {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 18px;
+      border-bottom: 1px solid var(--sinan-border);
+      padding: 0 12px;
+      background: var(--sinan-bg-chrome);
+    }
+
+    .brand {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 7px;
+      color: var(--sinan-accent-yellow);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .brand-mark {
+      width: 14px;
+      height: 14px;
+      background: var(--sinan-accent-yellow);
+      clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+    }
+
+    .toolbar-cluster {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .toolbar-label {
+      color: var(--sinan-text-muted);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .segmented {
+      display: flex;
+      overflow: hidden;
+      border: 1px solid var(--sinan-border);
+      border-radius: var(--sinan-radius-sm);
+      padding: 2px;
+      background: var(--sinan-bg-panel);
+    }
+
+    .segmented-button,
+    .icon-button {
+      min-height: 24px;
+      border: 0;
+      border-radius: var(--sinan-radius-sm);
+      padding: 4px 12px;
+      color: var(--sinan-text-secondary);
+      background: transparent;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .icon-button {
+      min-width: 28px;
+      padding: 4px 8px;
+      font-family: var(--sinan-font-mono);
+    }
+
+    .segmented-button:hover,
+    .icon-button:hover {
+      background: var(--sinan-bg-active);
+      color: var(--sinan-text-primary);
+    }
+
+    .segmented-button.is-active,
+    .icon-button.is-active {
+      background: var(--sinan-border);
+      color: var(--sinan-text-primary);
+    }
+
+    .segmented-button.is-play {
+      color: var(--sinan-accent-green);
+    }
+
+    .segmented-button.is-preview {
+      color: var(--sinan-accent-yellow);
+    }
+
+    .status-area {
+      display: flex;
+      min-width: 0;
+      flex: 1 1 auto;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      overflow: hidden;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      min-width: 0;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--sinan-border);
+      border-radius: 999px;
+      padding: 2px 8px;
+      color: var(--sinan-text-secondary);
+      background: var(--sinan-bg-active);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    button.status-pill {
+      cursor: pointer;
+    }
+
+    button.status-pill:hover {
+      border-color: var(--sinan-text-muted);
+      color: var(--sinan-text-primary);
+    }
+
+    .status-pill.is-clean,
+    .status-pill.is-saved {
+      color: var(--sinan-text-primary);
+    }
+
+    .status-pill.is-dirty,
+    .status-pill.is-preview {
+      color: var(--sinan-accent-yellow);
+    }
+
+    .status-pill.is-playing {
+      color: var(--sinan-accent-green);
+    }
+
+    .status-pill.is-invalid,
+    .status-pill.is-failed {
+      color: var(--sinan-accent-red);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: var(--sinan-text-muted);
+    }
+
+    .dot.is-green {
+      background: var(--sinan-accent-green);
+      box-shadow: 0 0 4px var(--sinan-accent-green);
+    }
+
+    .dot.is-yellow {
+      background: var(--sinan-accent-yellow);
+      box-shadow: 0 0 4px var(--sinan-accent-yellow);
+    }
+
+    .dot.is-blue {
+      background: var(--sinan-accent-blue);
+      box-shadow: 0 0 4px var(--sinan-accent-blue);
+    }
+
+    .dot.is-red {
+      background: var(--sinan-accent-red);
+      box-shadow: 0 0 4px var(--sinan-accent-red);
+    }
+
+    .workbench {
+      display: grid;
+      min-height: 0;
+      grid-template-columns: var(--sinan-left-rail-width) minmax(0, 1fr) var(--sinan-right-rail-width);
+      gap: 1px;
+      overflow: hidden;
+      background: var(--sinan-border);
+    }
+
+    .panel {
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--sinan-bg-panel);
+    }
+
+    .left-rail,
+    .right-rail {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-header {
+      display: flex;
+      min-height: 28px;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--sinan-border);
+      padding: 0 10px;
+      color: var(--sinan-text-secondary);
+      background: var(--sinan-bg-chrome);
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .panel-count {
+      color: var(--sinan-text-muted);
+      font-family: var(--sinan-font-mono);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .rail-section {
+      min-height: 0;
+      border-bottom: 1px solid var(--sinan-border);
+    }
+
+    .rail-section.is-grow {
+      flex: 1 1 auto;
+      overflow: auto;
+    }
+
+    .entity-tree,
+    .asset-list,
+    .event-log,
+    .map-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .tree-row {
+      position: relative;
+      display: grid;
+      min-height: 26px;
+      grid-template-columns: 16px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 6px;
+      border-left: 2px solid transparent;
+      padding: 4px 8px 4px 10px;
+      color: var(--sinan-text-primary);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .tree-row[draggable="true"] {
+      cursor: grab;
+    }
+
+    .tree-row[draggable="true"]:active {
+      cursor: grabbing;
+    }
+
+    .tree-row.is-child {
+      padding-left: 28px;
+      color: var(--sinan-text-secondary);
+    }
+
+    .tree-row.is-selected {
+      border-left-color: var(--sinan-accent-yellow);
+      background: var(--sinan-bg-active);
+    }
+
+    .tree-row.is-hierarchy-dragging {
+      opacity: 0.45;
+    }
+
+    .tree-row.is-drop-before::before,
+    .tree-row.is-drop-after::after {
+      position: absolute;
+      right: 6px;
+      left: 6px;
+      height: 2px;
+      background: var(--sinan-accent-blue);
+      box-shadow: 0 0 8px rgba(74, 158, 255, 0.45);
+      content: "";
+      pointer-events: none;
+    }
+
+    .tree-row.is-drop-before::before {
+      top: -1px;
+    }
+
+    .tree-row.is-drop-after::after {
+      bottom: -1px;
+    }
+
+    .row-toggle {
+      color: var(--sinan-text-muted);
+      font-family: var(--sinan-font-mono);
+      font-size: 9px;
+    }
+
+    .row-name,
+    .asset-name,
+    .clip-title,
+    .mapping-code {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .entity-icon {
+      width: 12px;
+      height: 12px;
+      border: 1px solid currentColor;
+      opacity: 0.66;
+    }
+
+    .entity-icon.is-selected {
+      color: var(--sinan-accent-yellow);
+      opacity: 1;
+    }
+
+    .row-badge {
+      max-width: 76px;
+      overflow: hidden;
+      color: var(--sinan-text-muted);
+      font-family: var(--sinan-font-mono);
+      font-size: 9px;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .asset-list {
+      display: grid;
+      gap: 4px;
+      padding: 8px 10px 10px;
+    }
+
+    .asset-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 2px 8px;
+      border: 1px solid var(--sinan-border-soft);
+      border-radius: var(--sinan-radius-sm);
+      padding: 6px 7px;
+      background: #191a1e;
+    }
+
+    .asset-row:hover,
+    .asset-row:focus-visible {
+      border-color: var(--sinan-text-muted);
+      outline: none;
+    }
+
+    .asset-row.is-selected {
+      border-color: var(--sinan-accent-blue);
+      box-shadow: 0 0 8px rgba(74, 158, 255, 0.2);
+    }
+
+    .asset-name {
+      color: var(--sinan-text-primary);
+      font-family: var(--sinan-font-mono);
+      font-size: 10px;
+    }
+
+    .asset-url {
+      grid-column: 1 / -1;
+      overflow: hidden;
+      color: var(--sinan-text-muted);
+      font-size: 10px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .asset-type {
+      color: var(--sinan-accent-blue);
+      font-family: var(--sinan-font-mono);
+      font-size: 9px;
+      text-transform: uppercase;
+    }
+
+    .viewport {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        radial-gradient(circle at 50% 45%, rgba(74, 158, 255, 0.08), transparent 34%),
+        var(--sinan-bg-viewport);
+      background-size: 40px 40px, 40px 40px, 100% 100%, auto;
+      cursor: crosshair;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .viewport.is-panning {
+      cursor: grabbing;
+    }
+
+    .viewport.is-moving-object {
+      cursor: move;
+    }
+
+    .viewport-scene {
+      position: absolute;
+      inset: 0;
+      transform: translate(0, 0) scale(1);
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
+    .viewport-object {
+      position: absolute;
+      border: 1px solid var(--sinan-border);
+      background: rgba(20, 21, 24, 0.82);
+      box-shadow: 0 0 24px rgba(0, 0, 0, 0.18);
+      cursor: pointer;
+      touch-action: none;
+    }
+
+    .viewport-object.is-hidden {
+      display: none;
+    }
+
+    .viewport-object.is-selected {
+      outline: 2px solid var(--sinan-accent-yellow);
+      outline-offset: 2px;
+      box-shadow:
+        0 0 0 1px rgba(212, 178, 76, 0.18),
+        0 0 18px rgba(212, 178, 76, 0.28);
+    }
+
+    .viewport-object.is-dragging {
+      border-color: var(--sinan-accent-yellow);
+      cursor: move;
+      z-index: 3;
+    }
+
+    .viewport-object.is-room {
+      left: 34%;
+      top: 22%;
+      width: 32%;
+      height: 45%;
+      border-color: rgba(160, 160, 165, 0.25);
+      background:
+        linear-gradient(90deg, transparent 48%, rgba(255, 255, 255, 0.05) 49%, transparent 50%),
+        rgba(20, 21, 24, 0.45);
+    }
+
+    .viewport-object.is-door {
+      left: 57%;
+      top: 39%;
+      width: 7%;
+      height: 16%;
+      border-color: var(--sinan-accent-blue);
+      background: rgba(74, 158, 255, 0.14);
+    }
+
+    .viewport-object.is-switch {
+      left: 48%;
+      top: 49%;
+      width: 3.2%;
+      height: 5%;
+      border-color: var(--sinan-accent-yellow);
+      background: rgba(212, 178, 76, 0.16);
+    }
+
+    .viewport-object.is-trigger {
+      left: 52%;
+      top: 48%;
+      width: 15%;
+      height: 17%;
+      border-color: var(--sinan-accent-green);
+      background: rgba(114, 176, 83, 0.07);
+    }
+
+    .viewport-object-label {
+      position: absolute;
+      top: -20px;
+      left: 0;
+      color: var(--sinan-text-secondary);
+      font-family: var(--sinan-font-mono);
+      font-size: 9px;
+      white-space: nowrap;
+    }
+
+    .viewport-overlay {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      display: grid;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .selection-tag {
+      width: max-content;
+      max-width: calc(100vw - 640px);
+      overflow: hidden;
+      border: 1px solid var(--sinan-accent-yellow);
+      padding: 4px 10px;
+      color: var(--sinan-accent-yellow);
+      background: rgba(20, 21, 24, 0.86);
+      font-family: var(--sinan-font-mono);
+      font-size: 11px;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .telemetry-line {
+      color: var(--sinan-text-secondary);
+      font-family: var(--sinan-font-mono);
+      font-size: 10px;
+    }
+
+    .viewport-caption {
+      position: absolute;
+      left: 50%;
+      bottom: 38px;
+      width: min(620px, 70%);
+      transform: translateX(-50%);
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 650;
+      text-align: center;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+    }
+
+    .voice-line {
+      margin-top: 4px;
+      color: var(--sinan-accent-green);
+      font-family: var(--sinan-font-mono);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .right-rail {
+      position: relative;
+    }
+
+    .tab-radio {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .tabs-header {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border-bottom: 1px solid var(--sinan-border);
+      background: var(--sinan-bg-chrome);
+    }
+
+    .tab-label {
+      position: relative;
+      min-height: 32px;
+      border-bottom: 2px solid transparent;
+      padding: 9px 4px 7px;
+      color: var(--sinan-text-secondary);
+      font-size: 10px;
+      font-weight: 800;
+      text-align: center;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .tab-label:hover {
+      color: var(--sinan-text-primary);
+      background: var(--sinan-bg-active);
+    }
+
+    .tab-label::after {
+      content: "";
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      width: 5px;
+      height: 5px;
+      border-radius: 999px;
+      opacity: 0;
+    }
+
+    .tab-label.is-dirty::after {
+      background: var(--sinan-accent-yellow);
+      opacity: 1;
+    }
+
+    .tab-label.is-invalid::after {
+      background: var(--sinan-accent-red);
+      opacity: 1;
+    }
+
+    #tab-inspector:checked ~ .tabs-header label[for="tab-inspector"],
+    #tab-event:checked ~ .tabs-header label[for="tab-event"],
+    #tab-camera:checked ~ .tabs-header label[for="tab-camera"],
+    #tab-debug:checked ~ .tabs-header label[for="tab-debug"] {
+      border-bottom-color: var(--sinan-accent-yellow);
+      color: var(--sinan-text-primary);
+      background: var(--sinan-bg-panel);
+    }
+
+    .right-panels {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .tab-panel {
+      display: none;
+      height: 100%;
+      overflow: auto;
+      background: var(--sinan-bg-panel);
+    }
+
+    #tab-inspector:checked ~ .right-panels .panel-inspector,
+    #tab-event:checked ~ .right-panels .panel-event,
+    #tab-camera:checked ~ .right-panels .panel-camera,
+    #tab-debug:checked ~ .right-panels .panel-debug {
+      display: block;
+    }
+
+    .inspector-group {
+      border-bottom: 1px solid var(--sinan-border);
+      padding-bottom: 8px;
+    }
+
+    .summary-card {
+      display: grid;
+      gap: 3px;
+      border-bottom: 1px solid var(--sinan-border);
+      padding: 10px 12px;
+      background: #191a1e;
+    }
+
+    .summary-title {
+      overflow: hidden;
+      color: var(--sinan-text-primary);
+      font-family: var(--sinan-font-mono);
+      font-size: 12px;
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .summary-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      color: var(--sinan-text-muted);
+      font-size: 10px;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 82px minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      padding: 4px 12px;
+    }
+
+    .field-row.is-tall {
+      align-items: start;
+    }
+
+    .field-label {
+      color: var(--sinan-text-secondary);
+      font-size: 11px;
+    }
+
+    .field-value,
+    .field-input,
+    .field-select,
+    .field-textarea {
+      min-width: 0;
+      border: 1px solid var(--sinan-border);
+      border-radius: var(--sinan-radius-sm);
+      padding: 4px 6px;
+      color: var(--sinan-text-primary);
+      background: var(--sinan-bg-field);
+      font-family: var(--sinan-font-mono);
+      font-size: 11px;
+    }
+
+    .field-input:focus,
+    .field-select:focus,
+    .field-textarea:focus {
+      border-color: var(--sinan-accent-blue);
+      outline: none;
+    }
+
+    .field-textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+
+    .field-input.is-invalid {
+      border-color: var(--sinan-accent-red);
+    }
+
+    .field-input[data-number-drag] {
+      cursor: ew-resize;
+      user-select: none;
+    }
+
+    .field-input.is-number-dragging {
+      border-color: var(--sinan-accent-yellow);
+      box-shadow: 0 0 0 1px rgba(212, 178, 76, 0.24);
+    }
+
+    .triplet {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 4px;
+    }
+
+    .command-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      padding: 8px 12px 0;
+    }
+
+    .command-button {
+      min-height: 26px;
+      border: 1px solid var(--sinan-border);
+      border-radius: var(--sinan-radius-sm);
+      color: var(--sinan-text-primary);
+      background: var(--sinan-bg-active);
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .command-button:hover {
+      border-color: var(--sinan-accent-blue);
+    }
+
+    .command-button.is-primary {
+      border-color: rgba(74, 158, 255, 0.66);
+      color: var(--sinan-accent-blue);
+    }
+
+    .validation-error {
+      margin: 8px 12px;
+      border: 1px solid var(--sinan-accent-red);
+      border-radius: var(--sinan-radius-sm);
+      padding: 6px 8px;
+      color: #ffb6b6;
+      background: rgba(204, 90, 90, 0.12);
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .chip-list {
+      display: flex;
+      min-width: 0;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .chip {
+      display: inline-flex;
+      min-width: 0;
+      align-items: center;
+      border: 1px solid var(--sinan-border);
+      border-radius: 999px;
+      padding: 2px 7px;
+      color: var(--sinan-text-secondary);
+      background: var(--sinan-bg-active);
+      font-family: var(--sinan-font-mono);
+      font-size: 9px;
+      text-transform: lowercase;
+    }
+
+    .chip.is-yellow {
+      border-color: rgba(212, 178, 76, 0.5);
+      color: var(--sinan-accent-yellow);
+    }
+
+    .chip.is-blue {
+      border-color: rgba(74, 158, 255, 0.5);
+      color: var(--sinan-accent-blue);
+    }
+
+    .chip.is-green {
+      border-color: rgba(114, 176, 83, 0.5);
+      color: var(--sinan-accent-green);
+    }
+
+    .section-list {
+      display: grid;
+      gap: 6px;
+      padding: 8px 12px;
+    }
+
+    .compact-card {
+      display: grid;
+      gap: 5px;
+      border: 1px solid var(--sinan-border-soft);
+      border-radius: var(--sinan-radius-sm);
+      padding: 7px;
+      background: #191a1e;
+    }
+
+    .compact-card:hover,
+    .compact-card:focus-visible {
+      border-color: var(--sinan-text-muted);
+      outline: none;
+    }
+
+    .compact-card.is-selected {
+      border-color: var(--sinan-accent-blue);
+      box-shadow: 0 0 8px rgba(74, 158, 255, 0.22);
+    }
+
+    .compact-card-title {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--sinan-text-primary);
+      font-family: var(--sinan-font-mono);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .compact-card-subtitle {
+      overflow: hidden;
+      color: var(--sinan-text-muted);
+      font-size: 10px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .details-block {
+      margin: 8px 12px 12px;
+      border: 1px solid var(--sinan-border-soft);
+      border-radius: var(--sinan-radius-sm);
+      background: #191a1e;
+    }
+
+    .details-block summary {
+      padding: 7px 8px;
+      color: var(--sinan-text-secondary);
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .details-code {
+      margin: 0;
+      max-height: 140px;
+      overflow: auto;
+      border-top: 1px solid var(--sinan-border-soft);
+      padding: 8px;
+      color: var(--sinan-text-secondary);
+      font-family: var(--sinan-font-mono);
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .debug-summary {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      padding: 8px 12px;
+    }
+
+    .debug-tile {
+      display: grid;
+      gap: 2px;
+      border: 1px solid var(--sinan-border-soft);
+      padding: 8px;
+      background: #191a1e;
+    }
+
+    .debug-value {
+      color: var(--sinan-accent-green);
+      font-family: var(--sinan-font-mono);
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .debug-label {
+      color: var(--sinan-text-muted);
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .event-log {
+      display: grid;
+      gap: 5px;
+      padding: 8px 12px;
+    }
+
+    .log-row {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 8px;
+      border-left: 2px solid var(--sinan-border);
+      padding: 5px 7px;
+      background: #191a1e;
+      font-family: var(--sinan-font-mono);
+      font-size: 10px;
+    }
+
+    .log-row:hover,
+    .log-row:focus-visible,
+    .log-row.is-selected {
+      border-left-color: var(--sinan-accent-blue);
+      outline: none;
+      background: #202228;
+    }
+
+    .log-time {
+      color: var(--sinan-accent-green);
+    }
+
+    .log-message {
+      overflow: hidden;
+      color: var(--sinan-text-secondary);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sequencer {
+      display: grid;
+      min-width: 0;
+      min-height: 0;
+      grid-template-rows: 34px 1fr 56px;
+      overflow: hidden;
+      border-top: 2px solid var(--sinan-border);
+      background: var(--sinan-bg-panel);
+    }
+
+    .sequencer-controls {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--sinan-border);
+      padding: 0 12px;
+      background: var(--sinan-bg-chrome);
+    }
+
+    .timecode {
+      min-width: 72px;
+      color: var(--sinan-accent-green);
+      font-family: var(--sinan-font-mono);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .timeline-shell {
+      min-width: 0;
+      overflow: auto;
+      background: var(--sinan-bg-panel);
+    }
+
+    .timeline-content {
+      position: relative;
+      min-width: 900px;
+      user-select: none;
+    }
+
+    .timeline-content.is-scrubbing {
+      cursor: ew-resize;
+    }
+
+    .timeline-ruler {
+      position: relative;
+      height: 24px;
+      border-bottom: 1px solid var(--sinan-border);
+      cursor: ew-resize;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          var(--sinan-border) 0,
+          var(--sinan-border) 1px,
+          transparent 1px,
+          transparent 50px
+        ),
+        var(--sinan-bg-chrome);
+    }
+
+    .ruler-label {
+      position: absolute;
+      top: 6px;
+      color: var(--sinan-text-muted);
+      font-family: var(--sinan-font-mono);
+      font-size: 9px;
+    }
+
+    .ruler-label.is-0 {
+      left: 124px;
+    }
+
+    .ruler-label.is-2 {
+      left: 430px;
+    }
+
+    .ruler-label.is-4 {
+      left: 730px;
+    }
+
+    .track-lane {
+      display: grid;
+      height: 30px;
+      grid-template-columns: 120px minmax(0, 1fr);
+      border-bottom: 1px solid var(--sinan-border);
+    }
+
+    .track-label {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      border-right: 1px solid var(--sinan-border);
+      padding-left: 10px;
+      color: var(--sinan-text-secondary);
+      background: var(--sinan-bg-chrome);
+      font-family: var(--sinan-font-mono);
+      font-size: 10px;
+    }
+
+    .track-content {
+      position: relative;
+      min-width: 0;
+      background: var(--sinan-bg-panel);
+      cursor: crosshair;
+    }
+
+    .clip {
+      position: absolute;
+      top: 5px;
+      display: flex;
+      min-width: 18px;
+      height: 20px;
+      align-items: center;
+      overflow: hidden;
+      border: 1px solid var(--sinan-accent-blue);
+      border-radius: var(--sinan-radius-sm);
+      padding: 0 10px;
+      color: var(--sinan-accent-blue);
+      background: var(--sinan-bg-active);
+      font-family: var(--sinan-font-mono);
+      font-size: 9px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .clip-resize-handle {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      z-index: 2;
+      width: 8px;
+      opacity: 0.45;
+      cursor: ew-resize;
+    }
+
+    .clip-resize-handle.is-left {
+      left: 0;
+      border-left: 1px solid currentColor;
+    }
+
+    .clip-resize-handle.is-right {
+      right: 0;
+      border-right: 1px solid currentColor;
+    }
+
+    .clip-resize-handle:hover {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .clip.is-resize-left-hover,
+    .clip.is-resize-right-hover {
+      cursor: ew-resize;
+    }
+
+    .clip.is-dragging {
+      z-index: 4;
+      box-shadow: 0 0 10px rgba(74, 158, 255, 0.44);
+      cursor: grabbing;
+    }
+
+    .clip.is-resizing {
+      z-index: 4;
+      cursor: ew-resize;
+    }
+
+    .clip.is-selected {
+      color: #fff;
+      background: var(--sinan-accent-blue);
+      box-shadow: 0 0 8px rgba(74, 158, 255, 0.42);
+    }
+
+    .clip.is-sound,
+    .clip.is-subtitle {
+      border-color: var(--sinan-accent-green);
+      color: var(--sinan-accent-green);
+    }
+
+    .clip.is-action,
+    .clip.is-property {
+      border-color: var(--sinan-accent-yellow);
+      color: var(--sinan-accent-yellow);
+    }
+
+    .clip.is-invalid {
+      border-color: var(--sinan-accent-red);
+      color: var(--sinan-accent-red);
+    }
+
+    .clip-camera {
+      left: 0%;
+      width: 78%;
+    }
+
+    .clip-animation {
+      left: 9%;
+      width: 36%;
+    }
+
+    .clip-sound {
+      left: 4%;
+      width: 90px;
+    }
+
+    .clip-property {
+      left: 9%;
+      width: 36%;
+    }
+
+    .clip-subtitle {
+      left: 27%;
+      width: 44%;
+    }
+
+    .clip-action {
+      left: 84%;
+      width: 70px;
+    }
+
+    .playhead {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: calc(120px + 50%);
+      z-index: 5;
+      width: 2px;
+      background: var(--sinan-accent-green);
+      cursor: ew-resize;
+      pointer-events: auto;
+    }
+
+    .playhead::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -4px;
+      border-right: 5px solid transparent;
+      border-left: 5px solid transparent;
+      border-top: 7px solid var(--sinan-accent-green);
+    }
+
+    .track-details {
+      display: grid;
+      min-width: 0;
+      grid-template-columns: 120px minmax(0, 1fr) 220px;
+      gap: 1px;
+      border-top: 1px solid var(--sinan-border);
+      background: var(--sinan-border);
+    }
+
+    .track-detail-cell {
+      min-width: 0;
+      overflow: hidden;
+      padding: 8px 10px;
+      background: var(--sinan-bg-chrome);
+    }
+
+    .detail-kicker {
+      color: var(--sinan-text-muted);
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .detail-title {
+      margin-top: 3px;
+      overflow: hidden;
+      color: var(--sinan-text-primary);
+      font-family: var(--sinan-font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .prototype-toast {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 20;
+      max-width: 340px;
+      transform: translateY(8px);
+      border: 1px solid rgba(74, 158, 255, 0.5);
+      border-radius: var(--sinan-radius-md);
+      padding: 9px 12px;
+      color: var(--sinan-text-primary);
+      background: rgba(20, 21, 24, 0.94);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.34);
+      font-size: 11px;
+      opacity: 0;
+      pointer-events: none;
+      transition:
+        opacity 160ms ease,
+        transform 160ms ease;
+    }
+
+    .prototype-toast.is-visible {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .status-pill.is-muted {
+      color: var(--sinan-text-muted);
+    }
+
+    code {
+      color: var(--sinan-text-primary);
+      font-family: var(--sinan-font-mono);
+      font-size: 0.95em;
+    }
+
+    .prototype-note {
+      border: 1px solid rgba(212, 178, 76, 0.36);
+      border-radius: var(--sinan-radius-md);
+      padding: 10px 12px;
+      color: var(--sinan-accent-yellow);
+      background: rgba(212, 178, 76, 0.08);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 1100px) {
+      .prototype-frame {
+        min-height: 760px;
+        grid-template-rows: auto minmax(0, 1fr) 220px;
+      }
+
+      .toolbar {
+        min-height: var(--sinan-toolbar-height);
+        overflow-x: auto;
+      }
+
+      .workbench {
+        grid-template-columns: 200px minmax(460px, 1fr) 280px;
+        overflow-x: auto;
+      }
+
+    }
+
+    @media (max-width: 820px) {
+      .prototype-frame {
+        height: auto;
+        min-height: 100vh;
+        grid-template-rows: auto auto auto;
+        overflow: visible;
+      }
+
+      .workbench {
+        grid-template-columns: 1fr;
+        overflow: visible;
+      }
+
+      .left-rail,
+      .right-rail {
+        max-height: 320px;
+      }
+
+      .viewport {
+        min-height: 420px;
+      }
+
+      .sequencer {
+        min-height: 220px;
+      }
+
+    }
+  </style>
+</head>
+<body>
+  <div class="prototype-frame" data-design-id="prototype.frame" data-mode="edit" data-tool="move">
+    <header class="toolbar" data-design-id="toolbar">
+      <div class="brand" data-design-id="toolbar.brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>SINAN DIRECTOR</span>
+      </div>
+
+      <div class="toolbar-cluster" data-design-id="toolbar.mode">
+        <div class="segmented" role="group" aria-label="Editor modes">
+          <button class="segmented-button is-active" type="button" data-mode-switch="edit" aria-pressed="true">Edit</button>
+          <button class="segmented-button is-play" type="button" data-mode-switch="play" aria-pressed="false">Play</button>
+          <button class="segmented-button is-preview" type="button" data-mode-switch="preview" aria-pressed="false">Preview</button>
+        </div>
+      </div>
+
+      <div class="toolbar-cluster" data-design-id="toolbar.tools">
+        <span class="toolbar-label">Tool</span>
+        <div class="segmented" role="group" aria-label="Transform tools">
+          <button class="icon-button" type="button" title="Select" data-tool-switch="select" aria-pressed="false">Sel</button>
+          <button class="icon-button is-active" type="button" title="Move" data-tool-switch="move" aria-pressed="true">Mov</button>
+          <button class="icon-button" type="button" title="Rotate" data-tool-switch="rotate" aria-pressed="false">Rot</button>
+          <button class="icon-button" type="button" title="Scale" data-tool-switch="scale" aria-pressed="false">Scl</button>
+        </div>
+      </div>
+
+      <div class="toolbar-cluster" data-design-id="toolbar.history">
+        <div class="segmented" role="group" aria-label="History">
+          <button class="icon-button" type="button" title="Undo" data-command="undo">Undo</button>
+          <button class="icon-button" type="button" title="Redo" data-command="redo">Redo</button>
+        </div>
+      </div>
+
+      <div class="toolbar-cluster" data-design-id="toolbar.helpers">
+        <button class="status-pill is-preview" type="button" data-helper-toggle="trigger" aria-pressed="true">
+          <span class="dot is-yellow"></span>
+          <span data-helper-label>Trigger bounds</span>
+        </button>
+      </div>
+
+      <div class="status-area" data-design-id="toolbar.status">
+        <button class="status-pill is-clean" type="button" data-command="save-level">
+          <span class="dot is-green"></span>
+          <span>Save Level</span>
+        </button>
+        <span class="status-pill is-clean" data-level-status>
+          <span class="dot is-green"></span>
+          <span>level_01 loaded</span>
+        </span>
+        <span class="status-pill is-dirty" data-timeline-status>
+          <span class="dot is-yellow"></span>
+          <span>unsaved timeline</span>
+        </span>
+        <span class="status-pill is-invalid" data-event-status>
+          <span class="dot is-red"></span>
+          <span>1 event issue</span>
+        </span>
+        <span class="status-pill is-preview" data-live-status>
+          <span class="dot is-blue"></span>
+          <span data-live-status-text>prototype ready</span>
+        </span>
+      </div>
+    </header>
+
+    <main class="workbench" data-design-id="workbench">
+      <aside class="panel left-rail" data-design-id="left-rail">
+        <section class="rail-section is-grow" data-design-id="hierarchy-panel">
+          <div class="panel-header">
+            <span>Hierarchy</span>
+            <span class="panel-count">5 entities</span>
+          </div>
+          <ul class="entity-tree" aria-label="Level entities">
+            <li class="tree-row" role="button" tabindex="0" data-entity-id="room_blockout_01" data-entity-name="room_blockout_01" data-prefab="room_blockout" data-position="2.5, 0.0, 5.5" data-components="Renderable">
+              <span class="row-toggle">v</span>
+              <span class="row-name">room_blockout_01</span>
+              <span class="row-badge">room</span>
+            </li>
+            <li class="tree-row" role="button" tabindex="0" data-entity-id="player_spawn_01" data-entity-name="player_spawn_01" data-prefab="player_spawn" data-position="0.0, 0.0, 3.0" data-components="PlayerSpawn,Collider">
+              <span class="row-toggle">v</span>
+              <span class="row-name">player_spawn_01</span>
+              <span class="row-badge">spawn</span>
+            </li>
+            <li class="tree-row is-selected" role="button" tabindex="0" data-entity-id="switch_a" data-entity-name="switch_a" data-prefab="switch_wall" data-position="3.2, 1.0, 4.6" data-components="Switch,Interactable">
+              <span class="entity-icon is-selected" aria-hidden="true"></span>
+              <span class="row-name">switch_a</span>
+              <span class="row-badge">switch</span>
+            </li>
+            <li class="tree-row is-child">
+              <span class="entity-icon" aria-hidden="true"></span>
+              <span class="row-name">Switch</span>
+              <span class="row-badge">cmp</span>
+            </li>
+            <li class="tree-row is-child">
+              <span class="entity-icon" aria-hidden="true"></span>
+              <span class="row-name">Interactable</span>
+              <span class="row-badge">cmp</span>
+            </li>
+            <li class="tree-row" role="button" tabindex="0" data-entity-id="gate_a" data-entity-name="gate_a" data-prefab="door_wood" data-position="5.0, 0.0, 8.0" data-components="Door">
+              <span class="row-toggle">v</span>
+              <span class="row-name">gate_a</span>
+              <span class="row-badge">door</span>
+            </li>
+            <li class="tree-row" role="button" tabindex="0" data-entity-id="trigger_gate_entry" data-entity-name="trigger_gate_entry" data-prefab="trigger_box" data-position="4.5, 0.0, 7.0" data-components="Collider,TriggerZone">
+              <span class="row-toggle">v</span>
+              <span class="row-name">trigger_gate_entry</span>
+              <span class="row-badge">trigger</span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="rail-section" data-design-id="asset-panel">
+          <div class="panel-header">
+            <span>Project Assets</span>
+            <span class="panel-count">5 assets</span>
+          </div>
+          <ul class="asset-list" aria-label="Asset manifest">
+            <li class="asset-row is-selected" role="button" tabindex="0" data-asset-id="model.switch_wall" data-asset-type="model">
+              <span class="asset-name">model.switch_wall</span>
+              <span class="asset-type">model</span>
+              <span class="asset-url">/models/props/switch_wall.glb</span>
+            </li>
+            <li class="asset-row" role="button" tabindex="0" data-asset-id="model.door_wood" data-asset-type="model">
+              <span class="asset-name">model.door_wood</span>
+              <span class="asset-type">model</span>
+              <span class="asset-url">/models/props/door_wood.glb</span>
+            </li>
+            <li class="asset-row" role="button" tabindex="0" data-asset-id="audio.switch_click" data-asset-type="audio">
+              <span class="asset-name">audio.switch_click</span>
+              <span class="asset-type">audio</span>
+              <span class="asset-url">/audio/switch_click.wav</span>
+            </li>
+          </ul>
+        </section>
+      </aside>
+
+      <section class="viewport" data-design-id="viewport">
+        <div class="viewport-scene" data-viewport-scene>
+          <div class="viewport-object is-room" role="button" tabindex="0" data-viewport-object="room_blockout_01">
+            <span class="viewport-object-label">room_blockout_01</span>
+          </div>
+          <div class="viewport-object is-door" role="button" tabindex="0" data-viewport-object="gate_a">
+            <span class="viewport-object-label">gate_a</span>
+          </div>
+          <div class="viewport-object is-switch is-selected" role="button" tabindex="0" data-viewport-object="switch_a">
+            <span class="viewport-object-label">switch_a</span>
+          </div>
+          <div class="viewport-object is-trigger" role="button" tabindex="0" data-viewport-object="trigger_gate_entry">
+            <span class="viewport-object-label">trigger_gate_entry</span>
+          </div>
+        </div>
+
+        <div class="viewport-overlay" data-design-id="viewport.overlay">
+          <div class="selection-tag" data-selected-tag>Selected: switch_a [3.2, 1.0, 4.6]</div>
+          <div class="telemetry-line" data-mode-line>Mode: EDIT / MOVE | timeline: tl_open_gate @ 2.25s</div>
+          <div class="telemetry-line" data-helper-line>FPS: 144 | runtime: Three adapter | helpers: trigger bounds</div>
+        </div>
+
+        <div class="viewport-caption" data-design-id="viewport.runtime-hud">
+          "Gate open."
+          <div class="voice-line">[AUDIO: audio.switch_click | CAMERA: cam_gate_reveal]</div>
+        </div>
+      </section>
+
+      <aside class="panel right-rail" data-design-id="right-rail">
+        <input class="tab-radio" type="radio" name="right-tab" id="tab-inspector" checked>
+        <input class="tab-radio" type="radio" name="right-tab" id="tab-event">
+        <input class="tab-radio" type="radio" name="right-tab" id="tab-camera">
+        <input class="tab-radio" type="radio" name="right-tab" id="tab-debug">
+
+        <div class="tabs-header" data-design-id="right-rail.tabs">
+          <label class="tab-label" for="tab-inspector">Inspector</label>
+          <label class="tab-label is-invalid" for="tab-event">Event</label>
+          <label class="tab-label is-dirty" for="tab-camera">Camera</label>
+          <label class="tab-label" for="tab-debug">Debug</label>
+        </div>
+
+        <div class="right-panels">
+          <section class="tab-panel panel-inspector" data-design-id="inspector-tab">
+          <div class="summary-card">
+              <div class="summary-title" data-selected-entity-title>switch_a</div>
+              <div class="summary-meta">
+                <span data-selected-entity-prefab>prefab: switch_wall</span>
+                <span data-selected-entity-components>2 components</span>
+              </div>
+            </div>
+
+            <div class="inspector-group">
+              <div class="panel-header">Transform</div>
+              <div class="field-row">
+                <div class="field-label">Position</div>
+                <div class="triplet">
+                  <input class="field-input" value="3.20" aria-label="Position X" data-number-drag data-transform-kind="position" data-axis="0" data-step="0.02">
+                  <input class="field-input" value="1.00" aria-label="Position Y" data-number-drag data-transform-kind="position" data-axis="1" data-step="0.02">
+                  <input class="field-input" value="4.60" aria-label="Position Z" data-number-drag data-transform-kind="position" data-axis="2" data-step="0.02">
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field-label">Rotation</div>
+                <div class="triplet">
+                  <input class="field-input" value="0.00" aria-label="Rotation X" data-number-drag data-transform-kind="rotation" data-axis="0" data-step="0.2">
+                  <input class="field-input" value="0.00" aria-label="Rotation Y" data-number-drag data-transform-kind="rotation" data-axis="1" data-step="0.2">
+                  <input class="field-input" value="0.00" aria-label="Rotation Z" data-number-drag data-transform-kind="rotation" data-axis="2" data-step="0.2">
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field-label">Scale</div>
+                <div class="triplet">
+                  <input class="field-input" value="1.40" aria-label="Scale X" data-number-drag data-transform-kind="scale" data-axis="0" data-step="0.01">
+                  <input class="field-input" value="1.40" aria-label="Scale Y" data-number-drag data-transform-kind="scale" data-axis="1" data-step="0.01">
+                  <input class="field-input" value="1.40" aria-label="Scale Z" data-number-drag data-transform-kind="scale" data-axis="2" data-step="0.01">
+                </div>
+              </div>
+            </div>
+
+            <div class="inspector-group">
+              <div class="panel-header">Components</div>
+              <div class="section-list">
+                <div class="compact-card is-selected">
+                  <div class="compact-card-title">
+                    <span>Switch</span>
+                    <span class="chip is-yellow">initial false</span>
+                  </div>
+                  <div class="compact-card-subtitle">Authoring target for event actions.</div>
+                </div>
+                <div class="compact-card">
+                  <div class="compact-card-title">
+                    <span>Interactable</span>
+                    <span class="chip is-green">Press E</span>
+                  </div>
+                  <div class="compact-card-subtitle">Connects player interaction to events.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="inspector-group">
+              <div class="panel-header">Actions</div>
+              <div class="command-row">
+                <button class="command-button is-primary" type="button" data-command="interact">Interact</button>
+                <button class="command-button" type="button" data-command="frame-selected">Frame Selected</button>
+              </div>
+            </div>
+
+            <details class="details-block">
+              <summary>Advanced JSON</summary>
+              <pre class="details-code">{
+  "id": "switch_a",
+  "prefab": "switch_wall",
+  "components": ["Switch", "Interactable"]
+}</pre>
+            </details>
+          </section>
+
+          <section class="tab-panel panel-event" data-design-id="event-tab">
+            <div class="summary-card">
+              <div class="summary-title">ev_switch_a_open_gate</div>
+              <div class="summary-meta">
+                <span class="status-pill is-dirty"><span class="dot is-yellow"></span>Unsaved</span>
+                <span class="status-pill is-invalid"><span class="dot is-red"></span>1 issue</span>
+              </div>
+            </div>
+
+            <div class="inspector-group">
+              <div class="panel-header">Event Identity</div>
+              <div class="field-row">
+                <div class="field-label">Name</div>
+                <input class="field-input" value="Switch Opens Gate">
+              </div>
+              <div class="field-row">
+                <div class="field-label">ID</div>
+                <input class="field-input is-invalid" value="ev_switch_a_open_gate">
+              </div>
+              <div class="validation-error">Duplicate trigger target: switch_a already has a pending open gate event in this mock state.</div>
+            </div>
+
+            <div class="inspector-group">
+              <div class="panel-header">Trigger &amp; Condition</div>
+              <div class="field-row">
+                <div class="field-label">Trigger</div>
+                <div class="field-value">entity.interact / switch_a</div>
+              </div>
+              <div class="field-row">
+                <div class="field-label">Condition</div>
+                <div class="field-value">inventory.has / gate_key</div>
+              </div>
+            </div>
+
+            <div class="inspector-group">
+              <div class="panel-header">Actions</div>
+              <div class="section-list">
+                <div class="compact-card">
+                  <div class="compact-card-title">
+                    <span>flag.set</span>
+                    <span class="chip is-yellow">gate_a_opened</span>
+                  </div>
+                  <div class="compact-card-subtitle">Set opened flag to true.</div>
+                </div>
+                <div class="compact-card is-selected">
+                  <div class="compact-card-title">
+                    <span>timeline.play</span>
+                    <span class="chip is-blue">tl_open_gate</span>
+                  </div>
+                  <div class="compact-card-subtitle">Routes through DirectorSystem.</div>
+                </div>
+              </div>
+              <div class="command-row">
+                <button class="command-button is-primary" type="button" data-command="apply-event">Apply Event</button>
+                <button class="command-button" type="button" data-command="save-event">Save Event</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="tab-panel panel-camera" data-design-id="camera-tab">
+            <div class="summary-card">
+              <div class="summary-title">cam_gate_reveal</div>
+              <div class="summary-meta">
+                <span>Gate Reveal</span>
+                <span class="status-pill is-preview" data-camera-shot-status><span class="dot is-blue"></span><span>Preview @ 1.50s</span></span>
+              </div>
+            </div>
+
+            <div class="inspector-group">
+              <div class="panel-header">Shot</div>
+              <div class="field-row">
+                <div class="field-label">Shot</div>
+                <select class="field-select">
+                  <option>Gate Reveal (cam_gate_reveal)</option>
+                </select>
+              </div>
+              <div class="field-row">
+                <div class="field-label">Duration</div>
+                <input class="field-input" value="3.50" data-number-drag data-step="0.02">
+              </div>
+            </div>
+
+            <div class="inspector-group">
+              <div class="panel-header">Keyframe</div>
+              <div class="field-row">
+                <div class="field-label">Key</div>
+                <select class="field-select">
+                  <option>2 @ 1.50s</option>
+                  <option>1 @ 0.00s</option>
+                  <option>3 @ 3.50s</option>
+                </select>
+              </div>
+              <div class="field-row">
+                <div class="field-label">FOV</div>
+                <input class="field-input" value="45" data-number-drag data-step="0.1">
+              </div>
+              <div class="field-row">
+                <div class="field-label">Position</div>
+                <div class="triplet">
+                  <input class="field-input" value="3.00" aria-label="Camera X" data-number-drag data-step="0.02">
+                  <input class="field-input" value="1.80" aria-label="Camera Y" data-number-drag data-step="0.02">
+                  <input class="field-input" value="6.50" aria-label="Camera Z" data-number-drag data-step="0.02">
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field-label">Look At</div>
+                <input class="field-input" value="gate_a">
+              </div>
+              <div class="command-row">
+                <button class="command-button is-primary" type="button" data-command="view-camera">View Camera</button>
+                <button class="command-button" type="button" data-command="set-key-from-view">Set From View</button>
+                <button class="command-button" type="button" data-command="look-at-selected">Look At Selected</button>
+                <button class="command-button" type="button" data-command="save-shot">Save Shot</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="tab-panel panel-debug" data-design-id="debug-tab">
+            <div class="summary-card">
+              <div class="summary-title">Runtime Debug</div>
+              <div class="summary-meta">
+                <span>sampled status, not frame state</span>
+              </div>
+            </div>
+
+            <div class="debug-summary">
+              <div class="debug-tile">
+                <div class="debug-value">2</div>
+                <div class="debug-label">Fired</div>
+              </div>
+              <div class="debug-tile">
+                <div class="debug-value">3</div>
+                <div class="debug-label">Commands</div>
+              </div>
+              <div class="debug-tile">
+                <div class="debug-value">1</div>
+                <div class="debug-label">Flags</div>
+              </div>
+              <div class="debug-tile">
+                <div class="debug-value">1</div>
+                <div class="debug-label">Doors</div>
+              </div>
+            </div>
+
+            <div class="inspector-group">
+              <div class="panel-header">Event Log</div>
+              <ul class="event-log">
+                <li class="log-row">
+                  <span class="log-time">0.20</span>
+                  <span class="log-message">sound.play audio.switch_click</span>
+                </li>
+                <li class="log-row">
+                  <span class="log-time">1.20</span>
+                  <span class="log-message">subtitle.show Gate open.</span>
+                </li>
+                <li class="log-row">
+                  <span class="log-time">3.80</span>
+                  <span class="log-message">flag.set gate_a_opened true</span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="inspector-group">
+              <div class="panel-header">State</div>
+              <div class="field-row">
+                <div class="field-label">Flags</div>
+                <div class="field-value">gate_a_opened: true</div>
+              </div>
+              <div class="field-row">
+                <div class="field-label">Door</div>
+                <div class="field-value">gate_a: opening</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="sequencer" data-design-id="timeline">
+      <div class="sequencer-controls" data-design-id="timeline.controls">
+        <div class="timecode" data-timecode>00:02.25</div>
+        <div class="segmented" role="group" aria-label="Timeline playback controls">
+          <button class="icon-button" type="button" title="Start" data-playback="start">Start</button>
+          <button class="icon-button is-active" type="button" title="Play" data-playback="play">Play</button>
+          <button class="icon-button" type="button" title="Stop" data-playback="stop">Stop</button>
+          <button class="icon-button" type="button" title="End" data-playback="end">End</button>
+        </div>
+        <span class="status-pill is-playing" data-playback-status>
+          <span class="dot is-green"></span>
+          <span>tl_open_gate preview</span>
+        </span>
+        <span class="status-pill is-preview">
+          <span class="dot is-blue"></span>
+          cam_gate_reveal
+        </span>
+        <span class="status-pill is-dirty">
+          <span class="dot is-yellow"></span>
+          unsaved track
+        </span>
+      </div>
+
+      <div class="timeline-shell" data-design-id="timeline.lanes">
+        <div class="timeline-content">
+          <div class="playhead" aria-hidden="true" data-playhead></div>
+          <div class="timeline-ruler">
+            <span class="ruler-label is-0">0s</span>
+            <span class="ruler-label is-2">2s</span>
+            <span class="ruler-label is-4">4s</span>
+          </div>
+          <div class="track-lane">
+            <div class="track-label">camera.shot</div>
+            <div class="track-content">
+              <div class="clip is-selected clip-camera" data-track-type="camera.shot" data-track-title="track_camera_gate_reveal" data-track-binding="cam_gate_reveal / blend 0.25s - 0.40s" data-track-implementation="TimelinePanel -> DirectorCameraSystem">track_camera_gate_reveal</div>
+            </div>
+          </div>
+          <div class="track-lane">
+            <div class="track-label">animation.play</div>
+            <div class="track-content">
+              <div class="clip clip-animation" data-track-type="animation.play" data-track-title="track_gate_open_anim" data-track-binding="gate_a / Open / fade 0.10s" data-track-implementation="TimelinePanel -> AnimationTrackPlayer">gate_a / Open</div>
+            </div>
+          </div>
+          <div class="track-lane">
+            <div class="track-label">sound</div>
+            <div class="track-content">
+              <div class="clip is-sound clip-sound" data-track-type="sound" data-track-title="track_sound_switch" data-track-binding="audio.switch_click @ 0.20s" data-track-implementation="TimelinePanel -> AudioTrackPlayer">audio.switch_click</div>
+            </div>
+          </div>
+          <div class="track-lane">
+            <div class="track-label">property</div>
+            <div class="track-content">
+              <div class="clip is-property clip-property" data-track-type="property" data-track-title="track_gate_open_amount" data-track-binding="gate_a / Door.openAmount / 0 -> 1" data-track-implementation="TimelinePanel -> PropertyTrackPlayer">Door.openAmount</div>
+            </div>
+          </div>
+          <div class="track-lane">
+            <div class="track-label">subtitle</div>
+            <div class="track-content">
+              <div class="clip is-subtitle clip-subtitle" data-track-type="subtitle" data-track-title="track_subtitle_gate_open" data-track-binding="Gate open. / 2.00s" data-track-implementation="TimelinePanel -> SubtitleTrackPlayer">Gate open.</div>
+            </div>
+          </div>
+          <div class="track-lane">
+            <div class="track-label">action</div>
+            <div class="track-content">
+              <div class="clip is-action clip-action" data-track-type="action" data-track-title="track_set_flag" data-track-binding="flag.set / gate_a_opened = true" data-track-implementation="TimelinePanel -> ActionTrackPlayer -> ActionSystem">flag.set</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="track-details" data-design-id="timeline.selected-track">
+        <div class="track-detail-cell">
+          <div class="detail-kicker">Selected Track</div>
+          <div class="detail-title" data-selected-track-type>camera.shot</div>
+        </div>
+        <div class="track-detail-cell">
+          <div class="detail-kicker">Binding</div>
+          <div class="detail-title" data-selected-track-binding>cam_gate_reveal / blend 0.25s - 0.40s</div>
+        </div>
+        <div class="track-detail-cell">
+          <div class="detail-kicker">Implementation</div>
+          <div class="detail-title" data-selected-track-implementation>TimelinePanel -> DirectorCameraSystem</div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    (() => {
+      const frame = document.querySelector(".prototype-frame");
+      const selectedTag = document.querySelector("[data-selected-tag]");
+      const modeLine = document.querySelector("[data-mode-line]");
+      const helperLine = document.querySelector("[data-helper-line]");
+      const liveStatusText = document.querySelector("[data-live-status-text]");
+      const timecode = document.querySelector("[data-timecode]");
+      const playhead = document.querySelector("[data-playhead]");
+      const timelineContent = document.querySelector(".timeline-content");
+      const playbackStatus = document.querySelector("[data-playback-status] span:last-child");
+      const playButton = document.querySelector("[data-playback='play']");
+      const duration = 4.5;
+
+      let currentMode = "edit";
+      let currentTool = "move";
+      let currentEntity = "switch_a";
+      let currentPosition = "3.2, 1.0, 4.6";
+      let currentTime = 2.25;
+      let isPlaying = false;
+      let playbackTimer = undefined;
+      let triggerHelpersVisible = true;
+      let toastTimer = undefined;
+
+      const toast = document.createElement("div");
+      toast.className = "prototype-toast";
+      toast.setAttribute("role", "status");
+      document.body.appendChild(toast);
+
+      function titleCase(value) {
+        return value.charAt(0).toUpperCase() + value.slice(1);
+      }
+
+      function formatTime(seconds) {
+        const safe = Math.max(0, Math.min(duration, seconds));
+        const whole = Math.floor(safe);
+        const fraction = Math.round((safe - whole) * 100);
+        return `00:${String(whole).padStart(2, "0")}.${String(fraction).padStart(2, "0")}`;
+      }
+
+      function showToast(message) {
+        window.clearTimeout(toastTimer);
+        toast.textContent = message;
+        toast.classList.add("is-visible");
+        toastTimer = window.setTimeout(() => {
+          toast.classList.remove("is-visible");
+        }, 1800);
+      }
+
+      function setLiveStatus(message) {
+        if (liveStatusText) {
+          liveStatusText.textContent = message;
+        }
+      }
+
+      function dotToneFor(statusTone) {
+        return {
+          clean: "green",
+          saved: "green",
+          dirty: "yellow",
+          preview: "blue",
+          playing: "green",
+          invalid: "red",
+          failed: "red",
+        }[statusTone] ?? "blue";
+      }
+
+      function setStatusPill(target, label, statusTone = "preview") {
+        const status = typeof target === "string" ? document.querySelector(target) : target;
+        if (!status) return;
+        status.className = `status-pill is-${statusTone}`;
+        const dot = status.querySelector(".dot");
+        if (dot) {
+          dot.className = `dot is-${dotToneFor(statusTone)}`;
+        }
+        const text = status.querySelector("span:last-child");
+        if (text) {
+          text.textContent = label;
+        }
+      }
+
+      function markDomainDirty(source) {
+        const key = String(source ?? "").toLowerCase();
+        if (key.includes("event")) {
+          document.querySelector("label[for='tab-event']")?.classList.add("is-dirty");
+          setStatusPill("[data-event-status]", "event draft dirty", "dirty");
+          setLiveStatus("event edited");
+          return;
+        }
+        if (key.includes("camera")) {
+          document.querySelector("label[for='tab-camera']")?.classList.add("is-dirty");
+          setStatusPill("[data-camera-shot-status]", "Unsaved key", "dirty");
+          setLiveStatus("camera edited");
+          return;
+        }
+        if (key.includes("timeline") || key.includes("track")) {
+          setStatusPill("[data-timeline-status]", "unsaved timeline", "dirty");
+          setLiveStatus("timeline edited");
+          return;
+        }
+        setStatusPill("[data-level-status]", "unsaved level", "dirty");
+        setLiveStatus("level edited");
+      }
+
+      window.sinanPrototypeSetStatusPill = setStatusPill;
+      window.sinanPrototypeSetDomainDirty = markDomainDirty;
+
+      function updateModeLine() {
+        if (modeLine) {
+          modeLine.textContent = `Mode: ${currentMode.toUpperCase()} / ${currentTool.toUpperCase()} | timeline: tl_open_gate @ ${currentTime.toFixed(2)}s`;
+        }
+      }
+
+      function setMode(mode) {
+        currentMode = mode;
+        frame.dataset.mode = mode;
+        document.querySelectorAll("[data-mode-switch]").forEach((button) => {
+          const active = button.dataset.modeSwitch === mode;
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+        document.querySelectorAll("[data-tool-switch]").forEach((button) => {
+          button.toggleAttribute("disabled", mode !== "edit");
+        });
+        setLiveStatus(`${titleCase(mode)} mode`);
+        updateModeLine();
+        showToast(`${titleCase(mode)} mode selected`);
+      }
+
+      function setTool(tool) {
+        if (currentMode !== "edit") {
+          showToast("Transform tools are disabled outside Edit mode");
+          return;
+        }
+        currentTool = tool;
+        frame.dataset.tool = tool;
+        document.querySelectorAll("[data-tool-switch]").forEach((button) => {
+          const active = button.dataset.toolSwitch === tool;
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+        setLiveStatus(`${titleCase(tool)} tool`);
+        updateModeLine();
+      }
+
+      function setTime(seconds, statusText = "tl_open_gate preview") {
+        currentTime = Math.max(0, Math.min(duration, seconds));
+        if (timecode) {
+          timecode.textContent = formatTime(currentTime);
+        }
+        if (playhead && timelineContent) {
+          const contentWidth = timelineContent.getBoundingClientRect().width;
+          const left = 120 + (currentTime / duration) * Math.max(0, contentWidth - 120);
+          playhead.style.left = `${left}px`;
+        }
+        if (playbackStatus) {
+          playbackStatus.textContent = statusText;
+        }
+        updateModeLine();
+      }
+
+      function stopPlayback(label = "tl_open_gate stopped") {
+        isPlaying = false;
+        window.clearInterval(playbackTimer);
+        playbackTimer = undefined;
+        if (playButton) {
+          playButton.textContent = "Play";
+          playButton.title = "Play";
+        }
+        setTime(currentTime, label);
+      }
+
+      function startPlayback() {
+        if (isPlaying) {
+          stopPlayback("tl_open_gate paused");
+          showToast("Timeline paused");
+          return;
+        }
+        isPlaying = true;
+        if (currentTime >= duration) {
+          currentTime = 0;
+        }
+        if (playButton) {
+          playButton.textContent = "Pause";
+          playButton.title = "Pause";
+        }
+        setMode("preview");
+        setTime(currentTime, "tl_open_gate playing");
+        playbackTimer = window.setInterval(() => {
+          currentTime += 0.05;
+          if (currentTime >= duration) {
+            currentTime = duration;
+            stopPlayback("tl_open_gate finished");
+            showToast("Timeline preview finished");
+          } else {
+            setTime(currentTime, "tl_open_gate playing");
+          }
+        }, 50);
+      }
+
+      function selectEntity(row) {
+        if (!row.dataset.entityId) {
+          return;
+        }
+        document.querySelectorAll(".tree-row.is-selected").forEach((item) => item.classList.remove("is-selected"));
+        document.querySelectorAll(".entity-icon.is-selected").forEach((item) => item.classList.remove("is-selected"));
+        row.classList.add("is-selected");
+        row.querySelector(".entity-icon")?.classList.add("is-selected");
+        currentEntity = row.dataset.entityId;
+        currentPosition = row.dataset.position ?? "0.0, 0.0, 0.0";
+        if (selectedTag) {
+          selectedTag.textContent = `Selected: ${currentEntity} [${currentPosition}]`;
+        }
+        const title = document.querySelector("[data-selected-entity-title]");
+        const prefab = document.querySelector("[data-selected-entity-prefab]");
+        const components = document.querySelector("[data-selected-entity-components]");
+        if (title) {
+          title.textContent = currentEntity;
+        }
+        if (prefab) {
+          prefab.textContent = `prefab: ${row.dataset.prefab ?? "none"}`;
+        }
+        const componentList = (row.dataset.components ?? "").split(",").filter(Boolean);
+        if (components) {
+          components.textContent = `${componentList.length} component${componentList.length === 1 ? "" : "s"}`;
+        }
+        const positionFields = document.querySelectorAll(".panel-inspector .inspector-group:first-of-type .triplet:first-of-type .field-input");
+        currentPosition.split(",").map((part) => part.trim()).forEach((value, index) => {
+          if (positionFields[index]) {
+            positionFields[index].value = Number(value).toFixed(2);
+          }
+        });
+        setLiveStatus(`${currentEntity} selected`);
+        updateModeLine();
+      }
+
+      function toggleTriggerHelpers() {
+        triggerHelpersVisible = !triggerHelpersVisible;
+        document.querySelectorAll(".viewport-object.is-trigger").forEach((item) => {
+          item.classList.toggle("is-hidden", !triggerHelpersVisible);
+        });
+        const button = document.querySelector("[data-helper-toggle='trigger']");
+        const label = document.querySelector("[data-helper-label]");
+        if (button) {
+          button.setAttribute("aria-pressed", String(triggerHelpersVisible));
+          button.classList.toggle("is-muted", !triggerHelpersVisible);
+        }
+        if (label) {
+          label.textContent = triggerHelpersVisible ? "Trigger bounds" : "Trigger hidden";
+        }
+        if (helperLine) {
+          helperLine.textContent = `FPS: 144 | runtime: Three adapter | helpers: ${triggerHelpersVisible ? "trigger bounds" : "off"}`;
+        }
+        showToast(triggerHelpersVisible ? "Trigger helpers shown" : "Trigger helpers hidden");
+      }
+
+      function selectClip(clip) {
+        document.querySelectorAll(".clip.is-selected").forEach((item) => item.classList.remove("is-selected"));
+        clip.classList.add("is-selected");
+        const type = document.querySelector("[data-selected-track-type]");
+        const binding = document.querySelector("[data-selected-track-binding]");
+        const implementation = document.querySelector("[data-selected-track-implementation]");
+        if (type) {
+          type.textContent = clip.dataset.trackType ?? "track";
+        }
+        if (binding) {
+          binding.textContent = clip.dataset.trackBinding ?? clip.textContent.trim();
+        }
+        if (implementation) {
+          implementation.textContent = clip.dataset.trackImplementation ?? "TimelinePanel";
+        }
+        setLiveStatus(`${clip.dataset.trackTitle ?? clip.textContent.trim()} selected`);
+      }
+
+      function markDirty(source) {
+        markDomainDirty(source);
+      }
+
+      function resolveEventIssue() {
+        const eventStatus = document.querySelector("[data-event-status]");
+        const eventTab = document.querySelector("label[for='tab-event']");
+        setStatusPill(eventStatus, "event saved", "saved");
+        eventTab?.classList.remove("is-invalid", "is-dirty");
+        setLiveStatus("Event saved");
+        showToast("Event issue cleared in prototype state");
+      }
+
+      function saveCameraShot() {
+        const cameraTab = document.querySelector("label[for='tab-camera']");
+        cameraTab?.classList.remove("is-dirty");
+        setStatusPill("[data-camera-shot-status]", "Preview @ 1.50s", "preview");
+        setLiveStatus("Camera shot saved");
+        showToast("cam_gate_reveal saved");
+      }
+
+      function saveLevel() {
+        setStatusPill("[data-level-status]", "level saved", "saved");
+        setLiveStatus("Level saved");
+        showToast("level_01 saved");
+      }
+
+      function runCommand(command) {
+        switch (command) {
+          case "undo":
+          case "redo":
+            showToast(`${titleCase(command)} preview only`);
+            break;
+          case "save-level":
+            saveLevel();
+            break;
+          case "interact":
+            document.getElementById("tab-debug").checked = true;
+            setMode("play");
+            setTime(0.2, "interaction fired");
+            showToast("switch_a interaction fired ev_switch_a_open_gate");
+            break;
+          case "frame-selected":
+            showToast(`${currentEntity} framed in viewport`);
+            break;
+          case "apply-event":
+            markDirty("event");
+            showToast("Event draft applied");
+            break;
+          case "save-event":
+            resolveEventIssue();
+            break;
+          case "view-camera":
+            document.getElementById("tab-camera").checked = true;
+            setMode("preview");
+            setTime(1.5, "cam_gate_reveal preview");
+            showToast("Viewing through cam_gate_reveal");
+            break;
+          case "set-key-from-view":
+            document.querySelector("label[for='tab-camera']")?.classList.add("is-dirty");
+            markDirty("camera");
+            showToast("Camera key updated from current view");
+            break;
+          case "look-at-selected":
+            showToast(`Camera look-at set to ${currentEntity}`);
+            break;
+          case "save-shot":
+            saveCameraShot();
+            break;
+        }
+      }
+
+      document.querySelectorAll("[data-mode-switch]").forEach((button) => {
+        button.addEventListener("click", () => setMode(button.dataset.modeSwitch));
+      });
+
+      document.querySelectorAll("[data-tool-switch]").forEach((button) => {
+        button.addEventListener("click", () => setTool(button.dataset.toolSwitch));
+      });
+
+      document.querySelector("[data-helper-toggle='trigger']")?.addEventListener("click", toggleTriggerHelpers);
+
+      document.querySelectorAll("[data-command]").forEach((button) => {
+        button.addEventListener("click", () => runCommand(button.dataset.command));
+      });
+
+      document.querySelectorAll("[data-entity-id]").forEach((row) => {
+        row.addEventListener("click", () => selectEntity(row));
+        row.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectEntity(row);
+          }
+        });
+      });
+
+      document.querySelectorAll(".clip").forEach((clip) => {
+        clip.addEventListener("click", () => selectClip(clip));
+      });
+
+      document.querySelectorAll("[data-playback]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const action = button.dataset.playback;
+          if (action === "start") {
+            stopPlayback("tl_open_gate preview");
+            setTime(0, "tl_open_gate start");
+          } else if (action === "play") {
+            startPlayback();
+          } else if (action === "stop") {
+            stopPlayback("tl_open_gate stopped");
+          } else if (action === "end") {
+            stopPlayback("tl_open_gate end");
+            setTime(duration, "tl_open_gate end");
+          }
+        });
+      });
+
+      document.querySelectorAll(".field-input, .field-select, .field-textarea").forEach((field) => {
+        field.addEventListener("change", () => {
+          const panel = field.closest(".tab-panel");
+          if (panel?.classList.contains("panel-event")) {
+            document.querySelector("label[for='tab-event']")?.classList.add("is-dirty");
+            markDirty("event");
+          } else if (panel?.classList.contains("panel-camera")) {
+            document.querySelector("label[for='tab-camera']")?.classList.add("is-dirty");
+            markDirty("camera");
+          } else {
+            markDirty("level");
+          }
+        });
+      });
+
+      window.addEventListener("resize", () => setTime(currentTime, playbackStatus?.textContent ?? "tl_open_gate preview"));
+      setTime(currentTime);
+    })();
+  </script>
+  <script>
+    (() => {
+      const duration = 4.5;
+      const labelColumnWidth = 120;
+      const entityTree = document.querySelector(".entity-tree");
+      const viewport = document.querySelector(".viewport");
+      const viewportScene = document.querySelector("[data-viewport-scene]");
+      const timelineContent = document.querySelector(".timeline-content");
+      const timecode = document.querySelector("[data-timecode]");
+      const playhead = document.querySelector("[data-playhead]");
+      const playbackStatusText = document.querySelector("[data-playback-status] span:last-child");
+      const playButton = document.querySelector("[data-playback='play']");
+      const selectedTag = document.querySelector("[data-selected-tag]");
+      const modeLine = document.querySelector("[data-mode-line]");
+      const helperLine = document.querySelector("[data-helper-line]");
+      const liveStatusText = document.querySelector("[data-live-status-text]");
+
+      let currentTime = 2.25;
+      let playbackTimer = undefined;
+      let isPlaying = false;
+      let viewportPanX = 0;
+      let viewportPanY = 0;
+      let viewportZoom = 1;
+      let hierarchyDrag = undefined;
+      let viewportDrag = undefined;
+      let timelineDrag = undefined;
+      let clipDrag = undefined;
+      let numberDrag = undefined;
+
+      const formatTime = (seconds) => {
+        const safe = Math.max(0, Math.min(duration, seconds));
+        const whole = Math.floor(safe);
+        const fraction = Math.round((safe - whole) * 100);
+        return `00:${String(whole).padStart(2, "0")}.${String(fraction).padStart(2, "0")}`;
+      };
+
+      const resizeModeFromHandle = (target, clip) => {
+        const handle = target.closest(".clip-resize-handle");
+        if (!handle || !clip.contains(handle)) return undefined;
+        return handle.classList.contains("is-left") ? "resize-left" : "resize-right";
+      };
+
+      const titleCase = (value) => value.charAt(0).toUpperCase() + value.slice(1);
+
+      function showToast(message) {
+        const toast = document.querySelector(".prototype-toast");
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add("is-visible");
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(() => toast.classList.remove("is-visible"), 1800);
+      }
+
+      function setLiveStatus(message) {
+        if (liveStatusText) {
+          liveStatusText.textContent = message;
+        }
+      }
+
+      function currentMode() {
+        return document.querySelector(".prototype-frame")?.dataset.mode ?? "edit";
+      }
+
+      function currentTool() {
+        return document.querySelector(".prototype-frame")?.dataset.tool ?? "move";
+      }
+
+      function selectedEntityId() {
+        const text = selectedTag?.textContent ?? "";
+        return text.match(/Selected:\s*([^\s[]+)/)?.[1] ?? "switch_a";
+      }
+
+      function setMode(mode) {
+        document.querySelector(`[data-mode-switch="${mode}"]`)?.click();
+      }
+
+      function updateModeLine() {
+        if (modeLine) {
+          modeLine.textContent = `Mode: ${currentMode().toUpperCase()} / ${currentTool().toUpperCase()} | timeline: tl_open_gate @ ${currentTime.toFixed(2)}s`;
+        }
+      }
+
+      function setPrototypeTime(seconds, status = "tl_open_gate preview") {
+        currentTime = Math.max(0, Math.min(duration, seconds));
+        if (timecode) {
+          timecode.textContent = formatTime(currentTime);
+        }
+        if (playhead && timelineContent) {
+          const contentWidth = timelineContent.getBoundingClientRect().width;
+          const usableWidth = Math.max(1, contentWidth - labelColumnWidth);
+          playhead.style.left = `${labelColumnWidth + (currentTime / duration) * usableWidth}px`;
+        }
+        if (playbackStatusText) {
+          playbackStatusText.textContent = status;
+        }
+        updateModeLine();
+      }
+
+      function pointerTime(clientX) {
+        const rect = timelineContent.getBoundingClientRect();
+        const usableWidth = Math.max(1, rect.width - labelColumnWidth);
+        const x = Math.max(0, Math.min(usableWidth, clientX - rect.left - labelColumnWidth));
+        return (x / usableWidth) * duration;
+      }
+
+      function stopPlayback(status = "tl_open_gate stopped") {
+        isPlaying = false;
+        window.clearInterval(playbackTimer);
+        playbackTimer = undefined;
+        if (playButton) {
+          playButton.textContent = "Play";
+          playButton.title = "Play";
+        }
+        setPrototypeTime(currentTime, status);
+      }
+
+      function startPlayback() {
+        if (isPlaying) {
+          stopPlayback("tl_open_gate paused");
+          showToast("Timeline paused");
+          return;
+        }
+        if (currentTime >= duration) {
+          currentTime = 0;
+        }
+        isPlaying = true;
+        setMode("preview");
+        if (playButton) {
+          playButton.textContent = "Pause";
+          playButton.title = "Pause";
+        }
+        setPrototypeTime(currentTime, "tl_open_gate playing");
+        playbackTimer = window.setInterval(() => {
+          currentTime += 0.04;
+          if (currentTime >= duration) {
+            currentTime = duration;
+            stopPlayback("tl_open_gate finished");
+            showToast("Timeline preview finished");
+          } else {
+            setPrototypeTime(currentTime, "tl_open_gate playing");
+          }
+        }, 40);
+      }
+
+      function applyViewportTransform() {
+        if (!viewportScene) return;
+        viewportScene.style.transform = `translate(${viewportPanX}px, ${viewportPanY}px) scale(${viewportZoom})`;
+        if (helperLine) {
+          const helperState = document.querySelector("[data-helper-label]")?.textContent?.toLowerCase().includes("hidden")
+            ? "off"
+            : "trigger bounds";
+          helperLine.textContent = `FPS: 144 | zoom: ${viewportZoom.toFixed(2)}x | pan: ${Math.round(viewportPanX)}, ${Math.round(viewportPanY)} | helpers: ${helperState}`;
+        }
+      }
+
+      function parsePosition(position) {
+        return String(position ?? "0,0,0").split(",").map((item) => Number(item.trim()) || 0);
+      }
+
+      function formatPosition(values) {
+        return values.map((value) => value.toFixed(2)).join(", ");
+      }
+
+      function selectedRow() {
+        return document.querySelector(`[data-entity-id="${selectedEntityId()}"]`);
+      }
+
+      function setViewportSelected(entityId) {
+        document.querySelectorAll("[data-viewport-object]").forEach((object) => {
+          object.classList.toggle("is-selected", object.dataset.viewportObject === entityId);
+        });
+      }
+
+      function setEntityPosition(entityId, position, options = {}) {
+        const row = document.querySelector(`[data-entity-id="${entityId}"]`);
+        if (row) {
+          row.dataset.position = formatPosition(position);
+        }
+        if (selectedEntityId() === entityId && selectedTag) {
+          selectedTag.textContent = `Selected: ${entityId} [${formatPosition(position)}]`;
+        }
+        if (selectedEntityId() === entityId || options.forceFields) {
+          const positionFields = document.querySelectorAll("[data-transform-kind='position']");
+          position.forEach((value, index) => {
+            if (positionFields[index]) {
+              positionFields[index].value = value.toFixed(2);
+            }
+          });
+        }
+        setLiveStatus(`${entityId} position ${formatPosition(position)}`);
+      }
+
+      function markDomainDirty(source) {
+        if (window.sinanPrototypeSetDomainDirty) {
+          window.sinanPrototypeSetDomainDirty(source);
+          return;
+        }
+        const status = document.querySelector("[data-timeline-status] span:last-child");
+        if (status) {
+          status.textContent = `${source} dirty`;
+        }
+        setLiveStatus(`${source} edited`);
+      }
+
+      function selectClip(clip) {
+        document.querySelectorAll(".clip.is-selected").forEach((item) => item.classList.remove("is-selected"));
+        clip.classList.add("is-selected");
+        document.querySelector("[data-selected-track-type]").textContent = clip.dataset.trackType ?? "track";
+        document.querySelector("[data-selected-track-binding]").textContent = clip.dataset.trackBinding ?? clip.textContent.trim();
+        document.querySelector("[data-selected-track-implementation]").textContent = clip.dataset.trackImplementation ?? "TimelinePanel";
+        setLiveStatus(`${clip.dataset.trackTitle ?? clip.textContent.trim()} selected`);
+      }
+
+      document.querySelectorAll(".clip").forEach((clip) => {
+        if (!clip.querySelector(".clip-resize-handle.is-left")) {
+          const leftHandle = document.createElement("span");
+          leftHandle.className = "clip-resize-handle is-left";
+          leftHandle.setAttribute("aria-hidden", "true");
+          clip.prepend(leftHandle);
+        }
+        if (!clip.querySelector(".clip-resize-handle.is-right")) {
+          const rightHandle = document.createElement("span");
+          rightHandle.className = "clip-resize-handle is-right";
+          rightHandle.setAttribute("aria-hidden", "true");
+          clip.append(rightHandle);
+        }
+      });
+
+      function setClipPx(clip, left, width) {
+        const parentWidth = clip.parentElement.getBoundingClientRect().width;
+        const safeLeft = Math.max(0, Math.min(parentWidth - 18, left));
+        const safeWidth = Math.max(18, Math.min(parentWidth - safeLeft, width));
+        clip.style.left = `${safeLeft}px`;
+        clip.style.width = `${safeWidth}px`;
+      }
+
+      document.querySelectorAll("[data-playback]").forEach((button) => {
+        button.addEventListener(
+          "click",
+          (event) => {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            const action = button.dataset.playback;
+            if (action === "start") {
+              stopPlayback("tl_open_gate start");
+              setPrototypeTime(0, "tl_open_gate start");
+            } else if (action === "play") {
+              startPlayback();
+            } else if (action === "stop") {
+              stopPlayback("tl_open_gate stopped");
+            } else if (action === "end") {
+              stopPlayback("tl_open_gate end");
+              setPrototypeTime(duration, "tl_open_gate end");
+            }
+          },
+          true,
+        );
+      });
+
+      document.querySelectorAll("[data-entity-id]").forEach((row) => {
+        const syncSelection = () => {
+          setViewportSelected(row.dataset.entityId);
+        };
+        row.draggable = true;
+        row.setAttribute("aria-grabbed", "false");
+        row.addEventListener("click", syncSelection);
+        row.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            window.setTimeout(syncSelection, 0);
+          }
+        });
+      });
+
+      function entityRows() {
+        return [...document.querySelectorAll(".entity-tree .tree-row[data-entity-id]")];
+      }
+
+      function hierarchyBlock(row) {
+        const block = [row];
+        let next = row.nextElementSibling;
+        while (next?.classList.contains("is-child")) {
+          block.push(next);
+          next = next.nextElementSibling;
+        }
+        return block;
+      }
+
+      function clearHierarchyDropState() {
+        document.querySelectorAll(".tree-row.is-drop-before, .tree-row.is-drop-after").forEach((row) => {
+          row.classList.remove("is-drop-before", "is-drop-after");
+        });
+      }
+
+      function hierarchyOrder() {
+        return entityRows().map((row) => row.dataset.entityId).join("|");
+      }
+
+      entityRows().forEach((row) => {
+        row.addEventListener("dragstart", (event) => {
+          hierarchyDrag = {
+            row,
+            target: undefined,
+            placement: "after",
+          };
+          row.classList.add("is-hierarchy-dragging");
+          row.setAttribute("aria-grabbed", "true");
+          if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", row.dataset.entityId ?? "");
+          }
+          setLiveStatus(`${row.dataset.entityId} reorder drag`);
+        });
+
+        row.addEventListener("dragend", () => {
+          row.classList.remove("is-hierarchy-dragging");
+          row.setAttribute("aria-grabbed", "false");
+          clearHierarchyDropState();
+          hierarchyDrag = undefined;
+        });
+      });
+
+      entityTree?.addEventListener("dragover", (event) => {
+        if (!hierarchyDrag) return;
+        const target = event.target.closest(".tree-row[data-entity-id]");
+        clearHierarchyDropState();
+        if (!target || target === hierarchyDrag.row || hierarchyBlock(hierarchyDrag.row).includes(target)) {
+          return;
+        }
+        event.preventDefault();
+        const rect = target.getBoundingClientRect();
+        const placement = event.clientY < rect.top + rect.height / 2 ? "before" : "after";
+        target.classList.add(placement === "before" ? "is-drop-before" : "is-drop-after");
+        hierarchyDrag.target = target;
+        hierarchyDrag.placement = placement;
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = "move";
+        }
+      });
+
+      entityTree?.addEventListener("dragleave", (event) => {
+        if (!event.relatedTarget || !entityTree.contains(event.relatedTarget)) {
+          clearHierarchyDropState();
+        }
+      });
+
+      entityTree?.addEventListener("drop", (event) => {
+        if (!hierarchyDrag || !entityTree) return;
+        const target = event.target.closest(".tree-row[data-entity-id]") ?? hierarchyDrag.target;
+        if (!target) return;
+        event.preventDefault();
+        const block = hierarchyBlock(hierarchyDrag.row);
+        const targetBlock = hierarchyBlock(target);
+        const reference = hierarchyDrag.placement === "before" ? target : targetBlock[targetBlock.length - 1]?.nextElementSibling;
+        if (block.includes(target) || block.includes(reference)) {
+          clearHierarchyDropState();
+          return;
+        }
+
+        const before = hierarchyOrder();
+        block.forEach((node) => entityTree.insertBefore(node, reference));
+        clearHierarchyDropState();
+        hierarchyDrag.row.classList.remove("is-hierarchy-dragging");
+        hierarchyDrag.row.setAttribute("aria-grabbed", "false");
+        hierarchyDrag.row.click();
+
+        if (hierarchyOrder() !== before) {
+          markDomainDirty("level hierarchy order");
+          showToast(`${hierarchyDrag.row.dataset.entityId} reordered`);
+        } else {
+          setLiveStatus("Hierarchy order unchanged");
+        }
+        hierarchyDrag = undefined;
+      });
+
+      document.querySelectorAll("[data-asset-id]").forEach((asset) => {
+        const selectAsset = () => {
+          document.querySelectorAll("[data-asset-id].is-selected").forEach((item) => item.classList.remove("is-selected"));
+          asset.classList.add("is-selected");
+          setLiveStatus(`${asset.dataset.assetId} asset selected`);
+          showToast(`${asset.dataset.assetType ?? "asset"} selected`);
+        };
+        asset.addEventListener("click", selectAsset);
+        asset.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectAsset();
+          }
+        });
+      });
+
+      document.querySelectorAll(".section-list .compact-card").forEach((card) => {
+        card.setAttribute("role", "button");
+        card.tabIndex = 0;
+        const selectCard = () => {
+          const list = card.closest(".section-list");
+          list?.querySelectorAll(".compact-card.is-selected").forEach((item) => item.classList.remove("is-selected"));
+          card.classList.add("is-selected");
+          const title = card.querySelector(".compact-card-title span")?.textContent?.trim() ?? "card";
+          setLiveStatus(`${title} selected`);
+        };
+        card.addEventListener("click", selectCard);
+        card.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectCard();
+          }
+        });
+      });
+
+      document.querySelectorAll(".log-row").forEach((row) => {
+        row.setAttribute("role", "button");
+        row.tabIndex = 0;
+        const selectLog = () => {
+          document.querySelectorAll(".log-row.is-selected").forEach((item) => item.classList.remove("is-selected"));
+          row.classList.add("is-selected");
+          const time = row.querySelector(".log-time")?.textContent?.trim() ?? "?";
+          const message = row.querySelector(".log-message")?.textContent?.trim() ?? "runtime log";
+          setLiveStatus(`debug ${time}: ${message}`);
+        };
+        row.addEventListener("click", selectLog);
+        row.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectLog();
+          }
+        });
+      });
+
+      viewport?.addEventListener("contextmenu", (event) => event.preventDefault());
+
+      viewport?.addEventListener("wheel", (event) => {
+        event.preventDefault();
+        if (event.shiftKey) {
+          viewportPanX -= event.deltaY || event.deltaX;
+          setLiveStatus("Viewport truck / horizontal pan");
+        } else if (event.ctrlKey) {
+          viewportPanY -= event.deltaY;
+          setLiveStatus("Viewport pedestal / vertical pan");
+        } else {
+          const oldZoom = viewportZoom;
+          const zoomFactor = Math.exp(-event.deltaY * 0.0012);
+          viewportZoom = Math.max(0.55, Math.min(2.6, viewportZoom * zoomFactor));
+          const rect = viewport.getBoundingClientRect();
+          const localX = event.clientX - rect.left - viewportPanX;
+          const localY = event.clientY - rect.top - viewportPanY;
+          viewportPanX -= localX * (viewportZoom / oldZoom - 1);
+          viewportPanY -= localY * (viewportZoom / oldZoom - 1);
+          setLiveStatus(`Viewport depth ${viewportZoom.toFixed(2)}x`);
+        }
+        applyViewportTransform();
+      }, { passive: false });
+
+      viewport?.addEventListener("pointerdown", (event) => {
+        const object = event.target.closest("[data-viewport-object]");
+        if (event.button === 2) {
+          viewportDrag = {
+            kind: "pan",
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            startPanX: viewportPanX,
+            startPanY: viewportPanY,
+          };
+          viewport.classList.add("is-panning");
+          viewport.setPointerCapture(event.pointerId);
+          event.preventDefault();
+          return;
+        }
+
+        if (event.button === 0 && object) {
+          const entityId = object.dataset.viewportObject;
+          const row = document.querySelector(`[data-entity-id="${entityId}"]`);
+          row?.click();
+          setViewportSelected(entityId);
+          viewportDrag = {
+            kind: "object",
+            pointerId: event.pointerId,
+            object,
+            entityId,
+            startX: event.clientX,
+            startY: event.clientY,
+            startLeft: object.offsetLeft,
+            startTop: object.offsetTop,
+            startPosition: parsePosition(row?.dataset.position),
+            moved: false,
+          };
+          object.classList.add("is-dragging");
+          viewport.classList.add("is-moving-object");
+          viewport.setPointerCapture(event.pointerId);
+          event.preventDefault();
+        }
+      });
+
+      viewport?.addEventListener("pointermove", (event) => {
+        if (!viewportDrag) return;
+        if (viewportDrag.kind === "pan") {
+          viewportPanX = viewportDrag.startPanX + event.clientX - viewportDrag.startX;
+          viewportPanY = viewportDrag.startPanY + event.clientY - viewportDrag.startY;
+          applyViewportTransform();
+          return;
+        }
+        if (viewportDrag.kind === "object") {
+          const dx = (event.clientX - viewportDrag.startX) / viewportZoom;
+          const dy = (event.clientY - viewportDrag.startY) / viewportZoom;
+          if (Math.abs(dx) + Math.abs(dy) > 2) {
+            viewportDrag.moved = true;
+          }
+          viewportDrag.object.style.left = `${viewportDrag.startLeft + dx}px`;
+          viewportDrag.object.style.top = `${viewportDrag.startTop + dy}px`;
+          const nextPosition = [
+            viewportDrag.startPosition[0] + dx / 40,
+            viewportDrag.startPosition[1],
+            viewportDrag.startPosition[2] + dy / 40,
+          ];
+          setEntityPosition(viewportDrag.entityId, nextPosition, { forceFields: true });
+        }
+      });
+
+      viewport?.addEventListener("pointerup", (event) => {
+        if (!viewportDrag || viewportDrag.pointerId !== event.pointerId) return;
+        if (viewportDrag.kind === "object") {
+          viewportDrag.object.classList.remove("is-dragging");
+          if (viewportDrag.moved) {
+            markDomainDirty("level transform");
+          }
+        }
+        viewport.classList.remove("is-panning", "is-moving-object");
+        viewport.releasePointerCapture(event.pointerId);
+        viewportDrag = undefined;
+      });
+
+      document.querySelectorAll("[data-number-drag]").forEach((input) => {
+        input.addEventListener("pointerdown", (event) => {
+          if (event.button !== 0) return;
+          numberDrag = {
+            input,
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startValue: Number(input.value) || 0,
+            step: Number(input.dataset.step) || 0.05,
+            moved: false,
+          };
+          input.classList.add("is-number-dragging");
+          input.setPointerCapture(event.pointerId);
+        });
+
+        input.addEventListener("pointermove", (event) => {
+          if (!numberDrag || numberDrag.pointerId !== event.pointerId || numberDrag.input !== input) return;
+          const dx = event.clientX - numberDrag.startX;
+          if (Math.abs(dx) < 2) return;
+          numberDrag.moved = true;
+          const nextValue = numberDrag.startValue + dx * numberDrag.step;
+          const decimals = numberDrag.step < 0.1 ? 2 : 1;
+          input.value = nextValue.toFixed(decimals);
+          if (input.dataset.transformKind === "position") {
+            const positionFields = [...document.querySelectorAll("[data-transform-kind='position']")];
+            const position = positionFields.map((field) => Number(field.value) || 0);
+            const entityId = selectedEntityId();
+            setEntityPosition(entityId, position);
+          }
+          const panel = input.closest(".tab-panel");
+          if (input.dataset.transformKind) {
+            markDomainDirty("level transform");
+          } else if (panel?.classList.contains("panel-camera")) {
+            markDomainDirty("camera key");
+          } else if (panel?.classList.contains("panel-event")) {
+            markDomainDirty("event");
+          } else {
+            markDomainDirty("level field");
+          }
+        });
+
+        input.addEventListener("pointerup", (event) => {
+          if (!numberDrag || numberDrag.pointerId !== event.pointerId || numberDrag.input !== input) return;
+          input.classList.remove("is-number-dragging");
+          if (numberDrag.moved) {
+            event.preventDefault();
+            showToast("Number scrub applied");
+          }
+          numberDrag = undefined;
+        });
+      });
+
+      timelineContent?.addEventListener("pointerdown", (event) => {
+        const clip = event.target.closest(".clip");
+        if (clip) {
+          event.preventDefault();
+          event.stopPropagation();
+          selectClip(clip);
+          stopPlayback("tl_open_gate editing");
+          const parentRect = clip.parentElement.getBoundingClientRect();
+          const clipRect = clip.getBoundingClientRect();
+          const offsetX = event.clientX - clipRect.left;
+          const mode = resizeModeFromHandle(event.target, clip) ?? (offsetX < 8 ? "resize-left" : clipRect.width - offsetX < 8 ? "resize-right" : "move");
+          clipDrag = {
+            clip,
+            mode,
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startLeft: clipRect.left - parentRect.left,
+            startWidth: clipRect.width,
+            parentWidth: parentRect.width,
+          };
+          clip.classList.add(mode === "move" ? "is-dragging" : "is-resizing");
+          clip.setPointerCapture(event.pointerId);
+          return;
+        }
+
+        if (event.button === 0 && event.clientX - timelineContent.getBoundingClientRect().left >= labelColumnWidth) {
+          event.preventDefault();
+          stopPlayback("tl_open_gate scrub");
+          timelineDrag = { pointerId: event.pointerId };
+          timelineContent.classList.add("is-scrubbing");
+          timelineContent.setPointerCapture(event.pointerId);
+          setPrototypeTime(pointerTime(event.clientX), "tl_open_gate scrub");
+        }
+      });
+
+      timelineContent?.addEventListener("pointermove", (event) => {
+        if (timelineDrag && timelineDrag.pointerId === event.pointerId) {
+          setPrototypeTime(pointerTime(event.clientX), "tl_open_gate scrub");
+          return;
+        }
+        if (!clipDrag || clipDrag.pointerId !== event.pointerId) return;
+        const dx = event.clientX - clipDrag.startX;
+        if (clipDrag.mode === "move") {
+          setClipPx(clipDrag.clip, clipDrag.startLeft + dx, clipDrag.startWidth);
+        } else if (clipDrag.mode === "resize-left") {
+          setClipPx(clipDrag.clip, clipDrag.startLeft + dx, clipDrag.startWidth - dx);
+        } else {
+          setClipPx(clipDrag.clip, clipDrag.startLeft, clipDrag.startWidth + dx);
+        }
+        markDomainDirty("timeline track");
+      });
+
+      timelineContent?.addEventListener("pointerup", (event) => {
+        if (timelineDrag && timelineDrag.pointerId === event.pointerId) {
+          timelineContent.classList.remove("is-scrubbing");
+          timelineContent.releasePointerCapture(event.pointerId);
+          timelineDrag = undefined;
+          showToast("Timeline scrubbed");
+        }
+        if (clipDrag && clipDrag.pointerId === event.pointerId) {
+          clipDrag.clip.classList.remove("is-dragging", "is-resizing");
+          clipDrag.clip.releasePointerCapture(event.pointerId);
+          clipDrag = undefined;
+          showToast("Timeline clip adjusted");
+        }
+      });
+
+      document.querySelectorAll("[data-viewport-object]").forEach((object) => {
+        object.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            const row = document.querySelector(`[data-entity-id="${object.dataset.viewportObject}"]`);
+            row?.click();
+            setViewportSelected(object.dataset.viewportObject);
+          }
+        });
+      });
+
+      window.addEventListener("resize", () => {
+        applyViewportTransform();
+        setPrototypeTime(currentTime, playbackStatusText?.textContent ?? "tl_open_gate preview");
+      });
+
+      setViewportSelected(selectedEntityId());
+      applyViewportTransform();
+      setPrototypeTime(currentTime);
+    })();
+  </script>
+</body>
+</html>

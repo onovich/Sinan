@@ -2,6 +2,9 @@
 
 This document is a design handoff for the next editor UI/UX pass. It is intentionally code-free so it can be used while feature work continues in parallel.
 
+Selected Variant direction and derived implementation style guide:
+`docs/editor-ui-ux-variant-style-guide.md`.
+
 ## Purpose
 
 Sinan Scene Director should feel like a compact, professional scene direction tool, not a generic web dashboard or a prototype page. The editor must help the author understand:
