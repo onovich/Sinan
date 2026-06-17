@@ -54,6 +54,11 @@ Acceptance:
 - Invalid JSON produces actionable schema errors.
 - Entity transforms are correctly applied and reference errors are caught.
 
+MVP limitation:
+
+- `ThreeRuntime.loadModel()` currently registers model metadata and instantiates deterministic placeholder geometry. This keeps the data, schema, editor, and runtime adapter contracts testable before real assets exist, but it is not a completed GLB pipeline.
+- A production-ready model pipeline must add `GLTFLoader` inside `src/runtime/three/**`, preserve the renderer-neutral `WebRuntime` boundary, cache loaded GLB scenes/animations, and keep placeholder fallback for missing or invalid local assets.
+
 ### Phase 2: Editor MVP
 
 Goal: select, inspect, transform, save, undo, and redo level edits.

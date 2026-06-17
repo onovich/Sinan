@@ -9,6 +9,8 @@ import { LevelSchema } from '../src/schemas/level.schema';
 import { PrefabSchema } from '../src/schemas/prefab.schema';
 import { TimelineSchema } from '../src/schemas/timeline.schema';
 import { validateProject } from '../src/data/validateProject';
+import { createDefaultActionRegistry } from '../src/events/actionRegistry';
+import { createDefaultConditionRegistry } from '../src/events/conditionRegistry';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -19,14 +21,21 @@ async function main(): Promise<void> {
   const timelines = await readSchemaDirectory('data/timelines', TimelineSchema);
   const prefabs = await readSchemaDirectory('data/prefabs', PrefabSchema);
   const levels = await readSchemaDirectory('data/levels', LevelSchema);
+  const actionRegistry = createDefaultActionRegistry();
+  const conditionRegistry = createDefaultConditionRegistry();
   const result = validateProject({
     assets,
     availableEventIds: new Set(events.map((event) => event.id)),
     prefabs,
     levels,
     events,
+    timelines,
     availableTimelineIds: new Set(timelines.map((timeline) => timeline.id)),
     availableCameraShotIds: new Set(cameraShots.map((shot) => shot.id)),
+    registeredActionTypes: new Set(actionRegistry.types()),
+    registeredConditionTypes: new Set(conditionRegistry.types()),
+    registeredActionFunctionNames: new Set(actionRegistry.customFunctionNames()),
+    registeredCustomConditionNames: new Set(conditionRegistry.customConditionNames()),
   });
 
   if (result.issues.length > 0) {

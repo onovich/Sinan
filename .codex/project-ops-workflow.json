@@ -66,10 +66,10 @@
       "commands": []
     },
     "smoke": {
-      "commands": [],
-      "urls": [
-        "http://127.0.0.1:5174/"
-      ]
+      "commands": [
+        "npm run test:smoke"
+      ],
+      "urls": []
     },
     "package": {
       "commands": []

@@ -61,6 +61,18 @@ export const CustomConditionSchema = z
   })
   .strict();
 
+export const TYPED_CONDITION_TYPES = [
+  'flag.equals',
+  'flag.exists',
+  'inventory.hasItem',
+  'quest.stateEquals',
+  'entity.stateEquals',
+  'distance.lessThan',
+  'custom.condition',
+] as const;
+
+export type TypedConditionType = (typeof TYPED_CONDITION_TYPES)[number];
+
 export type ConditionData =
   | { all: ConditionData[] }
   | { any: ConditionData[] }

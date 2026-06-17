@@ -3,6 +3,10 @@ import type { ActionExecutionContext } from './types';
 
 export type ActionSideEffect = 'none' | 'previewSafe' | 'runtimeOnly' | 'destructive';
 export type ActionHandler = (action: ActionData, context: ActionExecutionContext) => void;
+export type CustomActionHandler = (
+  params: Readonly<Record<string, unknown>>,
+  context: ActionExecutionContext,
+) => void;
 
 export interface ActionRegistrationOptions {
   sideEffect?: ActionSideEffect;
@@ -11,6 +15,7 @@ export interface ActionRegistrationOptions {
 export class ActionRegistry {
   private readonly handlers = new Map<string, ActionHandler>();
   private readonly sideEffects = new Map<string, ActionSideEffect>();
+  private readonly customFunctions = new Map<string, CustomActionHandler>();
 
   register(type: string, handler: ActionHandler, options: ActionRegistrationOptions = {}): void {
     this.handlers.set(type, handler);
@@ -21,6 +26,22 @@ export class ActionRegistry {
     return this.handlers.has(type);
   }
 
+  types(): string[] {
+    return Array.from(this.handlers.keys()).sort((left, right) => left.localeCompare(right));
+  }
+
+  registerCustomFunction(name: string, handler: CustomActionHandler): void {
+    this.customFunctions.set(name, handler);
+  }
+
+  hasCustomFunction(name: string): boolean {
+    return this.customFunctions.has(name);
+  }
+
+  customFunctionNames(): string[] {
+    return Array.from(this.customFunctions.keys()).sort((left, right) => left.localeCompare(right));
+  }
+
   dispatch(action: ActionData, context: ActionExecutionContext): void {
     const handler = this.handlers.get(action.type);
 
@@ -29,6 +50,20 @@ export class ActionRegistry {
     }
 
     handler(action, context);
+  }
+
+  dispatchCustomFunction(
+    name: string,
+    params: Readonly<Record<string, unknown>>,
+    context: ActionExecutionContext,
+  ): void {
+    const handler = this.customFunctions.get(name);
+
+    if (!handler) {
+      throw new Error(`Action function is not whitelisted: ${name}`);
+    }
+
+    handler(params, context);
   }
 
   getSideEffect(type: string): ActionSideEffect {
@@ -70,10 +105,47 @@ export function createDefaultActionRegistry(): ActionRegistry {
     (action, context) => {
       if (action.type === 'entity.setVisible') {
         context.state.entityVisibility[action.entityId] = action.visible;
-        context.runtime?.setVisible(action.entityId, action.visible);
+        context.runtime?.setVisible?.(action.entityId, action.visible);
       }
     },
     { sideEffect: 'previewSafe' },
+  );
+
+  registry.register(
+    'entity.setEnabled',
+    (action, context) => {
+      if (action.type === 'entity.setEnabled') {
+        context.state.entityEnabled[action.entityId] = action.enabled;
+      }
+    },
+    { sideEffect: 'previewSafe' },
+  );
+
+  registry.register(
+    'entity.setTransform',
+    (action, context) => {
+      if (action.type === 'entity.setTransform') {
+        context.state.entityTransforms[action.entityId] = action.transform;
+        context.runtime?.setTransform?.(action.entityId, action.transform);
+      }
+    },
+    { sideEffect: 'previewSafe' },
+  );
+
+  registry.register(
+    'entity.animateTransform',
+    (action, context) => {
+      if (action.type === 'entity.animateTransform') {
+        context.directorCommands.push({
+          type: 'entity.animateTransform',
+          entityId: action.entityId,
+          to: action.to,
+          duration: action.duration,
+          ease: action.ease,
+        });
+      }
+    },
+    { sideEffect: 'runtimeOnly' },
   );
 
   registry.register(
@@ -124,6 +196,95 @@ export function createDefaultActionRegistry(): ActionRegistry {
     (action, context) => {
       if (action.type === 'timeline.stop') {
         context.directorCommands.push({ type: 'timeline.stop', timelineId: action.timelineId });
+      }
+    },
+    { sideEffect: 'runtimeOnly' },
+  );
+
+  registry.register(
+    'camera.playShot',
+    (action, context) => {
+      if (action.type === 'camera.playShot') {
+        context.directorCommands.push({ type: 'camera.shot.play', shotId: action.shotId });
+      }
+    },
+    { sideEffect: 'runtimeOnly' },
+  );
+
+  registry.register(
+    'animation.play',
+    (action, context) => {
+      if (action.type === 'animation.play') {
+        const command = {
+          type: 'animation.play' as const,
+          entityId: action.entityId,
+          clip: action.clip,
+          loop: action.loop,
+          fadeIn: action.fadeIn,
+          fadeOut: action.fadeOut,
+        };
+
+        if (context.runtime?.playAnimation) {
+          context.runtime.playAnimation(command);
+        } else {
+          context.directorCommands.push(command);
+        }
+      }
+    },
+    { sideEffect: 'runtimeOnly' },
+  );
+
+  registry.register(
+    'animation.stop',
+    (action, context) => {
+      if (action.type === 'animation.stop') {
+        const command = {
+          type: 'animation.stop' as const,
+          entityId: action.entityId,
+          clip: action.clip,
+          fadeOut: action.fadeOut,
+        };
+
+        if (context.runtime?.stopAnimation) {
+          context.runtime.stopAnimation(command);
+        } else {
+          context.directorCommands.push(command);
+        }
+      }
+    },
+    { sideEffect: 'runtimeOnly' },
+  );
+
+  registry.register(
+    'sound.play',
+    (action, context) => {
+      if (action.type === 'sound.play') {
+        context.directorCommands.push({ type: 'sound.play', soundId: action.soundId });
+      }
+    },
+    { sideEffect: 'runtimeOnly' },
+  );
+
+  registry.register(
+    'subtitle.show',
+    (action, context) => {
+      if (action.type === 'subtitle.show') {
+        context.directorCommands.push({
+          type: 'subtitle.show',
+          text: action.text,
+          duration: action.duration,
+          speaker: action.speaker,
+        });
+      }
+    },
+    { sideEffect: 'runtimeOnly' },
+  );
+
+  registry.register(
+    'function.call',
+    (action, context) => {
+      if (action.type === 'function.call') {
+        registry.dispatchCustomFunction(action.name, action.params ?? {}, context);
       }
     },
     { sideEffect: 'runtimeOnly' },

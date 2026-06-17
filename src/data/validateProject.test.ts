@@ -4,6 +4,7 @@ import type { AssetManifestData } from '../schemas/asset.schema';
 import type { EventData } from '../schemas/event.schema';
 import type { LevelData } from '../schemas/level.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
+import type { TimelineData } from '../schemas/timeline.schema';
 import { validateProject } from './validateProject';
 
 const assets: AssetManifestData = {
@@ -64,6 +65,24 @@ const triggerEvent: EventData = {
       type: 'flag.set',
       flag: 'gate_triggered',
       value: true,
+    },
+  ],
+};
+
+const timeline: TimelineData = {
+  schemaVersion: 1,
+  id: 'tl_open_gate',
+  duration: 2,
+  tracks: [
+    {
+      id: 'track_action',
+      type: 'action',
+      time: 0,
+      action: {
+        type: 'flag.set',
+        flag: 'timeline_flag',
+        value: true,
+      },
     },
   ],
 };
@@ -147,6 +166,60 @@ describe('validateProject', () => {
       expect.arrayContaining([
         'Missing trigger target "missing_trigger".',
         'Missing trigger entity "missing_actor".',
+      ]),
+    );
+  });
+
+  it('reports unregistered event and timeline action types', () => {
+    const issues = validateProject({
+      assets,
+      prefabs: [switchPrefab],
+      levels: [level],
+      events: [triggerEvent],
+      timelines: [timeline],
+      registeredActionTypes: new Set(['timeline.play']),
+    }).issues;
+
+    expect(issues.map((issue) => issue.message)).toEqual(
+      expect.arrayContaining([
+        'Unregistered action type "flag.set".',
+        'Unregistered action type "flag.set".',
+      ]),
+    );
+  });
+
+  it('reports unregistered condition and custom function names', () => {
+    const issues = validateProject({
+      assets,
+      prefabs: [switchPrefab],
+      levels: [level],
+      events: [
+        {
+          ...triggerEvent,
+          condition: {
+            all: [
+              { type: 'flag.equals', flag: 'power_enabled', value: true },
+              { type: 'custom.condition', name: 'missing.condition' },
+            ],
+          },
+          actions: [
+            {
+              type: 'function.call',
+              name: 'missing.function',
+            },
+          ],
+        },
+      ],
+      registeredActionTypes: new Set(['function.call']),
+      registeredConditionTypes: new Set(['flag.equals', 'custom.condition']),
+      registeredActionFunctionNames: new Set(),
+      registeredCustomConditionNames: new Set(),
+    }).issues;
+
+    expect(issues.map((issue) => issue.message)).toEqual(
+      expect.arrayContaining([
+        'Unregistered action function "missing.function".',
+        'Unregistered custom condition "missing.condition".',
       ]),
     );
   });

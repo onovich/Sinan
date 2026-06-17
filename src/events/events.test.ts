@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { ActionSchema } from '../schemas/action.schema';
+import { TYPED_CONDITION_TYPES } from '../schemas/condition.schema';
 import { ActionSystem } from './ActionSystem';
 import { AabbTriggerSystem } from './AabbTriggerSystem';
 import { ConditionSystem } from './ConditionSystem';
@@ -37,53 +39,176 @@ describe('ConditionSystem', () => {
       ),
     ).toBe(true);
   });
+
+  it('evaluates distance and custom whitelist conditions', () => {
+    const registry = createDefaultConditionRegistry();
+    registry.registerCustomCondition('has.debug.flag', (params, state) => {
+      return typeof params.flag === 'string' && state.flags[params.flag] === true;
+    });
+    const system = new ConditionSystem(registry);
+    const state = createEventRuntimeState({
+      flags: { debug_enabled: true },
+      entityTransforms: {
+        player_spawn_01: {
+          position: [0, 0, 0],
+          rotation: [0, 0, 0, 1],
+          scale: [1, 1, 1],
+        },
+        switch_a: {
+          position: [1.5, 0, 0],
+          rotation: [0, 0, 0, 1],
+          scale: [1, 1, 1],
+        },
+      },
+    });
+
+    expect(
+      system.evaluate(
+        { type: 'distance.lessThan', entityA: 'player_spawn_01', entityB: 'switch_a', distance: 2 },
+        state,
+      ),
+    ).toBe(true);
+    expect(
+      system.evaluate(
+        { type: 'custom.condition', name: 'has.debug.flag', params: { flag: 'debug_enabled' } },
+        state,
+      ),
+    ).toBe(true);
+    expect(() =>
+      system.evaluate({ type: 'custom.condition', name: 'missing.condition' }, state),
+    ).toThrow('Condition function is not whitelisted: missing.condition');
+  });
 });
 
 describe('ActionSystem', () => {
-  it('dispatches flag, visibility, door, and timeline actions', () => {
+  it('dispatches schema-backed state, runtime, director, and custom actions', () => {
     const visibleCalls: Array<[string, boolean]> = [];
+    const transformCalls: Array<[string, readonly number[]]> = [];
+    const animationCalls: string[] = [];
+    const customCalls: Array<Readonly<Record<string, unknown>>> = [];
+    const registry = createDefaultActionRegistry();
+    registry.registerCustomFunction('debug.mark', (params, actionContext) => {
+      customCalls.push(params);
+      actionContext.state.flags.debug_marked = true;
+    });
     const context: ActionExecutionContext = {
       state: createEventRuntimeState(),
       runtime: {
         setVisible: (entityId, visible) => {
           visibleCalls.push([entityId, visible]);
         },
+        setTransform: (entityId, transform) => {
+          transformCalls.push([entityId, transform.position]);
+        },
+        playAnimation: (options) => {
+          animationCalls.push(`play ${options.entityId} ${options.clip}`);
+        },
+        stopAnimation: (options) => {
+          animationCalls.push(`stop ${options.entityId} ${options.clip ?? '*'}`);
+        },
       },
       directorCommands: [],
     };
 
-    new ActionSystem().dispatchAll(
+    new ActionSystem(registry).dispatchAll(
       [
         { type: 'flag.set', flag: 'power_enabled', value: true },
         { type: 'flag.toggle', flag: 'gate_a_opened' },
         { type: 'entity.setVisible', entityId: 'gate_a', visible: false },
+        { type: 'entity.setEnabled', entityId: 'gate_a', enabled: false },
+        {
+          type: 'entity.setTransform',
+          entityId: 'gate_a',
+          transform: {
+            position: [1, 2, 3],
+            rotation: [0, 0, 0, 1],
+            scale: [1, 1, 1],
+          },
+        },
+        {
+          type: 'entity.animateTransform',
+          entityId: 'gate_a',
+          to: {
+            position: [4, 5, 6],
+            rotation: [0, 0, 0, 1],
+            scale: [1, 1, 1],
+          },
+          duration: 1.25,
+        },
         { type: 'door.open', entityId: 'gate_a' },
+        { type: 'camera.playShot', shotId: 'cam_gate_reveal' },
+        { type: 'animation.play', entityId: 'gate_a', clip: 'Open' },
+        { type: 'animation.stop', entityId: 'gate_a', clip: 'Open' },
+        { type: 'sound.play', soundId: 'audio.switch_click' },
+        { type: 'subtitle.show', text: 'Gate open.', duration: 2 },
         { type: 'timeline.play', timelineId: 'tl_open_gate' },
+        { type: 'function.call', name: 'debug.mark', params: { source: 'test' } },
       ],
       context,
     );
 
     expect(context.state.flags.power_enabled).toBe(true);
     expect(context.state.flags.gate_a_opened).toBe(true);
+    expect(context.state.flags.debug_marked).toBe(true);
     expect(context.state.entityVisibility.gate_a).toBe(false);
+    expect(context.state.entityEnabled.gate_a).toBe(false);
+    expect(context.state.entityTransforms.gate_a?.position).toEqual([1, 2, 3]);
     expect(context.state.doorStates.gate_a?.isOpen).toBe(true);
     expect(visibleCalls).toEqual([['gate_a', false]]);
+    expect(transformCalls).toEqual([['gate_a', [1, 2, 3]]]);
+    expect(animationCalls).toEqual(['play gate_a Open', 'stop gate_a Open']);
+    expect(customCalls).toEqual([{ source: 'test' }]);
     expect(context.directorCommands).toEqual([
+      {
+        type: 'entity.animateTransform',
+        entityId: 'gate_a',
+        to: {
+          position: [4, 5, 6],
+          rotation: [0, 0, 0, 1],
+          scale: [1, 1, 1],
+        },
+        duration: 1.25,
+      },
+      { type: 'camera.shot.play', shotId: 'cam_gate_reveal' },
+      { type: 'sound.play', soundId: 'audio.switch_click' },
+      { type: 'subtitle.show', text: 'Gate open.', duration: 2, speaker: undefined },
       { type: 'timeline.play', timelineId: 'tl_open_gate' },
     ]);
+  });
+
+  it('rejects unwhitelisted custom action functions', () => {
+    const context: ActionExecutionContext = {
+      state: createEventRuntimeState(),
+      directorCommands: [],
+    };
+
+    expect(() =>
+      new ActionSystem().dispatch({ type: 'function.call', name: 'missing.function' }, context),
+    ).toThrow('Action function is not whitelisted: missing.function');
   });
 });
 
 describe('registries', () => {
-  it('registers MVP condition, action, and trigger types', () => {
-    const conditionRegistry = createDefaultConditionRegistry();
+  it('registers every schema-supported action type', () => {
     const actionRegistry = createDefaultActionRegistry();
+    const schemaTypes = ActionSchema.options.map((option) => {
+      const literal = option.shape.type as { def: { values: readonly string[] } };
+
+      return literal.def.values[0];
+    });
+
+    expect(schemaTypes.filter((type) => !actionRegistry.has(type))).toEqual([]);
+  });
+
+  it('registers every typed condition exposed by the schema', () => {
+    const conditionRegistry = createDefaultConditionRegistry();
+
+    expect(TYPED_CONDITION_TYPES.filter((type) => !conditionRegistry.has(type))).toEqual([]);
+  });
+
+  it('registers MVP trigger types', () => {
     const triggerRegistry = createDefaultTriggerRegistry();
 
-    expect(conditionRegistry.has('flag.equals')).toBe(true);
-    expect(conditionRegistry.has('inventory.hasItem')).toBe(true);
-    expect(actionRegistry.has('flag.set')).toBe(true);
-    expect(actionRegistry.has('timeline.play')).toBe(true);
     expect(triggerRegistry.has('entity.interact')).toBe(true);
     expect(triggerRegistry.has('timeline.finished')).toBe(true);
   });

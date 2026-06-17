@@ -2,6 +2,8 @@ import type { AssetManifestData } from '../schemas/asset.schema';
 import type { EventData } from '../schemas/event.schema';
 import type { LevelData } from '../schemas/level.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
+import type { TimelineData } from '../schemas/timeline.schema';
+import { validateRegistryCoverage } from './RegistryCoverageValidator';
 import type { ReferenceValidationIssue, ReferenceValidationInput } from './ReferenceResolver';
 import { validateProjectReferences } from './ReferenceResolver';
 
@@ -10,9 +12,14 @@ export interface ProjectValidationInput {
   prefabs: readonly PrefabData[];
   levels: readonly LevelData[];
   events?: readonly EventData[];
+  timelines?: readonly TimelineData[];
   availableEventIds?: ReadonlySet<string>;
   availableTimelineIds?: ReadonlySet<string>;
   availableCameraShotIds?: ReadonlySet<string>;
+  registeredActionTypes?: ReadonlySet<string>;
+  registeredConditionTypes?: ReadonlySet<string>;
+  registeredActionFunctionNames?: ReadonlySet<string>;
+  registeredCustomConditionNames?: ReadonlySet<string>;
 }
 
 export interface ProjectValidationResult {
@@ -31,6 +38,16 @@ export function validateProject(input: ProjectValidationInput): ProjectValidatio
   };
 
   return {
-    issues: validateProjectReferences(referenceInput),
+    issues: [
+      ...validateProjectReferences(referenceInput),
+      ...validateRegistryCoverage({
+        events: input.events,
+        timelines: input.timelines,
+        registeredActionTypes: input.registeredActionTypes,
+        registeredConditionTypes: input.registeredConditionTypes,
+        registeredActionFunctionNames: input.registeredActionFunctionNames,
+        registeredCustomConditionNames: input.registeredCustomConditionNames,
+      }),
+    ],
   };
 }

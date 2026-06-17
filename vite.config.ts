@@ -1,5 +1,5 @@
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 import { createSaveJsonMiddleware } from './scripts/saveJsonDev';
 
@@ -20,6 +20,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    exclude: [...configDefaults.exclude, 'tests/smoke/**'],
     globals: true,
   },
 });
