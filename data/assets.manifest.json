@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "assets": {
+    "model.room_blockout": {
+      "type": "model",
+      "url": "/models/room_blockout.glb"
+    },
+    "model.switch_wall": {
+      "type": "model",
+      "url": "/models/props/switch_wall.glb"
+    },
+    "model.door_wood": {
+      "type": "model",
+      "url": "/models/props/door_wood.glb"
+    },
+    "model.player_spawn": {
+      "type": "model",
+      "url": "/models/markers/player_spawn.glb"
+    },
+    "audio.switch_click": {
+      "type": "audio",
+      "url": "/audio/switch_click.mp3"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "player_spawn",
+  "name": "Player Spawn",
+  "model": "model.player_spawn",
+  "defaultTransform": {
+    "position": [0, 0, 0],
+    "rotation": [0, 0, 0, 1],
+    "scale": [1, 1, 1]
+  },
+  "components": {
+    "PlayerSpawn": {
+      "kind": "default"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "door_wood",
+  "name": "Wood Door",
+  "model": "model.door_wood",
+  "defaultTransform": {
+    "position": [0, 0, 0],
+    "rotation": [0, 0, 0, 1],
+    "scale": [1, 1, 1]
+  },
+  "components": {
+    "Renderable": {
+      "model": "model.door_wood"
+    },
+    "Door": {
+      "locked": true,
+      "requiredKey": "gate_key",
+      "openAngle": 95,
+      "openDuration": 0.45
+    },
+    "Collider": {
+      "type": "box",
+      "size": [1.2, 2.4, 0.3],
+      "isTrigger": false
+    }
+  }
+}
