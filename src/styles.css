@@ -1,0 +1,280 @@
+:root {
+  color: #e8ecef;
+  background: #151a1f;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+button {
+  border: 1px solid #46515d;
+  color: inherit;
+  background: #202830;
+  font: inherit;
+}
+
+button:hover {
+  border-color: #6ba3ff;
+}
+
+.editor-shell {
+  display: grid;
+  min-height: 100vh;
+  grid-template-rows: auto minmax(0, 1fr) 156px;
+  background: #151a1f;
+}
+
+.editor-topbar {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid #2b343d;
+  padding: 10px 16px;
+  background: #1c232a;
+}
+
+.editor-topbar h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.editor-topbar span {
+  color: #aeb9c4;
+  font-size: 13px;
+}
+
+.editor-topbar nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.editor-topbar button,
+.entity-list button {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 6px 12px;
+}
+
+.editor-topbar button.is-active {
+  border-color: #76b28b;
+  background: #294034;
+}
+
+.editor-workbench {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr) minmax(220px, 300px);
+}
+
+.editor-panel {
+  min-width: 0;
+  overflow: auto;
+  border-color: #2b343d;
+  background: #1a2027;
+  padding: 14px;
+}
+
+.editor-panel-left {
+  border-right: 1px solid #2b343d;
+}
+
+.editor-panel-right {
+  border-left: 1px solid #2b343d;
+}
+
+.editor-panel h2 {
+  margin: 0 0 12px;
+  color: #cfd7df;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.entity-list,
+.asset-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 22px;
+  padding: 0;
+  list-style: none;
+}
+
+.entity-list button {
+  width: 100%;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asset-list li {
+  overflow: hidden;
+  border: 1px solid #313c46;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #c5ced6;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: #202830;
+}
+
+.viewport-region {
+  min-width: 0;
+  min-height: 0;
+  background: #0e1114;
+}
+
+.viewport-placeholder {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  overflow: hidden;
+}
+
+.viewport-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(#263039 1px, transparent 1px),
+    linear-gradient(90deg, #263039 1px, transparent 1px),
+    linear-gradient(#35434f 1px, transparent 1px),
+    linear-gradient(90deg, #35434f 1px, transparent 1px);
+  background-position: center;
+  background-size:
+    32px 32px,
+    32px 32px,
+    160px 160px,
+    160px 160px;
+}
+
+.viewport-status {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid #46515d;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: rgb(20 25 30 / 86%);
+}
+
+.viewport-status strong {
+  font-size: 14px;
+}
+
+.viewport-status span,
+.timeline-header span,
+.inspector-list dd {
+  color: #aeb9c4;
+  font-size: 13px;
+}
+
+.inspector-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.inspector-list div {
+  display: grid;
+  gap: 4px;
+  border-bottom: 1px solid #2b343d;
+  padding-bottom: 10px;
+}
+
+.inspector-list dt {
+  color: #e0e6eb;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.inspector-list dd {
+  margin: 0;
+}
+
+.timeline-shell {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid #2b343d;
+  padding: 12px 16px 16px;
+  background: #1b2229;
+}
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.timeline-ruler {
+  display: grid;
+  min-height: 86px;
+  grid-template-columns: repeat(8, minmax(48px, 1fr));
+  overflow: hidden;
+  border: 1px solid #313c46;
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, transparent calc(100% - 1px), #34414c 0) 0 0 / 12.5% 100%,
+    #151b21;
+}
+
+.timeline-ruler span {
+  padding: 8px;
+  color: #aeb9c4;
+  font-size: 12px;
+}
+
+@media (max-width: 820px) {
+  .editor-shell {
+    grid-template-rows: auto auto auto;
+  }
+
+  .editor-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .editor-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .editor-panel-left,
+  .editor-panel-right {
+    max-height: 220px;
+    border-right: 0;
+    border-left: 0;
+  }
+
+  .viewport-placeholder {
+    height: 54vh;
+  }
+}
