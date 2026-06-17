@@ -10,26 +10,30 @@ export class CommandHistory {
     this.redoStack.length = 0;
   }
 
-  undo(context: EditorCommandContext): void {
+  undo(context: EditorCommandContext): EditorCommand | undefined {
     const command = this.undoStack.pop();
 
     if (!command) {
-      return;
+      return undefined;
     }
 
     command.undo(context);
     this.redoStack.push(command);
+
+    return command;
   }
 
-  redo(context: EditorCommandContext): void {
+  redo(context: EditorCommandContext): EditorCommand | undefined {
     const command = this.redoStack.pop();
 
     if (!command) {
-      return;
+      return undefined;
     }
 
     command.do(context);
     this.undoStack.push(command);
+
+    return command;
   }
 
   canUndo(): boolean {

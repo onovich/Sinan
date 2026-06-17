@@ -61,7 +61,15 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   await modeNav.getByRole('button', { name: 'Edit', exact: true }).click();
   await expect(shell).toHaveAttribute('data-mode', 'edit');
   await expect(tools.getByRole('button', { name: 'Move', exact: true })).toBeEnabled();
-  await expect(page.locator('.save-status')).toHaveText('Not saved');
+  await expect(page.locator('.save-status')).toHaveText('Clean');
+  const eventInspector = page.locator('.event-inspector');
+  await expect(eventInspector.locator('.status-pill')).toHaveText('Clean');
+  await eventInspector.getByLabel('Name').fill('');
+  await expect(eventInspector.getByRole('alert')).toContainText('name');
+  await expect(eventInspector.locator('.status-pill')).toHaveText('1 issue');
+  await eventInspector.getByLabel('Name').fill('Player Enters Gate Trigger');
+  await expect(eventInspector.getByRole('alert')).toHaveCount(0);
+  await expect(eventInspector.locator('.status-pill')).toHaveText('Clean');
   await expect
     .poll(() => Array.from(modelResponses.values()).filter((status) => status === 200).length)
     .toBeGreaterThanOrEqual(4);
@@ -83,6 +91,8 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
 
   const timelinePanel = page.getByTestId('timeline-panel');
   await expect(timelinePanel).toBeVisible();
+  await expect(timelinePanel.locator('.timeline-meta .status-pill')).toHaveText('Clean');
+  await expect(timelinePanel.locator('.timeline-header .status-pill')).toHaveText('Ready to scrub');
   await page.locator('#timeline-scrub').evaluate((element) => {
     const input = element as HTMLInputElement;
     input.value = '2.25';
@@ -90,6 +100,9 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
     input.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await expect(page.getByTestId('timeline-playhead')).toHaveAttribute('style', /left:\s*50%/);
+  await expect(timelinePanel.locator('.timeline-header .status-pill')).toContainText(
+    'tl_open_gate @ 2.25s',
+  );
   await page.waitForTimeout(200);
   await expect(page.getByTestId('runtime-subtitle')).toContainText('Gate open.');
   expect(sampleAveragePngDelta(initialCanvas, await canvas.screenshot())).toBeGreaterThan(1);
@@ -120,6 +133,8 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
     'true',
   );
   await expect(page.getByText('2 components')).toBeVisible();
+  await page.getByRole('button', { name: 'X +', exact: true }).click();
+  await expect(page.locator('.save-status')).toHaveText('Unsaved');
   await page.getByRole('button', { name: 'Interact' }).click();
   await expect(page.getByText('cam_gate_reveal runtime')).toBeVisible();
   await expect(timelinePanel.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();

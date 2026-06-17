@@ -1,13 +1,15 @@
 import { useState } from 'react';
 
+import { getSaveStatusPill, type EditorSaveStatus } from '../editorStatus';
 import { EventSchema, type EventData } from '../../schemas/event.schema';
 
-export type EventSaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
+export type EventSaveStatus = EditorSaveStatus;
 
 export interface EventInspectorProps {
   events: readonly EventData[];
   selectedEvent: EventData | undefined;
   saveStatus: EventSaveStatus;
+  isDirty: boolean;
   onSelectEvent: (eventId: string) => void;
   onApplyEvent: (event: EventData) => void;
   onSaveEvent: (event: EventData) => void;
@@ -17,6 +19,7 @@ export function EventInspector({
   events,
   selectedEvent,
   saveStatus,
+  isDirty,
   onSelectEvent,
   onApplyEvent,
   onSaveEvent,
@@ -49,6 +52,11 @@ export function EventInspector({
     Boolean(selectedEvent) &&
     validationResult?.success === true &&
     draftName.trim() !== (selectedEvent?.name ?? '');
+  const statusPill = getSaveStatusPill({
+    saveStatus,
+    isDirty,
+    issueCount: validationMessages.length,
+  });
 
   const applyEvent = () => {
     if (!validationResult?.success) {
@@ -62,7 +70,9 @@ export function EventInspector({
     <section className="event-inspector" aria-labelledby="event-inspector-heading">
       <div className="panel-title-row">
         <h2 id="event-inspector-heading">Events</h2>
-        <span role="status">{formatSaveStatus(saveStatus)}</span>
+        <span className={statusPill.className} role="status">
+          {statusPill.text}
+        </span>
       </div>
 
       <label className="field-stack" htmlFor="event-inspector-select">
@@ -152,20 +162,4 @@ export function EventInspector({
 
 function formatJson(value: unknown): string {
   return JSON.stringify(value, null, 2);
-}
-
-function formatSaveStatus(status: EventSaveStatus): string {
-  if (status === 'idle') {
-    return 'Not saved';
-  }
-
-  if (status === 'saving') {
-    return 'Saving';
-  }
-
-  if (status === 'saved') {
-    return 'Saved';
-  }
-
-  return 'Save failed';
 }

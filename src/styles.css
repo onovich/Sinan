@@ -86,32 +86,64 @@ button:hover {
   font-size: 13px;
 }
 
-.editor-topbar .save-status {
+.status-pill {
   display: inline-flex;
-  align-self: center;
+  max-width: 100%;
   min-width: 82px;
-  min-height: 32px;
   align-items: center;
   justify-content: center;
   border: 1px solid #313c46;
-  border-radius: 6px;
+  border-radius: 999px;
   padding: 5px 9px;
+  overflow: hidden;
+  color: #aeb9c4;
   background: #151b21;
+  font-size: 12px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.editor-topbar .save-status.is-saved {
-  border-color: #76b28b;
-  color: #d7f1df;
+.editor-topbar .status-pill {
+  min-height: 32px;
+  align-self: center;
+  border-radius: 6px;
 }
 
-.editor-topbar .save-status.is-saving {
+.status-pill.is-clean {
+  border-color: #46515d;
+  color: #d4dde6;
+}
+
+.status-pill.is-dirty {
   border-color: #d6c75a;
   color: #f4edbb;
+  background: #2b2817;
 }
 
-.editor-topbar .save-status.is-failed {
+.status-pill.is-saved {
+  border-color: #76b28b;
+  color: #d7f1df;
+  background: #17271d;
+}
+
+.status-pill.is-saving {
+  border-color: #d6c75a;
+  color: #f4edbb;
+  background: #2b2817;
+}
+
+.status-pill.is-failed,
+.status-pill.is-invalid {
   border-color: #ff9c8b;
   color: #ffd2ca;
+  background: #331d1a;
+}
+
+.status-pill.is-preview {
+  border-color: #5aa7d6;
+  color: #dbe9f2;
+  background: #142433;
 }
 
 .topbar-controls {
@@ -547,16 +579,13 @@ button:hover {
 }
 
 .panel-title-row span {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid #38444f;
-  border-radius: 999px;
-  padding: 3px 7px;
   color: #aeb9c4;
-  background: #151b21;
   font-size: 12px;
-  line-height: 1.2;
-  white-space: nowrap;
+}
+
+.panel-title-row .status-pill {
+  min-width: 0;
+  padding: 4px 8px;
 }
 
 .field-stack {
@@ -592,9 +621,12 @@ button:hover {
   display: grid;
   gap: 6px;
   margin: 0 0 12px;
-  padding-left: 18px;
+  border: 1px solid rgb(255 156 139 / 54%);
+  border-radius: 6px;
+  padding: 8px 10px 8px 26px;
   color: #ffb2a6;
   font-size: 12px;
+  background: rgb(51 29 26 / 62%);
 }
 
 .event-command-row {
@@ -654,6 +686,15 @@ button:hover {
 .camera-command-row button:disabled {
   cursor: not-allowed;
   opacity: 0.48;
+}
+
+.preview-status {
+  margin: 0 0 12px;
+}
+
+.preview-status .status-pill {
+  justify-content: flex-start;
+  min-width: 0;
 }
 
 .debug-summary {
@@ -802,6 +843,11 @@ button:hover {
   border-radius: 6px;
   padding: 5px 8px;
   background: #202830;
+}
+
+.timeline-meta .status-pill {
+  min-width: 0;
+  border-radius: 999px;
 }
 
 .timeline-scrubber {

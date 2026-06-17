@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { getPreviewStatusPill, getSaveStatusPill, type EditorSaveStatus } from '../editorStatus';
 import { ActionSchema, type ActionData } from '../../schemas/action.schema';
 import {
   TimelineSchema,
@@ -7,7 +8,7 @@ import {
   type TimelineTrackData,
 } from '../../schemas/timeline.schema';
 
-export type TimelineSaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
+export type TimelineSaveStatus = EditorSaveStatus;
 export type TimelineTrackKind = TimelineTrackData['type'];
 export type TimelineItemOperation = 'add' | 'update' | 'remove';
 
@@ -20,6 +21,7 @@ export interface TimelinePanelProps {
   selectedTrackId: string | undefined;
   currentTime: number;
   saveStatus: TimelineSaveStatus;
+  isDirty: boolean;
   playbackStatus: 'stopped' | 'playing' | 'paused';
   previewStatus: string;
   entityIds: readonly string[];
@@ -60,6 +62,7 @@ export function TimelinePanel({
   selectedTrackId,
   currentTime,
   saveStatus,
+  isDirty,
   playbackStatus,
   previewStatus,
   entityIds,
@@ -189,6 +192,10 @@ export function TimelinePanel({
     actionPayloadParseResult.action.type === 'flag.set'
       ? actionPayloadParseResult.action
       : undefined;
+  const issueCount =
+    validationMessages.length + keyValidationMessages.length + actionValidationMessages.length;
+  const saveStatusPill = getSaveStatusPill({ saveStatus, isDirty, issueCount });
+  const previewStatusPill = getPreviewStatusPill(previewStatus);
 
   const updateDraftTrack = (track: TimelineTrackData) => {
     if (!selectedTimeline) {
@@ -318,7 +325,9 @@ export function TimelinePanel({
     >
       <div className="timeline-header">
         <strong id="timeline-heading">Timeline</strong>
-        <span role="status">{previewStatus}</span>
+        <span className={previewStatusPill.className} role="status">
+          {previewStatusPill.text}
+        </span>
       </div>
 
       <div className="timeline-controls">
@@ -340,7 +349,7 @@ export function TimelinePanel({
         <div className="timeline-meta" aria-label="Timeline summary">
           <span>{selectedTimeline ? `${selectedTimeline.duration.toFixed(2)}s` : '0.00s'}</span>
           <span>{selectedTimeline ? `${selectedTimeline.tracks.length} tracks` : '0 tracks'}</span>
-          <span>{formatSaveStatus(saveStatus)}</span>
+          <span className={saveStatusPill.className}>{saveStatusPill.text}</span>
         </div>
 
         <label className="field-inline" htmlFor="timeline-track-type">
@@ -942,20 +951,4 @@ function hasDuration(
 
 function clampTime(time: number, duration: number): number {
   return Math.min(Math.max(time, 0), duration);
-}
-
-function formatSaveStatus(status: TimelineSaveStatus): string {
-  if (status === 'idle') {
-    return 'Not saved';
-  }
-
-  if (status === 'saving') {
-    return 'Saving';
-  }
-
-  if (status === 'saved') {
-    return 'Saved';
-  }
-
-  return 'Save failed';
 }

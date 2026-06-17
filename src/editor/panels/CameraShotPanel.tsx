@@ -1,18 +1,20 @@
 import { useState } from 'react';
 
+import { getPreviewStatusPill, getSaveStatusPill, type EditorSaveStatus } from '../editorStatus';
 import {
   CameraShotSchema,
   type CameraShotData,
   type CameraShotKeyData,
 } from '../../schemas/cameraShot.schema';
 
-export type CameraShotSaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
+export type CameraShotSaveStatus = EditorSaveStatus;
 
 export interface CameraShotPanelProps {
   shots: readonly CameraShotData[];
   selectedShot: CameraShotData | undefined;
   selectedEntityId?: string;
   saveStatus: CameraShotSaveStatus;
+  isDirty: boolean;
   previewStatus: string;
   onSelectShot: (shotId: string) => void;
   onCreateShot: () => void;
@@ -27,6 +29,7 @@ export function CameraShotPanel({
   selectedShot,
   selectedEntityId,
   saveStatus,
+  isDirty,
   previewStatus,
   onSelectShot,
   onCreateShot,
@@ -66,6 +69,12 @@ export function CameraShotPanel({
     Boolean(draftShot) &&
     validationResult?.success === true &&
     JSON.stringify(draftShot) !== JSON.stringify(selectedShot);
+  const saveStatusPill = getSaveStatusPill({
+    saveStatus,
+    isDirty,
+    issueCount: validationMessages.length,
+  });
+  const previewStatusPill = getPreviewStatusPill(previewStatus);
 
   const updateDraftKey = (patch: Partial<CameraShotKeyData>) => {
     if (!keyframedShot || !draftKey) {
@@ -105,7 +114,9 @@ export function CameraShotPanel({
     <section className="camera-shot-panel" aria-labelledby="camera-shot-heading">
       <div className="panel-title-row">
         <h2 id="camera-shot-heading">Camera Shots</h2>
-        <span role="status">{formatSaveStatus(saveStatus)}</span>
+        <span className={saveStatusPill.className} role="status">
+          {saveStatusPill.text}
+        </span>
       </div>
 
       <div className="event-command-row">
@@ -238,8 +249,8 @@ export function CameraShotPanel({
             </button>
           </div>
 
-          <p className="panel-empty" role="status">
-            {previewStatus}
+          <p className="preview-status" role="status">
+            <span className={previewStatusPill.className}>{previewStatusPill.text}</span>
           </p>
         </>
       ) : null}
@@ -256,20 +267,4 @@ function replaceKey(
     ...shot,
     keys: shot.keys.map((item, index) => (index === keyIndex ? key : item)),
   };
-}
-
-function formatSaveStatus(status: CameraShotSaveStatus): string {
-  if (status === 'idle') {
-    return 'Not saved';
-  }
-
-  if (status === 'saving') {
-    return 'Saving';
-  }
-
-  if (status === 'saved') {
-    return 'Saved';
-  }
-
-  return 'Save failed';
 }

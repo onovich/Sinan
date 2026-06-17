@@ -16,6 +16,7 @@ describe('TimelinePanel smoke', () => {
         selectedTrackId="track_set_flag"
         currentTime={2.25}
         saveStatus="idle"
+        isDirty={false}
         playbackStatus="stopped"
         previewStatus="Ready"
         entityIds={['gate_a', 'switch_a']}
@@ -45,5 +46,6 @@ describe('TimelinePanel smoke', () => {
     expect(markup).toContain('Toggle Flag Value');
     expect(markup).toContain('Play');
     expect(markup).toContain('End');
+    expect(markup).toContain('Clean');
   });
 });
