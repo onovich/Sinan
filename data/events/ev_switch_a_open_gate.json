@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "ev_switch_a_open_gate",
-  "name": "Switch opens gate",
+  "name": "Switch opens gate safely",
   "trigger": {
     "type": "entity.interact",
     "entityId": "switch_a"

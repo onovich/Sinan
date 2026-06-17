@@ -5,6 +5,7 @@ export type InspectorTab = 'components' | 'events' | 'timeline' | 'camera';
 export interface EditorState {
   mode: EditorMode;
   selectedEntityId?: string;
+  selectedEventId?: string;
   selectedTimelineId?: string;
   selectedCameraShotId?: string;
   activeTool: ActiveTool;
@@ -15,6 +16,7 @@ export interface EditorState {
 export type EditorAction =
   | { type: 'setMode'; mode: EditorMode }
   | { type: 'selectEntity'; entityId: string | undefined }
+  | { type: 'selectEvent'; eventId: string | undefined }
   | { type: 'setActiveTool'; activeTool: ActiveTool }
   | { type: 'setInspectorTab'; inspectorTab: InspectorTab }
   | { type: 'setTimelineTime'; timelineTime: number };
@@ -34,6 +36,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return { ...state, mode: action.mode };
     case 'selectEntity':
       return { ...state, selectedEntityId: action.entityId };
+    case 'selectEvent':
+      return { ...state, selectedEventId: action.eventId };
     case 'setActiveTool':
       return { ...state, activeTool: action.activeTool };
     case 'setInspectorTab':

@@ -6,14 +6,17 @@ import { saveJson } from '../data/saveJsonClient';
 import { EventSystem } from '../events/EventSystem';
 import { TriggerSystem } from '../events/TriggerSystem';
 import { createEventRuntimeState, type DirectorCommand, type FlagValue } from '../events/types';
+import type { EventData } from '../schemas/event.schema';
 import type { TransformData } from '../schemas/transform.schema';
 import type { EditorCommandContext } from './commands/Command';
 import { CommandHistory } from './commands/CommandHistory';
 import { TransformEntityCommand } from './commands/TransformEntityCommand';
+import { UpdateEventCommand } from './commands/UpdateEventCommand';
 import { Viewport } from './Viewport';
 import { editorPanelLayout } from './editorLayout';
 import { AssetPanel } from './panels/AssetPanel';
 import { EventDebugPanel, type EventDebugState } from './panels/EventDebugPanel';
+import { EventInspector, type EventSaveStatus } from './panels/EventInspector';
 import { HierarchyPanel } from './panels/HierarchyPanel';
 import { InspectorPanel } from './panels/InspectorPanel';
 import {
@@ -27,7 +30,8 @@ export function EditorApp() {
   const [editorState, dispatch] = useReducer(editorReducer, undefined, createInitialEditorState);
   const [project, setProject] = useState<ProjectData | null>(null);
   const [projectError, setProjectError] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [eventSaveStatus, setEventSaveStatus] = useState<EventSaveStatus>('idle');
   const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
   const projectRef = useRef<ProjectData | null>(null);
   const commandHistoryRef = useRef(new CommandHistory());
@@ -47,9 +51,14 @@ export function EditorApp() {
   const selectedEntity = project?.level.entities.find(
     (entity) => entity.id === editorState.selectedEntityId,
   );
+  const selectedEvent = getSelectedEvent(project, editorState.selectedEventId);
+  const events = getSortedEvents(project);
   const commandContext: EditorCommandContext = {
     updateEntityTransform: (entityId, transform) => {
       setProject((current) => updateProjectEntityTransform(current, entityId, transform));
+    },
+    updateEvent: (eventId, event) => {
+      setProject((current) => updateProjectEvent(current, eventId, event));
     },
   };
 
@@ -119,6 +128,33 @@ export function EditorApp() {
       .catch((error: unknown) => {
         console.error(error);
         setSaveStatus('failed');
+      });
+  };
+
+  const applyEvent = (event: EventData) => {
+    const currentEvent = projectRef.current?.events[event.id];
+
+    if (!currentEvent || eventDataEqual(currentEvent, event)) {
+      return;
+    }
+
+    commandHistoryRef.current.execute(
+      new UpdateEventCommand(event.id, currentEvent, event),
+      commandContext,
+    );
+    setEventSaveStatus('idle');
+    refreshHistoryState(commandHistoryRef.current, setHistoryState);
+  };
+
+  const saveEvent = (event: EventData) => {
+    setEventSaveStatus('saving');
+    void saveJson(`data/events/${event.id}.json`, event)
+      .then(() => {
+        setEventSaveStatus('saved');
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+        setEventSaveStatus('failed');
       });
   };
 
@@ -242,6 +278,14 @@ export function EditorApp() {
             onTranslateSelected={translateSelectedEntity}
             onInteractSelected={selectedEntity ? interactSelectedEntity : undefined}
           />
+          <EventInspector
+            events={events}
+            selectedEvent={selectedEvent}
+            saveStatus={eventSaveStatus}
+            onSelectEvent={(eventId) => dispatch({ type: 'selectEvent', eventId })}
+            onApplyEvent={applyEvent}
+            onSaveEvent={saveEvent}
+          />
           <EventDebugPanel debugState={eventDebugState} />
         </aside>
       </main>
@@ -261,6 +305,8 @@ export function EditorApp() {
   );
 }
 
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
+
 function formatMode(mode: EditorMode): string {
   return mode[0].toUpperCase() + mode.slice(1);
 }
@@ -269,7 +315,7 @@ function formatTool(tool: ActiveTool): string {
   return tool[0].toUpperCase() + tool.slice(1);
 }
 
-function formatSaveStatus(status: 'idle' | 'saving' | 'saved' | 'failed'): string {
+function formatSaveStatus(status: SaveStatus): string {
   if (status === 'idle') {
     return 'Not saved';
   }
@@ -283,6 +329,29 @@ function formatSaveStatus(status: 'idle' | 'saving' | 'saved' | 'failed'): strin
   }
 
   return 'Save failed';
+}
+
+function getSelectedEvent(
+  project: ProjectData | null,
+  selectedEventId: string | undefined,
+): EventData | undefined {
+  if (!project) {
+    return undefined;
+  }
+
+  if (selectedEventId && project.events[selectedEventId]) {
+    return project.events[selectedEventId];
+  }
+
+  return getSortedEvents(project)[0];
+}
+
+function getSortedEvents(project: ProjectData | null): EventData[] {
+  if (!project) {
+    return [];
+  }
+
+  return Object.values(project.events).sort((left, right) => left.id.localeCompare(right.id));
 }
 
 function updateProjectEntityTransform(
@@ -303,6 +372,28 @@ function updateProjectEntityTransform(
       ),
     },
   };
+}
+
+function updateProjectEvent(
+  project: ProjectData | null,
+  eventId: string,
+  event: EventData,
+): ProjectData | null {
+  if (!project) {
+    return project;
+  }
+
+  return {
+    ...project,
+    events: {
+      ...project.events,
+      [eventId]: event,
+    },
+  };
+}
+
+function eventDataEqual(left: EventData, right: EventData): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 function transformsEqual(left: TransformData, right: TransformData): boolean {

@@ -262,12 +262,14 @@ button:hover {
 
 .component-section,
 .event-debug,
+.event-inspector,
 .inspector-actions {
   margin-top: 18px;
 }
 
 .component-section h3,
 .transform-nudge h3,
+.event-actions h3,
 .inspector-actions h3 {
   margin: 0 0 10px;
   color: #cfd7df;
@@ -295,6 +297,98 @@ button:hover {
   min-height: 32px;
   border-radius: 6px;
   padding: 6px 12px;
+}
+
+.panel-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panel-title-row span {
+  color: #aeb9c4;
+  font-size: 12px;
+}
+
+.field-stack {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+  color: #e0e6eb;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.field-stack input,
+.field-stack select {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid #46515d;
+  border-radius: 6px;
+  padding: 6px 8px;
+  color: #e8ecef;
+  background: #202830;
+  font: inherit;
+}
+
+.validation-list {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding-left: 18px;
+  color: #ffb2a6;
+  font-size: 12px;
+}
+
+.event-command-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.event-command-row button {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.event-command-row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.event-actions {
+  margin-top: 18px;
+}
+
+.event-actions ol {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.event-actions li {
+  border: 1px solid #313c46;
+  border-radius: 6px;
+  padding: 10px;
+  background: #202830;
+}
+
+.event-actions strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.event-actions pre {
+  overflow: auto;
+  margin: 0;
+  color: #c5ced6;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .component-list {

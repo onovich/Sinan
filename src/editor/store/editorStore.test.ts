@@ -23,4 +23,13 @@ describe('editorReducer', () => {
       selectedEntityId: 'gate_a',
     });
   });
+
+  it('tracks selected event as slow editor state', () => {
+    const selected = editorReducer(createInitialEditorState(), {
+      type: 'selectEvent',
+      eventId: 'ev_switch_a_open_gate',
+    });
+
+    expect(selected.selectedEventId).toBe('ev_switch_a_open_gate');
+  });
 });
