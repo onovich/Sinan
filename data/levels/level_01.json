@@ -44,9 +44,9 @@
       "id": "switch_a",
       "prefab": "switch_wall",
       "transform": {
-        "position": [2, 1, 4],
+        "position": [3.2, 1, 4.6],
         "rotation": [0, 0, 0, 1],
-        "scale": [1, 1, 1]
+        "scale": [1.4, 1.4, 1.4]
       },
       "components": {
         "Switch": {

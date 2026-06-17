@@ -76,40 +76,41 @@ export class ThreeRuntime implements WebRuntime {
       alpha: false,
     });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.setClearColor(0x101418, 1);
+    renderer.setClearColor(0x0f1517, 1);
     renderer.setPixelRatio(options.pixelRatio ?? window.devicePixelRatio ?? 1);
     renderer.setSize(this.width, this.height, false);
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x101418);
+    scene.background = new THREE.Color(0x0f1517);
     const objectRoot = new THREE.Group();
     objectRoot.name = 'runtime-objects';
     scene.add(objectRoot);
 
-    const camera = new THREE.PerspectiveCamera(55, this.width / this.height, 0.1, 1000);
-    camera.position.set(4.5, 3.8, 6.5);
-    camera.lookAt(0, 0.75, 0);
+    const camera = new THREE.PerspectiveCamera(64, this.width / this.height, 0.1, 1000);
+    camera.position.set(4, 2.6, 0.35);
+    camera.lookAt(4, 0.1, 6.2);
 
-    const grid = new THREE.GridHelper(12, 12, 0x4e6b7d, 0x263642);
+    const grid = new THREE.GridHelper(18, 18, 0x668091, 0x263842);
     scene.add(grid);
 
     const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(12, 12),
+      new THREE.PlaneGeometry(18, 18),
       new THREE.MeshStandardMaterial({
-        color: 0x26313a,
-        roughness: 0.78,
+        color: 0x1f2b31,
+        roughness: 0.82,
         metalness: 0.06,
       }),
     );
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -0.01;
+    floor.position.z = 4;
     scene.add(floor);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
-    keyLight.position.set(4, 6, 5);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.55);
+    keyLight.position.set(3, 8, 2);
     scene.add(keyLight);
 
-    const fillLight = new THREE.HemisphereLight(0xa7c7ff, 0x1e2a20, 1.9);
+    const fillLight = new THREE.HemisphereLight(0xa7c7ff, 0x203024, 1.75);
     scene.add(fillLight);
 
     const transformControls = new TransformControls(camera, renderer.domElement);
