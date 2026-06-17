@@ -261,6 +261,7 @@ button:hover {
 }
 
 .component-section,
+.camera-shot-panel,
 .event-debug,
 .event-inspector,
 .inspector-actions {
@@ -355,6 +356,47 @@ button:hover {
 }
 
 .event-command-row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.camera-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.camera-fieldset {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 12px;
+  border: 1px solid #313c46;
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.camera-fieldset legend {
+  padding: 0 4px;
+  color: #cfd7df;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.camera-command-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.camera-command-row button {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.camera-command-row button:disabled {
   cursor: not-allowed;
   opacity: 0.48;
 }

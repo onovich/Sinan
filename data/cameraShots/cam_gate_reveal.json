@@ -6,7 +6,6 @@
   "duration": 3.5,
   "keys": [
     {
-      "time": 0,
       "position": [
         2,
         1.6,
@@ -18,10 +17,10 @@
         8
       ],
       "fov": 55,
+      "time": 0,
       "ease": "easeInOutCubic"
     },
     {
-      "time": 1.5,
       "position": [
         3,
         1.8,
@@ -29,10 +28,10 @@
       ],
       "lookAt": "gate_a",
       "fov": 45,
+      "time": 1.5,
       "ease": "easeInOutCubic"
     },
     {
-      "time": 3.5,
       "position": [
         5,
         2.2,
@@ -40,6 +39,7 @@
       ],
       "lookAt": "gate_a",
       "fov": 38,
+      "time": 3.5,
       "ease": "easeOutCubic"
     }
   ]

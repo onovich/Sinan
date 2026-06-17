@@ -6,15 +6,18 @@ import { saveJson } from '../data/saveJsonClient';
 import { EventSystem } from '../events/EventSystem';
 import { TriggerSystem } from '../events/TriggerSystem';
 import { createEventRuntimeState, type DirectorCommand, type FlagValue } from '../events/types';
+import type { CameraShotData } from '../schemas/cameraShot.schema';
 import type { EventData } from '../schemas/event.schema';
 import type { TransformData } from '../schemas/transform.schema';
 import type { EditorCommandContext } from './commands/Command';
 import { CommandHistory } from './commands/CommandHistory';
 import { TransformEntityCommand } from './commands/TransformEntityCommand';
+import { AddCameraShotCommand, UpdateCameraShotCommand } from './commands/UpdateCameraShotCommand';
 import { UpdateEventCommand } from './commands/UpdateEventCommand';
 import { Viewport } from './Viewport';
 import { editorPanelLayout } from './editorLayout';
 import { AssetPanel } from './panels/AssetPanel';
+import { CameraShotPanel, type CameraShotSaveStatus } from './panels/CameraShotPanel';
 import { EventDebugPanel, type EventDebugState } from './panels/EventDebugPanel';
 import { EventInspector, type EventSaveStatus } from './panels/EventInspector';
 import { HierarchyPanel } from './panels/HierarchyPanel';
@@ -32,6 +35,8 @@ export function EditorApp() {
   const [projectError, setProjectError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [eventSaveStatus, setEventSaveStatus] = useState<EventSaveStatus>('idle');
+  const [cameraShotSaveStatus, setCameraShotSaveStatus] = useState<CameraShotSaveStatus>('idle');
+  const [cameraPreviewStatus, setCameraPreviewStatus] = useState('No camera preview');
   const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
   const projectRef = useRef<ProjectData | null>(null);
   const commandHistoryRef = useRef(new CommandHistory());
@@ -53,12 +58,20 @@ export function EditorApp() {
   );
   const selectedEvent = getSelectedEvent(project, editorState.selectedEventId);
   const events = getSortedEvents(project);
+  const selectedCameraShot = getSelectedCameraShot(project, editorState.selectedCameraShotId);
+  const cameraShots = getSortedCameraShots(project);
   const commandContext: EditorCommandContext = {
     updateEntityTransform: (entityId, transform) => {
       setProject((current) => updateProjectEntityTransform(current, entityId, transform));
     },
     updateEvent: (eventId, event) => {
       setProject((current) => updateProjectEvent(current, eventId, event));
+    },
+    upsertCameraShot: (shot) => {
+      setProject((current) => upsertProjectCameraShot(current, shot));
+    },
+    removeCameraShot: (shotId) => {
+      setProject((current) => removeProjectCameraShot(current, shotId));
     },
   };
 
@@ -156,6 +169,75 @@ export function EditorApp() {
         console.error(error);
         setEventSaveStatus('failed');
       });
+  };
+
+  const createCameraShot = () => {
+    if (!project) {
+      return;
+    }
+
+    const shot = createDefaultCameraShot(project, selectedEntity?.id);
+    commandHistoryRef.current.execute(new AddCameraShotCommand(shot), commandContext);
+    dispatch({ type: 'selectCameraShot', cameraShotId: shot.id });
+    setCameraShotSaveStatus('idle');
+    refreshHistoryState(commandHistoryRef.current, setHistoryState);
+  };
+
+  const applyCameraShot = (shot: CameraShotData) => {
+    const currentShot = projectRef.current?.cameraShots[shot.id];
+
+    if (!currentShot || cameraShotDataEqual(currentShot, shot)) {
+      return;
+    }
+
+    commandHistoryRef.current.execute(
+      new UpdateCameraShotCommand(currentShot, shot),
+      commandContext,
+    );
+    setCameraShotSaveStatus('idle');
+    refreshHistoryState(commandHistoryRef.current, setHistoryState);
+  };
+
+  const saveCameraShot = (shot: CameraShotData) => {
+    setCameraShotSaveStatus('saving');
+    void saveJson(`data/cameraShots/${shot.id}.json`, shot)
+      .then(() => {
+        setCameraShotSaveStatus('saved');
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+        setCameraShotSaveStatus('failed');
+      });
+  };
+
+  const setCameraKeyFromView = (shot: CameraShotData, keyIndex: number) => {
+    if (shot.type !== 'keyframed') {
+      return;
+    }
+
+    const key = shot.keys[keyIndex];
+    const selectedPosition = selectedEntity?.transform.position;
+    const position: [number, number, number] = selectedPosition
+      ? [selectedPosition[0], selectedPosition[1] + 1.5, selectedPosition[2] - 4]
+      : [...key.position];
+    const nextShot: CameraShotData = {
+      ...shot,
+      keys: shot.keys.map((item, index) =>
+        index === keyIndex
+          ? {
+              ...item,
+              position,
+              lookAt: selectedEntity?.id ?? item.lookAt,
+            }
+          : item,
+      ),
+    };
+
+    applyCameraShot(nextShot);
+  };
+
+  const previewCameraShot = (shot: CameraShotData, time: number) => {
+    setCameraPreviewStatus(`${shot.id} @ ${Number(time.toFixed(2))}s`);
   };
 
   const translateSelectedEntity = (delta: readonly [number, number, number]) => {
@@ -286,6 +368,19 @@ export function EditorApp() {
             onApplyEvent={applyEvent}
             onSaveEvent={saveEvent}
           />
+          <CameraShotPanel
+            shots={cameraShots}
+            selectedShot={selectedCameraShot}
+            selectedEntityId={selectedEntity?.id}
+            saveStatus={cameraShotSaveStatus}
+            previewStatus={cameraPreviewStatus}
+            onSelectShot={(cameraShotId) => dispatch({ type: 'selectCameraShot', cameraShotId })}
+            onCreateShot={createCameraShot}
+            onApplyShot={applyCameraShot}
+            onSaveShot={saveCameraShot}
+            onSetKeyFromView={setCameraKeyFromView}
+            onPreviewShot={previewCameraShot}
+          />
           <EventDebugPanel debugState={eventDebugState} />
         </aside>
       </main>
@@ -354,6 +449,29 @@ function getSortedEvents(project: ProjectData | null): EventData[] {
   return Object.values(project.events).sort((left, right) => left.id.localeCompare(right.id));
 }
 
+function getSelectedCameraShot(
+  project: ProjectData | null,
+  selectedCameraShotId: string | undefined,
+): CameraShotData | undefined {
+  if (!project) {
+    return undefined;
+  }
+
+  if (selectedCameraShotId && project.cameraShots[selectedCameraShotId]) {
+    return project.cameraShots[selectedCameraShotId];
+  }
+
+  return getSortedCameraShots(project)[0];
+}
+
+function getSortedCameraShots(project: ProjectData | null): CameraShotData[] {
+  if (!project) {
+    return [];
+  }
+
+  return Object.values(project.cameraShots).sort((left, right) => left.id.localeCompare(right.id));
+}
+
 function updateProjectEntityTransform(
   project: ProjectData | null,
   entityId: string,
@@ -392,7 +510,82 @@ function updateProjectEvent(
   };
 }
 
+function upsertProjectCameraShot(
+  project: ProjectData | null,
+  shot: CameraShotData,
+): ProjectData | null {
+  if (!project) {
+    return project;
+  }
+
+  return {
+    ...project,
+    level: {
+      ...project.level,
+      cameraShots: project.level.cameraShots.includes(shot.id)
+        ? project.level.cameraShots
+        : [...project.level.cameraShots, shot.id],
+    },
+    cameraShots: {
+      ...project.cameraShots,
+      [shot.id]: shot,
+    },
+  };
+}
+
+function removeProjectCameraShot(project: ProjectData | null, shotId: string): ProjectData | null {
+  if (!project) {
+    return project;
+  }
+
+  return {
+    ...project,
+    level: {
+      ...project.level,
+      cameraShots: project.level.cameraShots.filter((id) => id !== shotId),
+    },
+    cameraShots: Object.fromEntries(
+      Object.entries(project.cameraShots).filter(([id]) => id !== shotId),
+    ),
+  };
+}
+
+function createDefaultCameraShot(
+  project: ProjectData,
+  selectedEntityId: string | undefined,
+): CameraShotData {
+  const nextIndex = Object.keys(project.cameraShots).length + 1;
+  let id = `cam_shot_${String(nextIndex).padStart(2, '0')}`;
+  let suffix = nextIndex;
+
+  while (project.cameraShots[id]) {
+    suffix += 1;
+    id = `cam_shot_${String(suffix).padStart(2, '0')}`;
+  }
+
+  return {
+    schemaVersion: 1,
+    id,
+    name: `Camera Shot ${suffix}`,
+    type: 'keyframed',
+    duration: 2,
+    keys: [
+      {
+        time: 0,
+        position: [0, 2, 6],
+        lookAt: selectedEntityId ?? [0, 1, 0],
+        fov: 50,
+        ease: 'linear',
+      },
+    ],
+  };
+}
+
 function eventDataEqual(left: EventData, right: EventData): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function cameraShotDataEqual(left: CameraShotData, right: CameraShotData): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 

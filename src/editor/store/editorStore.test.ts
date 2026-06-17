@@ -32,4 +32,13 @@ describe('editorReducer', () => {
 
     expect(selected.selectedEventId).toBe('ev_switch_a_open_gate');
   });
+
+  it('tracks selected camera shot as slow editor state', () => {
+    const selected = editorReducer(createInitialEditorState(), {
+      type: 'selectCameraShot',
+      cameraShotId: 'cam_gate_reveal',
+    });
+
+    expect(selected.selectedCameraShotId).toBe('cam_gate_reveal');
+  });
 });
