@@ -15,7 +15,19 @@ export interface RuntimeActionPort {
 
 export type DirectorCommand =
   | { type: 'timeline.play'; timelineId: string }
-  | { type: 'timeline.stop'; timelineId: string };
+  | { type: 'timeline.stop'; timelineId: string }
+  | {
+      type: 'camera.shot.play';
+      shotId: string;
+      duration: number;
+      blendIn?: number;
+      blendOut?: number;
+    }
+  | {
+      type: 'camera.shot.sample';
+      shotId: string;
+      time: number;
+    };
 
 export interface ActionExecutionContext {
   state: EventRuntimeState;
