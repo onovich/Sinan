@@ -133,6 +133,16 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
     'true',
   );
   await expect(page.getByText('2 components')).toBeVisible();
+  const interactableForm = page.locator('form[aria-label="Interactable component editor"]');
+  await expect(interactableForm.getByLabel('Prompt')).toHaveValue('Press E');
+  await interactableForm.getByLabel('Prompt').fill('Open gate');
+  await interactableForm.getByRole('button', { name: 'Apply Component' }).click();
+  await expect(page.locator('.save-status')).toHaveText('Unsaved');
+  await expect(interactableForm.getByLabel('Prompt')).toHaveValue('Open gate');
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(interactableForm.getByLabel('Prompt')).toHaveValue('Press E');
+  await page.getByRole('button', { name: 'Redo' }).click();
+  await expect(interactableForm.getByLabel('Prompt')).toHaveValue('Open gate');
   await page.getByRole('button', { name: 'X +', exact: true }).click();
   await expect(page.locator('.save-status')).toHaveText('Unsaved');
   await page.getByRole('button', { name: 'Interact' }).click();

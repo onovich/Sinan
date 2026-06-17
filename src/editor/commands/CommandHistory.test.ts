@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import type { EventData } from '../../schemas/event.schema';
 import type { CameraShotData } from '../../schemas/cameraShot.schema';
+import type { ComponentMapData } from '../../schemas/entity.schema';
 import type { TimelineData, TimelineTrackData } from '../../schemas/timeline.schema';
 import type { TransformData } from '../../schemas/transform.schema';
 import { CommandHistory } from './CommandHistory';
 import { TransformEntityCommand } from './TransformEntityCommand';
 import { AddCameraShotCommand, UpdateCameraShotCommand } from './UpdateCameraShotCommand';
+import { UpdateEntityComponentCommand } from './UpdateEntityComponentCommand';
 import { UpdateEventCommand } from './UpdateEventCommand';
 import {
   AddTimelineItemCommand,
@@ -39,6 +41,7 @@ describe('CommandHistory', () => {
       updateEntityTransform: (_entityId: string, transform: TransformData) => {
         applied.push(transform);
       },
+      updateEntityComponents: () => undefined,
       updateEvent: () => undefined,
       updateTimeline: () => undefined,
       upsertCameraShot: () => undefined,
@@ -59,6 +62,7 @@ describe('CommandHistory', () => {
     const eventAfter = createEvent('Switch opens gate safely');
     const context = {
       updateEntityTransform: () => undefined,
+      updateEntityComponents: () => undefined,
       updateEvent: (_eventId: string, event: EventData) => {
         applied.push(event);
       },
@@ -85,6 +89,7 @@ describe('CommandHistory', () => {
     const shotAfter = createCameraShot(45);
     const context = {
       updateEntityTransform: () => undefined,
+      updateEntityComponents: () => undefined,
       updateEvent: () => undefined,
       updateTimeline: () => undefined,
       upsertCameraShot: (shot: CameraShotData) => {
@@ -113,6 +118,7 @@ describe('CommandHistory', () => {
     const updatedTrack = createActionTrack('track_action_a', 1.4);
     const context = {
       updateEntityTransform: () => undefined,
+      updateEntityComponents: () => undefined,
       updateEvent: () => undefined,
       updateTimeline: (_timelineId: string, nextTimeline: TimelineData) => {
         applied.push(nextTimeline);
@@ -174,6 +180,7 @@ describe('CommandHistory', () => {
     };
     const context = {
       updateEntityTransform: () => undefined,
+      updateEntityComponents: () => undefined,
       updateEvent: () => undefined,
       updateTimeline: (_timelineId: string, nextTimeline: TimelineData) => {
         applied.push(nextTimeline);
@@ -225,6 +232,43 @@ describe('CommandHistory', () => {
       [0, 1],
       [0, 1, 2.5],
     ]);
+  });
+
+  it('executes, undoes, and redoes entity component update commands', () => {
+    const applied: ComponentMapData[] = [];
+    const history = new CommandHistory();
+    const componentsBefore: ComponentMapData = {
+      Interactable: { prompt: 'Press E' },
+      Switch: { initialState: false },
+    };
+    const componentsAfter: ComponentMapData = {
+      Interactable: { prompt: 'Open gate' },
+      Switch: { initialState: false },
+    };
+    const context = {
+      updateEntityTransform: () => undefined,
+      updateEntityComponents: (_entityId: string, components: ComponentMapData) => {
+        applied.push(components);
+      },
+      updateEvent: () => undefined,
+      updateTimeline: () => undefined,
+      upsertCameraShot: () => undefined,
+      removeCameraShot: () => undefined,
+    };
+
+    history.execute(
+      new UpdateEntityComponentCommand(
+        'switch_a',
+        componentsBefore,
+        componentsAfter,
+        'Interactable',
+      ),
+      context,
+    );
+    history.undo(context);
+    history.redo(context);
+
+    expect(applied).toEqual([componentsAfter, componentsBefore, componentsAfter]);
   });
 });
 

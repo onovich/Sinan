@@ -1,15 +1,13 @@
 import { z } from 'zod';
 
+import { DisplayNameSchema, EntityIdSchema, PrefabIdSchema } from './common.schema';
 import {
-  ComponentTypeSchema,
-  DisplayNameSchema,
-  EntityIdSchema,
-  PrefabIdSchema,
-} from './common.schema';
+  ComponentMapSchema,
+  ComponentPayloadSchema,
+  type ComponentMapData,
+  type ComponentPayloadData,
+} from './component.schema';
 import { TransformSchema } from './transform.schema';
-
-export const ComponentPayloadSchema = z.record(z.string(), z.unknown());
-export const ComponentMapSchema = z.record(ComponentTypeSchema, ComponentPayloadSchema);
 
 export const EntitySchema = z
   .object({
@@ -21,6 +19,6 @@ export const EntitySchema = z
   })
   .strict();
 
-export type ComponentPayloadData = z.infer<typeof ComponentPayloadSchema>;
-export type ComponentMapData = z.infer<typeof ComponentMapSchema>;
+export { ComponentMapSchema, ComponentPayloadSchema };
+export type { ComponentMapData, ComponentPayloadData };
 export type EntityData = z.infer<typeof EntitySchema>;

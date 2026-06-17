@@ -11,6 +11,7 @@ import { createEventRuntimeState, type DirectorCommand, type FlagValue } from '.
 import type { RuntimeTransform } from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
 import type { CameraShotData } from '../schemas/cameraShot.schema';
+import type { ComponentMapData, ComponentPayloadData } from '../schemas/entity.schema';
 import type { EventData } from '../schemas/event.schema';
 import type { TimelineData, TimelineTrackData } from '../schemas/timeline.schema';
 import type { TransformData } from '../schemas/transform.schema';
@@ -18,6 +19,7 @@ import type { EditorCommandContext } from './commands/Command';
 import { CommandHistory } from './commands/CommandHistory';
 import { TransformEntityCommand } from './commands/TransformEntityCommand';
 import { AddCameraShotCommand, UpdateCameraShotCommand } from './commands/UpdateCameraShotCommand';
+import { UpdateEntityComponentCommand } from './commands/UpdateEntityComponentCommand';
 import { UpdateEventCommand } from './commands/UpdateEventCommand';
 import {
   AddTimelineItemCommand,
@@ -112,6 +114,9 @@ export function EditorApp() {
     updateEntityTransform: (entityId, transform) => {
       setProject((current) => updateProjectEntityTransform(current, entityId, transform));
     },
+    updateEntityComponents: (entityId, components) => {
+      setProject((current) => updateProjectEntityComponents(current, entityId, components));
+    },
     updateEvent: (eventId, event) => {
       setProject((current) => updateProjectEvent(current, eventId, event));
     },
@@ -192,6 +197,36 @@ export function EditorApp() {
 
     commandHistoryRef.current.execute(
       new TransformEntityCommand(entityId, entity.transform, transform),
+      commandContext,
+    );
+    markLevelDirty(setDirtyState);
+    setSaveStatus('idle');
+    refreshHistoryState(commandHistoryRef.current, setHistoryState);
+  };
+
+  const commitEntityComponent = (
+    entityId: string,
+    componentType: string,
+    payload: ComponentPayloadData,
+  ) => {
+    const current = projectRef.current;
+    const entity = current?.level.entities.find((item) => item.id === entityId);
+
+    if (!entity) {
+      return;
+    }
+
+    const nextComponents = {
+      ...entity.components,
+      [componentType]: payload,
+    };
+
+    if (componentMapsEqual(entity.components, nextComponents)) {
+      return;
+    }
+
+    commandHistoryRef.current.execute(
+      new UpdateEntityComponentCommand(entityId, entity.components, nextComponents, componentType),
       commandContext,
     );
     markLevelDirty(setDirtyState);
@@ -953,6 +988,8 @@ export function EditorApp() {
         <aside className="editor-panel editor-panel-right" aria-labelledby="inspector-heading">
           <InspectorPanel
             entity={selectedEntity}
+            onApplyTransform={commitTransform}
+            onApplyComponent={commitEntityComponent}
             onTranslateSelected={translateSelectedEntity}
             onInteractSelected={selectedEntity ? interactSelectedEntity : undefined}
           />
@@ -1165,6 +1202,10 @@ function getCommandDirtyTarget(commandId: string | undefined): DirtyTarget | und
     return { kind: 'level' };
   }
 
+  if (parts[0] === 'component') {
+    return { kind: 'level' };
+  }
+
   if (parts[0] === 'event' && parts[1]) {
     return { kind: 'event', id: parts[1] };
   }
@@ -1298,6 +1339,26 @@ function updateProjectEntityTransform(
       ...project.level,
       entities: project.level.entities.map((entity) =>
         entity.id === entityId ? { ...entity, transform } : entity,
+      ),
+    },
+  };
+}
+
+function updateProjectEntityComponents(
+  project: ProjectData | null,
+  entityId: string,
+  components: ComponentMapData,
+): ProjectData | null {
+  if (!project) {
+    return project;
+  }
+
+  return {
+    ...project,
+    level: {
+      ...project.level,
+      entities: project.level.entities.map((entity) =>
+        entity.id === entityId ? { ...entity, components } : entity,
       ),
     },
   };
@@ -1518,6 +1579,10 @@ function cameraShotDataEqual(left: CameraShotData, right: CameraShotData): boole
 }
 
 function timelineTrackDataEqual(left: TimelineTrackData, right: TimelineTrackData): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function componentMapsEqual(left: ComponentMapData, right: ComponentMapData): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 

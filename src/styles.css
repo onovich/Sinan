@@ -538,6 +538,7 @@ button:hover {
 }
 
 .component-section h3,
+.structured-form h3,
 .transform-nudge h3,
 .event-actions h3,
 .inspector-actions h3 {
@@ -546,6 +547,96 @@ button:hover {
   font-size: 13px;
   letter-spacing: 0;
   text-transform: uppercase;
+}
+
+.structured-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  border: 1px solid #313c46;
+  border-radius: 6px;
+  padding: 10px;
+  background: #182028;
+}
+
+.structured-form button {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.component-form {
+  margin-top: 8px;
+  border-color: #2e3943;
+  background: #151b21;
+}
+
+.component-card-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.component-card-header span {
+  flex: 0 0 auto;
+  color: #8fa0ad;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.vector-field {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+
+.vector-field legend {
+  grid-column: 1 / -1;
+  margin-bottom: 2px;
+  color: #e0e6eb;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.vector-field label,
+.check-field {
+  display: grid;
+  gap: 5px;
+  color: #cfd7df;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.check-field {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.vector-field input {
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid #46515d;
+  border-radius: 5px;
+  padding: 5px 7px;
+  color: #e8ecef;
+  background: #202830;
+  font: inherit;
+}
+
+.vector-field input,
+.check-field input {
+  min-width: 0;
 }
 
 .transform-nudge {
