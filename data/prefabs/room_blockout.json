@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "room_blockout",
+  "name": "Room Blockout",
+  "model": "model.room_blockout",
+  "defaultTransform": {
+    "position": [0, 0, 0],
+    "rotation": [0, 0, 0, 1],
+    "scale": [1, 1, 1]
+  },
+  "components": {
+    "Renderable": {
+      "model": "model.room_blockout"
+    },
+    "Collider": {
+      "shape": "aabb",
+      "center": [0, 1.2, 0.25],
+      "size": [6, 2.4, 6.5],
+      "isTrigger": false
+    }
+  }
+}

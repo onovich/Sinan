@@ -8,25 +8,26 @@
   },
   "entities": [
     {
+      "id": "room_blockout_01",
+      "prefab": "room_blockout",
+      "transform": {
+        "position": [2.5, 0, 5.5],
+        "rotation": [0, 0, 0, 1],
+        "scale": [1, 1, 1]
+      },
+      "components": {
+        "Renderable": {
+          "model": "model.room_blockout"
+        }
+      }
+    },
+    {
       "id": "player_spawn_01",
       "prefab": "player_spawn",
       "transform": {
-        "position": [
-          0,
-          0,
-          3
-        ],
-        "rotation": [
-          0,
-          0,
-          0,
-          1
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
+        "position": [0, 0, 3],
+        "rotation": [0, 0, 0, 1],
+        "scale": [1, 1, 1]
       },
       "components": {
         "PlayerSpawn": {
@@ -34,16 +35,8 @@
         },
         "Collider": {
           "shape": "aabb",
-          "center": [
-            0,
-            0.9,
-            0
-          ],
-          "size": [
-            0.6,
-            1.8,
-            0.6
-          ]
+          "center": [0, 0.9, 0],
+          "size": [0.6, 1.8, 0.6]
         }
       }
     },
@@ -51,22 +44,9 @@
       "id": "switch_a",
       "prefab": "switch_wall",
       "transform": {
-        "position": [
-          2,
-          1,
-          4
-        ],
-        "rotation": [
-          0,
-          0,
-          0,
-          1
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
+        "position": [2, 1, 4],
+        "rotation": [0, 0, 0, 1],
+        "scale": [1, 1, 1]
       },
       "components": {
         "Switch": {
@@ -81,22 +61,9 @@
       "id": "gate_a",
       "prefab": "door_wood",
       "transform": {
-        "position": [
-          5,
-          0,
-          8
-        ],
-        "rotation": [
-          0,
-          0.7071068,
-          0,
-          0.7071068
-        ],
-        "scale": [
-          1,
-          1,
-          1
-        ]
+        "position": [5, 0, 8],
+        "rotation": [0, 0.7071068, 0, 0.7071068],
+        "scale": [1, 1, 1]
       },
       "components": {
         "Door": {
@@ -110,36 +77,15 @@
       "id": "trigger_gate_entry",
       "prefab": "trigger_box",
       "transform": {
-        "position": [
-          4.5,
-          0,
-          7
-        ],
-        "rotation": [
-          0,
-          0,
-          0,
-          1
-        ],
-        "scale": [
-          1.4,
-          1,
-          1.2
-        ]
+        "position": [4.5, 0, 7],
+        "rotation": [0, 0, 0, 1],
+        "scale": [1.4, 1, 1.2]
       },
       "components": {
         "Collider": {
           "shape": "aabb",
-          "center": [
-            0,
-            1,
-            0
-          ],
-          "size": [
-            2,
-            2,
-            2
-          ],
+          "center": [0, 1, 0],
+          "size": [2, 2, 2],
           "isTrigger": true,
           "debugColor": "#76b28b"
         },
@@ -149,15 +95,7 @@
       }
     }
   ],
-  "events": [
-    "ev_gate_trigger_enter",
-    "ev_gate_trigger_exit",
-    "ev_switch_a_open_gate"
-  ],
-  "timelines": [
-    "tl_open_gate"
-  ],
-  "cameraShots": [
-    "cam_gate_reveal"
-  ]
+  "events": ["ev_gate_trigger_enter", "ev_gate_trigger_exit", "ev_switch_a_open_gate"],
+  "timelines": ["tl_open_gate"],
+  "cameraShots": ["cam_gate_reveal"]
 }

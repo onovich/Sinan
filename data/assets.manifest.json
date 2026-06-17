@@ -11,7 +11,10 @@
     },
     "model.door_wood": {
       "type": "model",
-      "url": "/models/props/door_wood.glb"
+      "url": "/models/props/door_wood.glb",
+      "metadata": {
+        "clips": ["Open"]
+      }
     },
     "model.player_spawn": {
       "type": "model",
@@ -19,7 +22,7 @@
     },
     "audio.switch_click": {
       "type": "audio",
-      "url": "/audio/switch_click.mp3"
+      "url": "/audio/switch_click.wav"
     }
   }
 }

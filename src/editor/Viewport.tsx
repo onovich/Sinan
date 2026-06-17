@@ -32,6 +32,7 @@ export interface ViewportProps {
   activeTool: ActiveTool;
   onSelectEntity: (entityId: string | undefined) => void;
   onTransformCommit: (entityId: string, transform: TransformData) => void;
+  onRuntimeReady?: (runtime: WebRuntime | null) => void;
 }
 
 export function Viewport({
@@ -42,6 +43,7 @@ export function Viewport({
   activeTool,
   onSelectEntity,
   onTransformCommit,
+  onRuntimeReady,
 }: ViewportProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -49,6 +51,7 @@ export function Viewport({
   const selectionToolRef = useRef<SelectionTool | null>(null);
   const selectEntityRef = useRef(onSelectEntity);
   const transformCommitRef = useRef(onTransformCommit);
+  const runtimeReadyRef = useRef(onRuntimeReady);
   const showTriggerDebugRef = useRef(showTriggerDebug);
   const [status, setStatus] = useState<ViewportStatus>('Waiting for level data');
 
@@ -59,6 +62,10 @@ export function Viewport({
   useEffect(() => {
     transformCommitRef.current = onTransformCommit;
   }, [onTransformCommit]);
+
+  useEffect(() => {
+    runtimeReadyRef.current = onRuntimeReady;
+  }, [onRuntimeReady]);
 
   useEffect(() => {
     showTriggerDebugRef.current = showTriggerDebug;
@@ -74,6 +81,7 @@ export function Viewport({
 
     const runtime = new ThreeRuntime();
     runtimeRef.current = runtime;
+    runtimeReadyRef.current?.(runtime);
     selectionToolRef.current = new SelectionTool(runtime, (entityId) => {
       selectEntityRef.current(entityId);
     });
@@ -119,6 +127,7 @@ export function Viewport({
       resizeObserver.disconnect();
       runtime.dispose();
       runtimeRef.current = null;
+      runtimeReadyRef.current?.(null);
       selectionToolRef.current = null;
     };
   }, []);

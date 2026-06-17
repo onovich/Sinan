@@ -6,6 +6,7 @@ import switchEvent from '../../data/events/ev_switch_a_open_gate.json';
 import level01 from '../../data/levels/level_01.json';
 import doorWood from '../../data/prefabs/door_wood.json';
 import playerSpawn from '../../data/prefabs/player_spawn.json';
+import roomBlockout from '../../data/prefabs/room_blockout.json';
 import switchWall from '../../data/prefabs/switch_wall.json';
 import triggerBox from '../../data/prefabs/trigger_box.json';
 import openGateTimeline from '../../data/timelines/tl_open_gate.json';
@@ -21,6 +22,7 @@ const demoJsonByPath: Record<string, unknown> = {
   'data/levels/level_01.json': level01,
   'data/prefabs/door_wood.json': doorWood,
   'data/prefabs/player_spawn.json': playerSpawn,
+  'data/prefabs/room_blockout.json': roomBlockout,
   'data/prefabs/switch_wall.json': switchWall,
   'data/prefabs/trigger_box.json': triggerBox,
   'data/timelines/tl_open_gate.json': openGateTimeline,

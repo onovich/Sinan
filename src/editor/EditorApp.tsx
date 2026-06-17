@@ -7,6 +7,7 @@ import { DirectorSystem, type DirectorSystemContext } from '../director/Director
 import { EventSystem } from '../events/EventSystem';
 import { TriggerSystem } from '../events/TriggerSystem';
 import { createEventRuntimeState, type DirectorCommand, type FlagValue } from '../events/types';
+import type { WebRuntime } from '../runtime/WebRuntime';
 import type { CameraShotData } from '../schemas/cameraShot.schema';
 import type { EventData } from '../schemas/event.schema';
 import type { TimelineData, TimelineTrackData } from '../schemas/timeline.schema';
@@ -70,6 +71,7 @@ export function EditorApp() {
     }),
   );
   const directorCommandsRef = useRef<DirectorCommand[]>([]);
+  const runtimeRef = useRef<WebRuntime | null>(null);
   const timelinePlaybackRef = useRef<TimelinePlaybackSession | null>(null);
   const [eventDebugState, setEventDebugState] = useState<EventDebugState>({
     firedEventIds: [],
@@ -502,6 +504,7 @@ export function EditorApp() {
       flags: { ...eventRuntimeStateRef.current.flags },
       inventory: eventRuntimeStateRef.current.inventory,
     }),
+    runtime: runtimeRef.current ?? undefined,
     directorCommands: [],
     previewMode: true,
   });
@@ -668,6 +671,9 @@ export function EditorApp() {
             activeTool={editorState.activeTool}
             onSelectEntity={(entityId) => dispatch({ type: 'selectEntity', entityId })}
             onTransformCommit={commitTransform}
+            onRuntimeReady={(runtime) => {
+              runtimeRef.current = runtime;
+            }}
           />
         </section>
 

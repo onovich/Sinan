@@ -27,11 +27,15 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
     .poll(() => Array.from(modelResponses.values()).filter((status) => status === 200).length)
     .toBeGreaterThanOrEqual(4);
   expect(Array.from(modelResponses.values()).every((status) => status === 200)).toBe(true);
+  await expect(page.getByRole('button', { name: /room_blockout_01/ })).toBeVisible();
+  const switchClick = await page.request.get('/audio/switch_click.wav');
+  expect(switchClick.ok()).toBe(true);
   expect(browserErrors).toEqual([]);
 
   const canvas = page.locator('canvas.runtime-canvas');
   await expect(canvas).toBeVisible();
-  const canvasPixels = inspectPng(await canvas.screenshot());
+  const initialCanvas = await canvas.screenshot();
+  const canvasPixels = inspectPng(initialCanvas);
   expect(canvasPixels.sampledUniqueColors).toBeGreaterThan(8);
   expect(canvasPixels.maxLuma - canvasPixels.minLuma).toBeGreaterThan(20);
 
@@ -43,6 +47,8 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
     input.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await expect(page.getByTestId('timeline-playhead')).toHaveAttribute('style', /left:\s*50%/);
+  await page.waitForTimeout(200);
+  expect(sampleAveragePngDelta(initialCanvas, await canvas.screenshot())).toBeGreaterThan(1);
 
   await page.getByRole('button', { name: /track_set_flag/ }).click();
   await expect(page.getByText('Action Marker')).toBeVisible();
@@ -87,6 +93,34 @@ function inspectPng(buffer: Buffer): PngInspection {
     minLuma,
     maxLuma,
   };
+}
+
+function sampleAveragePngDelta(leftBuffer: Buffer, rightBuffer: Buffer): number {
+  const left = parsePng(leftBuffer);
+  const right = parsePng(rightBuffer);
+
+  if (
+    left.width !== right.width ||
+    left.height !== right.height ||
+    left.channels !== right.channels
+  ) {
+    throw new Error('PNG dimensions differ.');
+  }
+
+  let total = 0;
+  let samples = 0;
+
+  for (let y = 0; y < left.height; y += 8) {
+    for (let x = 0; x < left.width; x += 8) {
+      const index = (y * left.width + x) * left.channels;
+      total += Math.abs(left.pixels[index] - right.pixels[index]);
+      total += Math.abs(left.pixels[index + 1] - right.pixels[index + 1]);
+      total += Math.abs(left.pixels[index + 2] - right.pixels[index + 2]);
+      samples += 3;
+    }
+  }
+
+  return total / samples;
 }
 
 interface ParsedPng {

@@ -6,13 +6,16 @@ type Vec3 = readonly [number, number, number];
 type Quat = readonly [number, number, number, number];
 type Rgba = readonly [number, number, number, number];
 
+interface BoxBounds {
+  min: Vec3;
+  max: Vec3;
+}
+
 interface AssetSpec {
   relativePath: string;
   nodeName: string;
-  bounds: {
-    min: Vec3;
-    max: Vec3;
-  };
+  bounds?: BoxBounds;
+  boxes?: readonly BoxBounds[];
   color: Rgba;
   animation?: {
     name: string;
@@ -27,11 +30,13 @@ const assets: AssetSpec[] = [
   {
     relativePath: 'public/models/room_blockout.glb',
     nodeName: 'RoomBlockout',
-    bounds: {
-      min: [-5, -0.04, -5],
-      max: [5, 0.04, 5],
-    },
-    color: [0.16, 0.21, 0.24, 1],
+    boxes: [
+      { min: [-3, -0.04, -3], max: [3, 0.04, 3.5] },
+      { min: [-3, 0, -3], max: [-2.88, 2.4, 3.5] },
+      { min: [2.88, 0, -3], max: [3, 2.4, 3.5] },
+      { min: [-3, 0, 3.38], max: [3, 2.4, 3.5] },
+    ],
+    color: [0.18, 0.23, 0.26, 1],
   },
   {
     relativePath: 'public/models/props/switch_wall.glb',
@@ -67,6 +72,13 @@ const assets: AssetSpec[] = [
   },
 ];
 
+const audioAssets = [
+  {
+    relativePath: 'public/audio/switch_click.wav',
+    durationSeconds: 0.12,
+  },
+];
+
 async function main(): Promise<void> {
   for (const asset of assets) {
     const absolutePath = path.join(repoRoot, asset.relativePath);
@@ -74,10 +86,18 @@ async function main(): Promise<void> {
     await writeFile(absolutePath, createGlb(asset));
     console.log(`Wrote ${asset.relativePath}`);
   }
+
+  for (const asset of audioAssets) {
+    const absolutePath = path.join(repoRoot, asset.relativePath);
+    await mkdir(path.dirname(absolutePath), { recursive: true });
+    await writeFile(absolutePath, createClickWav(asset.durationSeconds));
+    console.log(`Wrote ${asset.relativePath}`);
+  }
 }
 
 function createGlb(asset: AssetSpec): Buffer {
-  const geometry = createBoxGeometry(asset.bounds.min, asset.bounds.max);
+  const geometry = createAssetGeometry(asset);
+  const bounds = getAssetBounds(asset);
   const bufferViews: unknown[] = [];
   const accessors: unknown[] = [];
   const binaryParts: Buffer[] = [];
@@ -133,8 +153,8 @@ function createGlb(asset: AssetSpec): Buffer {
     count: geometry.positions.length / 3,
     type: 'VEC3',
     target: 34962,
-    min: [...asset.bounds.min],
-    max: [...asset.bounds.max],
+    min: [...bounds.min],
+    max: [...bounds.max],
   });
   const normalAccessor = addAccessor({
     buffer: floatBuffer(geometry.normals),
@@ -236,6 +256,53 @@ function createGlb(asset: AssetSpec): Buffer {
   };
 
   return writeGlb(json, binChunk);
+}
+
+function createAssetGeometry(asset: AssetSpec): {
+  positions: number[];
+  normals: number[];
+  indices: number[];
+} {
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const indices: number[] = [];
+
+  for (const box of getAssetBoxes(asset)) {
+    const boxGeometry = createBoxGeometry(box.min, box.max);
+    const offset = positions.length / 3;
+    positions.push(...boxGeometry.positions);
+    normals.push(...boxGeometry.normals);
+    indices.push(...boxGeometry.indices.map((index) => index + offset));
+  }
+
+  return { positions, normals, indices };
+}
+
+function getAssetBoxes(asset: AssetSpec): readonly BoxBounds[] {
+  if (asset.boxes && asset.boxes.length > 0) {
+    return asset.boxes;
+  }
+
+  if (asset.bounds) {
+    return [asset.bounds];
+  }
+
+  throw new Error(`Asset ${asset.relativePath} must define bounds or boxes.`);
+}
+
+function getAssetBounds(asset: AssetSpec): BoxBounds {
+  const boxes = getAssetBoxes(asset);
+  const min: [number, number, number] = [Infinity, Infinity, Infinity];
+  const max: [number, number, number] = [-Infinity, -Infinity, -Infinity];
+
+  for (const box of boxes) {
+    for (let axis = 0; axis < 3; axis += 1) {
+      min[axis] = Math.min(min[axis], box.min[axis]);
+      max[axis] = Math.max(max[axis], box.max[axis]);
+    }
+  }
+
+  return { min, max };
 }
 
 function createBoxGeometry(
@@ -372,6 +439,39 @@ function paddingFor(length: number): number {
 
 function yRotation(radians: number): Quat {
   return [0, Math.sin(radians / 2), 0, Math.cos(radians / 2)];
+}
+
+function createClickWav(durationSeconds: number): Buffer {
+  const sampleRate = 44_100;
+  const sampleCount = Math.floor(sampleRate * durationSeconds);
+  const headerSize = 44;
+  const dataSize = sampleCount * 2;
+  const buffer = Buffer.alloc(headerSize + dataSize);
+
+  buffer.write('RIFF', 0, 'ascii');
+  buffer.writeUInt32LE(36 + dataSize, 4);
+  buffer.write('WAVE', 8, 'ascii');
+  buffer.write('fmt ', 12, 'ascii');
+  buffer.writeUInt32LE(16, 16);
+  buffer.writeUInt16LE(1, 20);
+  buffer.writeUInt16LE(1, 22);
+  buffer.writeUInt32LE(sampleRate, 24);
+  buffer.writeUInt32LE(sampleRate * 2, 28);
+  buffer.writeUInt16LE(2, 32);
+  buffer.writeUInt16LE(16, 34);
+  buffer.write('data', 36, 'ascii');
+  buffer.writeUInt32LE(dataSize, 40);
+
+  for (let sample = 0; sample < sampleCount; sample += 1) {
+    const time = sample / sampleRate;
+    const envelope = Math.exp(-time * 48);
+    const noise = Math.sin(sample * 83.13) * 0.35;
+    const tone = Math.sin(2 * Math.PI * 1200 * time) * 0.65;
+    const value = Math.max(-1, Math.min(1, (tone + noise) * envelope));
+    buffer.writeInt16LE(Math.round(value * 24_000), headerSize + sample * 2);
+  }
+
+  return buffer;
 }
 
 void main().catch((error: unknown) => {
