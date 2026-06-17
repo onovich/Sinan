@@ -130,6 +130,15 @@ export class TimelinePlayer {
     };
   }
 
+  getStates(): TimelinePlayerState[] {
+    return Array.from(this.states.values()).map((state) => ({
+      timelineId: state.timelineId,
+      status: state.status,
+      time: state.time,
+      cursor: state.cursor,
+    }));
+  }
+
   update(dt: number): void {
     if (dt <= 0) {
       return;
