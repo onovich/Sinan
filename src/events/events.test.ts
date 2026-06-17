@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ActionSystem } from './ActionSystem';
+import { AabbTriggerSystem } from './AabbTriggerSystem';
 import { ConditionSystem } from './ConditionSystem';
 import { EventSystem } from './EventSystem';
 import { TriggerSystem } from './TriggerSystem';
@@ -127,4 +128,101 @@ describe('EventSystem and TriggerSystem', () => {
       { type: 'timeline.play', timelineId: 'tl_open_gate' },
     ]);
   });
+
+  it('fires trigger enter and exit events from AABB overlap changes', () => {
+    const context: ActionExecutionContext = {
+      state: createEventRuntimeState(),
+      directorCommands: [],
+    };
+    const eventSystem = new EventSystem([
+      {
+        schemaVersion: 1,
+        id: 'ev_enter_gate_trigger',
+        trigger: {
+          type: 'trigger.enter',
+          triggerId: 'trigger_gate_entry',
+          entityId: 'player_spawn_01',
+        },
+        actions: [{ type: 'flag.set', flag: 'entered_gate_trigger', value: true }],
+      },
+      {
+        schemaVersion: 1,
+        id: 'ev_exit_gate_trigger',
+        trigger: {
+          type: 'trigger.exit',
+          triggerId: 'trigger_gate_entry',
+          entityId: 'player_spawn_01',
+        },
+        actions: [{ type: 'flag.set', flag: 'exited_gate_trigger', value: true }],
+      },
+    ]);
+    const system = new AabbTriggerSystem(new TriggerSystem(eventSystem));
+    const overlapping = [
+      createColliderEntity('player_spawn_01', [0, 0, 0], [1, 1, 1]),
+      createTriggerEntity('trigger_gate_entry', [0.4, 0, 0], [1, 1, 1]),
+    ];
+    const separated = [
+      createColliderEntity('player_spawn_01', [3, 0, 0], [1, 1, 1]),
+      createTriggerEntity('trigger_gate_entry', [0.4, 0, 0], [1, 1, 1]),
+    ];
+
+    expect(system.update(overlapping, context)).toMatchObject({
+      entered: [{ triggerId: 'trigger_gate_entry', entityId: 'player_spawn_01' }],
+      exited: [],
+      firedEventIds: ['ev_enter_gate_trigger'],
+    });
+    expect(system.update(overlapping, context)).toMatchObject({
+      entered: [],
+      exited: [],
+      firedEventIds: [],
+    });
+    expect(system.update(separated, context)).toMatchObject({
+      entered: [],
+      exited: [{ triggerId: 'trigger_gate_entry', entityId: 'player_spawn_01' }],
+      firedEventIds: ['ev_exit_gate_trigger'],
+    });
+    expect(context.state.flags.entered_gate_trigger).toBe(true);
+    expect(context.state.flags.exited_gate_trigger).toBe(true);
+  });
 });
+
+function createColliderEntity(
+  id: string,
+  position: [number, number, number],
+  size: [number, number, number],
+) {
+  return {
+    id,
+    transform: {
+      position,
+      rotation: [0, 0, 0, 1] as [number, number, number, number],
+      scale: [1, 1, 1] as [number, number, number],
+    },
+    components: {
+      Collider: {
+        shape: 'aabb',
+        size,
+      },
+    },
+  };
+}
+
+function createTriggerEntity(
+  id: string,
+  position: [number, number, number],
+  size: [number, number, number],
+) {
+  return {
+    ...createColliderEntity(id, position, size),
+    components: {
+      Collider: {
+        shape: 'aabb',
+        size,
+        isTrigger: true,
+      },
+      TriggerZone: {
+        enabled: true,
+      },
+    },
+  };
+}

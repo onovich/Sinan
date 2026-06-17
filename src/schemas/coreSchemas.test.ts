@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { AssetManifestSchema } from './asset.schema';
+import { AabbColliderComponentSchema, TriggerZoneComponentSchema } from './collider.schema';
 import { EntitySchema } from './entity.schema';
 import { LevelSchema } from './level.schema';
 import { PrefabSchema } from './prefab.schema';
@@ -114,6 +115,21 @@ describe('core data schemas', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it('parses collider and trigger zone component payloads', () => {
+    expect(
+      AabbColliderComponentSchema.safeParse({
+        shape: 'aabb',
+        center: [0, 1, 0],
+        size: [1, 2, 1],
+        isTrigger: true,
+      }).success,
+    ).toBe(true);
+    expect(TriggerZoneComponentSchema.safeParse({ enabled: true }).success).toBe(true);
+    expect(AabbColliderComponentSchema.safeParse({ shape: 'sphere', radius: 1 }).success).toBe(
+      false,
+    );
   });
 
   it('rejects unknown entity fields', () => {

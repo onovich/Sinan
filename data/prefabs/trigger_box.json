@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "trigger_box",
+  "name": "Trigger Box",
+  "defaultTransform": {
+    "position": [0, 0, 0],
+    "rotation": [0, 0, 0, 1],
+    "scale": [1, 1, 1]
+  },
+  "components": {
+    "Collider": {
+      "shape": "aabb",
+      "center": [0, 1, 0],
+      "size": [2, 2, 2],
+      "isTrigger": true,
+      "debugColor": "#76b28b"
+    },
+    "TriggerZone": {
+      "enabled": true
+    }
+  }
+}

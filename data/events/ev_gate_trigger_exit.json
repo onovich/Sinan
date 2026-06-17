@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "ev_gate_trigger_exit",
+  "name": "Player Exits Gate Trigger",
+  "trigger": {
+    "type": "trigger.exit",
+    "triggerId": "trigger_gate_entry",
+    "entityId": "player_spawn_01"
+  },
+  "actions": [
+    {
+      "type": "flag.set",
+      "flag": "gate_trigger_exited",
+      "value": true
+    }
+  ]
+}

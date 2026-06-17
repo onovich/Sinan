@@ -31,6 +31,19 @@
       "components": {
         "PlayerSpawn": {
           "kind": "default"
+        },
+        "Collider": {
+          "shape": "aabb",
+          "center": [
+            0,
+            0.9,
+            0
+          ],
+          "size": [
+            0.6,
+            1.8,
+            0.6
+          ]
         }
       }
     },
@@ -92,9 +105,53 @@
           "openAngle": 95
         }
       }
+    },
+    {
+      "id": "trigger_gate_entry",
+      "prefab": "trigger_box",
+      "transform": {
+        "position": [
+          4.5,
+          0,
+          7
+        ],
+        "rotation": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "scale": [
+          1.4,
+          1,
+          1.2
+        ]
+      },
+      "components": {
+        "Collider": {
+          "shape": "aabb",
+          "center": [
+            0,
+            1,
+            0
+          ],
+          "size": [
+            2,
+            2,
+            2
+          ],
+          "isTrigger": true,
+          "debugColor": "#76b28b"
+        },
+        "TriggerZone": {
+          "enabled": true
+        }
+      }
     }
   ],
   "events": [
+    "ev_gate_trigger_enter",
+    "ev_gate_trigger_exit",
     "ev_switch_a_open_gate"
   ],
   "timelines": [

@@ -15,4 +15,20 @@ export class TriggerSystem {
   timelineFinished(timelineId: string, context: ActionExecutionContext): string[] {
     return this.eventSystem.handleTrigger({ type: 'timeline.finished', timelineId }, context);
   }
+
+  triggerEnter(
+    triggerId: string,
+    entityId: string | undefined,
+    context: ActionExecutionContext,
+  ): string[] {
+    return this.eventSystem.handleTrigger({ type: 'trigger.enter', triggerId, entityId }, context);
+  }
+
+  triggerExit(
+    triggerId: string,
+    entityId: string | undefined,
+    context: ActionExecutionContext,
+  ): string[] {
+    return this.eventSystem.handleTrigger({ type: 'trigger.exit', triggerId, entityId }, context);
+  }
 }
