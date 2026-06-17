@@ -50,4 +50,13 @@ describe('editorReducer', () => {
 
     expect(selected.selectedTimelineId).toBe('tl_open_gate');
   });
+
+  it('tracks selected timeline track as slow editor state', () => {
+    const selected = editorReducer(createInitialEditorState(), {
+      type: 'selectTimelineTrack',
+      trackId: 'track_camera_gate_reveal',
+    });
+
+    expect(selected.selectedTimelineTrackId).toBe('track_camera_gate_reveal');
+  });
 });

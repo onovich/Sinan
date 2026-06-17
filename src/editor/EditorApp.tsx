@@ -9,13 +9,18 @@ import { TriggerSystem } from '../events/TriggerSystem';
 import { createEventRuntimeState, type DirectorCommand, type FlagValue } from '../events/types';
 import type { CameraShotData } from '../schemas/cameraShot.schema';
 import type { EventData } from '../schemas/event.schema';
-import type { TimelineData } from '../schemas/timeline.schema';
+import type { TimelineData, TimelineTrackData } from '../schemas/timeline.schema';
 import type { TransformData } from '../schemas/transform.schema';
 import type { EditorCommandContext } from './commands/Command';
 import { CommandHistory } from './commands/CommandHistory';
 import { TransformEntityCommand } from './commands/TransformEntityCommand';
 import { AddCameraShotCommand, UpdateCameraShotCommand } from './commands/UpdateCameraShotCommand';
 import { UpdateEventCommand } from './commands/UpdateEventCommand';
+import {
+  AddTimelineTrackCommand,
+  RemoveTimelineTrackCommand,
+  UpdateTimelineTrackCommand,
+} from './commands/UpdateTimelineTrackCommand';
 import { Viewport } from './Viewport';
 import { editorPanelLayout } from './editorLayout';
 import { AssetPanel } from './panels/AssetPanel';
@@ -24,7 +29,11 @@ import { EventDebugPanel, type EventDebugState } from './panels/EventDebugPanel'
 import { EventInspector, type EventSaveStatus } from './panels/EventInspector';
 import { HierarchyPanel } from './panels/HierarchyPanel';
 import { InspectorPanel } from './panels/InspectorPanel';
-import { TimelinePanel } from './panels/TimelinePanel';
+import {
+  TimelinePanel,
+  type TimelineSaveStatus,
+  type TimelineTrackKind,
+} from './panels/TimelinePanel';
 import {
   createInitialEditorState,
   editorReducer,
@@ -38,6 +47,7 @@ export function EditorApp() {
   const [projectError, setProjectError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [eventSaveStatus, setEventSaveStatus] = useState<EventSaveStatus>('idle');
+  const [timelineSaveStatus, setTimelineSaveStatus] = useState<TimelineSaveStatus>('idle');
   const [cameraShotSaveStatus, setCameraShotSaveStatus] = useState<CameraShotSaveStatus>('idle');
   const [cameraPreviewStatus, setCameraPreviewStatus] = useState('No camera preview');
   const [timelinePreviewStatus, setTimelinePreviewStatus] = useState('Ready to scrub');
@@ -72,6 +82,9 @@ export function EditorApp() {
     },
     updateEvent: (eventId, event) => {
       setProject((current) => updateProjectEvent(current, eventId, event));
+    },
+    updateTimeline: (timelineId, timeline) => {
+      setProject((current) => updateProjectTimeline(current, timelineId, timeline));
     },
     upsertCameraShot: (shot) => {
       setProject((current) => upsertProjectCameraShot(current, shot));
@@ -177,6 +190,74 @@ export function EditorApp() {
       });
   };
 
+  const addTimelineTrack = (timelineId: string, trackType: TimelineTrackKind) => {
+    const current = projectRef.current;
+    const timeline = current?.timelines[timelineId];
+
+    if (!current || !timeline) {
+      return;
+    }
+
+    const track = createDefaultTimelineTrack(
+      current,
+      timeline,
+      trackType,
+      selectedEntity?.id,
+      selectedCameraShot?.id,
+    );
+
+    commandHistoryRef.current.execute(new AddTimelineTrackCommand(timeline, track), commandContext);
+    dispatch({ type: 'selectTimeline', timelineId });
+    dispatch({ type: 'selectTimelineTrack', trackId: track.id });
+    setTimelineSaveStatus('idle');
+    refreshHistoryState(commandHistoryRef.current, setHistoryState);
+  };
+
+  const applyTimelineTrack = (timelineId: string, track: TimelineTrackData) => {
+    const timeline = projectRef.current?.timelines[timelineId];
+    const currentTrack = timeline?.tracks.find((item) => item.id === track.id);
+
+    if (!timeline || !currentTrack || timelineTrackDataEqual(currentTrack, track)) {
+      return;
+    }
+
+    commandHistoryRef.current.execute(
+      new UpdateTimelineTrackCommand(timeline, track),
+      commandContext,
+    );
+    dispatch({ type: 'selectTimelineTrack', trackId: track.id });
+    setTimelineSaveStatus('idle');
+    refreshHistoryState(commandHistoryRef.current, setHistoryState);
+  };
+
+  const removeTimelineTrack = (timelineId: string, trackId: string) => {
+    const timeline = projectRef.current?.timelines[timelineId];
+
+    if (!timeline?.tracks.some((track) => track.id === trackId)) {
+      return;
+    }
+
+    commandHistoryRef.current.execute(
+      new RemoveTimelineTrackCommand(timeline, trackId),
+      commandContext,
+    );
+    dispatch({ type: 'selectTimelineTrack', trackId: undefined });
+    setTimelineSaveStatus('idle');
+    refreshHistoryState(commandHistoryRef.current, setHistoryState);
+  };
+
+  const saveTimeline = (timeline: TimelineData) => {
+    setTimelineSaveStatus('saving');
+    void saveJson(`data/timelines/${timeline.id}.json`, timeline)
+      .then(() => {
+        setTimelineSaveStatus('saved');
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+        setTimelineSaveStatus('failed');
+      });
+  };
+
   const createCameraShot = () => {
     if (!project) {
       return;
@@ -248,6 +329,7 @@ export function EditorApp() {
 
   const selectTimeline = (timelineId: string) => {
     dispatch({ type: 'selectTimeline', timelineId });
+    dispatch({ type: 'selectTimelineTrack', trackId: undefined });
     dispatch({ type: 'setTimelineTime', timelineTime: 0 });
     setTimelinePreviewStatus(`${timelineId} selected`);
   };
@@ -427,10 +509,20 @@ export function EditorApp() {
         <TimelinePanel
           timelines={timelines}
           selectedTimeline={selectedTimeline}
+          selectedTrackId={editorState.selectedTimelineTrackId}
           currentTime={editorState.timelineTime}
+          saveStatus={timelineSaveStatus}
           previewStatus={timelinePreviewStatus}
+          entityIds={getEntityIds(project)}
+          cameraShotIds={cameraShots.map((shot) => shot.id)}
+          soundAssetIds={getSoundAssetIds(project)}
           onSelectTimeline={selectTimeline}
+          onSelectTrack={(trackId) => dispatch({ type: 'selectTimelineTrack', trackId })}
           onScrubTimeline={scrubTimeline}
+          onAddTrack={addTimelineTrack}
+          onApplyTrack={applyTimelineTrack}
+          onRemoveTrack={removeTimelineTrack}
+          onSaveTimeline={saveTimeline}
         />
       </footer>
     </div>
@@ -509,6 +601,14 @@ function getSortedTimelines(project: ProjectData | null): TimelineData[] {
   return Object.values(project.timelines).sort((left, right) => left.id.localeCompare(right.id));
 }
 
+function getEntityIds(project: ProjectData | null): string[] {
+  if (!project) {
+    return [];
+  }
+
+  return project.level.entities.map((entity) => entity.id);
+}
+
 function getSelectedCameraShot(
   project: ProjectData | null,
   selectedCameraShotId: string | undefined,
@@ -530,6 +630,17 @@ function getSortedCameraShots(project: ProjectData | null): CameraShotData[] {
   }
 
   return Object.values(project.cameraShots).sort((left, right) => left.id.localeCompare(right.id));
+}
+
+function getSoundAssetIds(project: ProjectData | null): string[] {
+  if (!project) {
+    return [];
+  }
+
+  return Object.entries(project.assets.assets)
+    .filter(([, asset]) => asset.type === 'audio')
+    .map(([assetId]) => assetId)
+    .sort((left, right) => left.localeCompare(right));
 }
 
 function updateProjectEntityTransform(
@@ -566,6 +677,24 @@ function updateProjectEvent(
     events: {
       ...project.events,
       [eventId]: event,
+    },
+  };
+}
+
+function updateProjectTimeline(
+  project: ProjectData | null,
+  timelineId: string,
+  timeline: TimelineData,
+): ProjectData | null {
+  if (!project) {
+    return project;
+  }
+
+  return {
+    ...project,
+    timelines: {
+      ...project.timelines,
+      [timelineId]: timeline,
     },
   };
 }
@@ -610,6 +739,98 @@ function removeProjectCameraShot(project: ProjectData | null, shotId: string): P
   };
 }
 
+function createDefaultTimelineTrack(
+  project: ProjectData,
+  timeline: TimelineData,
+  trackType: TimelineTrackKind,
+  selectedEntityId: string | undefined,
+  selectedCameraShotId: string | undefined,
+): TimelineTrackData {
+  const entityId = selectedEntityId ?? project.level.entities[0]?.id ?? 'entity_missing';
+  const shotId = selectedCameraShotId ?? Object.keys(project.cameraShots)[0] ?? 'cam_missing';
+  const soundId =
+    getSoundAssetIds(project)[0] ?? Object.keys(project.assets.assets)[0] ?? 'asset_missing';
+  const id = createTimelineTrackId(timeline, trackType);
+
+  switch (trackType) {
+    case 'action':
+      return {
+        id,
+        type: 'action',
+        time: 0,
+        action: {
+          type: 'flag.set',
+          flag: 'timeline_marker',
+          value: true,
+        },
+      };
+    case 'animation.play':
+      return {
+        id,
+        type: 'animation.play',
+        start: 0,
+        entityId,
+        clip: 'Open',
+        loop: false,
+      };
+    case 'camera.shot':
+      return {
+        id,
+        type: 'camera.shot',
+        start: 0,
+        duration: Math.min(2, timeline.duration),
+        shotId,
+      };
+    case 'property':
+      return {
+        id,
+        type: 'property',
+        target: entityId,
+        property: 'Door.openAmount',
+        keys: [
+          { time: 0, value: 0, ease: 'linear' },
+          { time: Math.min(1, timeline.duration), value: 1, ease: 'linear' },
+        ],
+      };
+    case 'subtitle':
+      return {
+        id,
+        type: 'subtitle',
+        time: 0,
+        text: 'Subtitle',
+        duration: Math.min(1, timeline.duration),
+      };
+    case 'sound':
+      return {
+        id,
+        type: 'sound',
+        time: 0,
+        soundId,
+      };
+    case 'wait':
+      return {
+        id,
+        type: 'wait',
+        start: 0,
+        duration: Math.min(1, timeline.duration),
+      };
+  }
+}
+
+function createTimelineTrackId(timeline: TimelineData, trackType: TimelineTrackKind): string {
+  const prefix = `track_${trackType.replace('.', '_')}`;
+  let index = timeline.tracks.length + 1;
+  let id = `${prefix}_${String(index).padStart(2, '0')}`;
+  const existingIds = new Set(timeline.tracks.map((track) => track.id));
+
+  while (existingIds.has(id)) {
+    index += 1;
+    id = `${prefix}_${String(index).padStart(2, '0')}`;
+  }
+
+  return id;
+}
+
 function createDefaultCameraShot(
   project: ProjectData,
   selectedEntityId: string | undefined,
@@ -646,6 +867,10 @@ function eventDataEqual(left: EventData, right: EventData): boolean {
 }
 
 function cameraShotDataEqual(left: CameraShotData, right: CameraShotData): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function timelineTrackDataEqual(left: TimelineTrackData, right: TimelineTrackData): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 

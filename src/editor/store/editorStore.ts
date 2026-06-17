@@ -7,6 +7,7 @@ export interface EditorState {
   selectedEntityId?: string;
   selectedEventId?: string;
   selectedTimelineId?: string;
+  selectedTimelineTrackId?: string;
   selectedCameraShotId?: string;
   activeTool: ActiveTool;
   timelineTime: number;
@@ -18,6 +19,7 @@ export type EditorAction =
   | { type: 'selectEntity'; entityId: string | undefined }
   | { type: 'selectEvent'; eventId: string | undefined }
   | { type: 'selectTimeline'; timelineId: string | undefined }
+  | { type: 'selectTimelineTrack'; trackId: string | undefined }
   | { type: 'selectCameraShot'; cameraShotId: string | undefined }
   | { type: 'setActiveTool'; activeTool: ActiveTool }
   | { type: 'setInspectorTab'; inspectorTab: InspectorTab }
@@ -42,6 +44,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return { ...state, selectedEventId: action.eventId };
     case 'selectTimeline':
       return { ...state, selectedTimelineId: action.timelineId };
+    case 'selectTimelineTrack':
+      return { ...state, selectedTimelineTrackId: action.trackId };
     case 'selectCameraShot':
       return { ...state, selectedCameraShotId: action.cameraShotId };
     case 'setActiveTool':

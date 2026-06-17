@@ -486,7 +486,7 @@ button:hover {
 
 .timeline-controls {
   display: grid;
-  grid-template-columns: minmax(220px, 360px) auto;
+  grid-template-columns: minmax(220px, 360px) auto minmax(180px, 260px) minmax(190px, auto);
   gap: 12px;
   align-items: end;
 }
@@ -541,6 +541,23 @@ button:hover {
   accent-color: #76b28b;
 }
 
+.timeline-command-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.timeline-command-row button {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.timeline-command-row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
 .timeline-ruler {
   position: relative;
   display: grid;
@@ -579,15 +596,28 @@ button:hover {
 }
 
 .timeline-track-list li {
-  display: grid;
-  grid-template-columns: minmax(84px, 1fr) minmax(120px, 1.4fr) auto;
-  gap: 8px;
-  align-items: center;
   overflow: hidden;
   border: 1px solid #313c46;
   border-radius: 6px;
-  padding: 8px 10px;
   background: #202830;
+}
+
+.timeline-track-list li.is-selected {
+  border-color: #76b28b;
+  background: #263a30;
+}
+
+.timeline-track-list button {
+  display: grid;
+  width: 100%;
+  min-height: 42px;
+  grid-template-columns: minmax(84px, 1fr) minmax(120px, 1.4fr) auto;
+  gap: 8px;
+  align-items: center;
+  border: 0;
+  padding: 8px 10px;
+  text-align: left;
+  background: transparent;
 }
 
 .timeline-track-list strong,
@@ -606,6 +636,28 @@ button:hover {
 .timeline-track-list small {
   color: #aeb9c4;
   font-size: 12px;
+}
+
+.timeline-track-editor {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid #313c46;
+  padding-top: 10px;
+}
+
+.timeline-track-editor h3 {
+  margin: 0;
+  color: #cfd7df;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.timeline-track-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 10px;
+  align-items: end;
 }
 
 @media (max-width: 820px) {
@@ -635,5 +687,10 @@ button:hover {
 
   .timeline-panel {
     min-width: 560px;
+  }
+
+  .timeline-controls,
+  .timeline-track-fields {
+    grid-template-columns: 1fr 1fr;
   }
 }
