@@ -70,6 +70,42 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   await eventInspector.getByLabel('Name').fill('Player Enters Gate Trigger');
   await expect(eventInspector.getByRole('alert')).toHaveCount(0);
   await expect(eventInspector.locator('.status-pill')).toHaveText('Clean');
+  const conditionRows = eventInspector.locator('.event-conditions .event-list > li');
+  await eventInspector.getByRole('button', { name: 'Add Condition' }).click();
+  await expect(conditionRows).toHaveCount(1);
+  await eventInspector.locator('#event-condition-type').selectOption('inventory.hasItem');
+  await eventInspector
+    .locator('.event-conditions')
+    .getByRole('button', { name: 'Add Condition' })
+    .click();
+  await expect(conditionRows).toHaveCount(2);
+  await expect(conditionRows.nth(1)).toContainText('inventory.hasItem');
+  await conditionRows.nth(1).getByRole('button', { name: 'Up' }).click();
+  await expect(conditionRows.nth(0)).toContainText('inventory.hasItem');
+  await conditionRows.nth(0).getByRole('button', { name: 'Remove' }).click();
+  await expect(conditionRows).toHaveCount(1);
+  const actionRows = eventInspector.locator('.event-actions .event-list > li');
+  await expect(actionRows).toHaveCount(1);
+  await eventInspector.locator('#event-action-type').selectOption('flag.toggle');
+  await eventInspector.getByRole('button', { name: 'Add Action' }).click();
+  await expect(actionRows).toHaveCount(2);
+  await expect(actionRows.nth(1)).toContainText('flag.toggle');
+  await actionRows.nth(1).getByRole('button', { name: 'Up' }).click();
+  await expect(actionRows.nth(0)).toContainText('flag.toggle');
+  await actionRows.nth(0).getByRole('button', { name: 'Remove' }).click();
+  await expect(actionRows).toHaveCount(1);
+  await eventInspector.locator('#event-action-type').selectOption('flag.toggle');
+  await eventInspector.getByRole('button', { name: 'Add Action' }).click();
+  await eventInspector.getByRole('button', { name: 'Apply' }).click();
+  await expect(eventInspector.locator('.status-pill')).toHaveText('Unsaved');
+  await expect(conditionRows).toHaveCount(1);
+  await expect(actionRows).toHaveCount(2);
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(conditionRows).toHaveCount(0);
+  await expect(actionRows).toHaveCount(1);
+  await page.getByRole('button', { name: 'Redo' }).click();
+  await expect(conditionRows).toHaveCount(1);
+  await expect(actionRows).toHaveCount(2);
   await expect
     .poll(() => Array.from(modelResponses.values()).filter((status) => status === 200).length)
     .toBeGreaterThanOrEqual(4);

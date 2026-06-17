@@ -998,6 +998,10 @@ export function EditorApp() {
             selectedEvent={selectedEvent}
             saveStatus={eventSaveStatus}
             isDirty={selectedEventIsDirty}
+            entityIds={getEntityIds(project)}
+            timelineIds={timelines.map((timeline) => timeline.id)}
+            cameraShotIds={cameraShots.map((shot) => shot.id)}
+            soundAssetIds={getSoundAssetIds(project)}
             onSelectEvent={(eventId) => dispatch({ type: 'selectEvent', eventId })}
             onApplyEvent={applyEvent}
             onSaveEvent={saveEvent}

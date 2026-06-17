@@ -809,6 +809,24 @@ button:hover {
   margin-top: 18px;
 }
 
+.event-conditions {
+  margin-top: 18px;
+}
+
+.event-add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(96px, auto);
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 10px;
+}
+
+.event-add-row button {
+  min-height: 34px;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
 .event-actions ol {
   display: grid;
   gap: 10px;
@@ -816,11 +834,50 @@ button:hover {
   padding-left: 20px;
 }
 
+.event-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .event-actions li {
   border: 1px solid #313c46;
   border-radius: 6px;
   padding: 10px;
   background: #202830;
+}
+
+.event-list li {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #313c46;
+  border-radius: 6px;
+  padding: 10px;
+  background: #202830;
+}
+
+.event-row-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.event-row-actions button {
+  min-height: 30px;
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+
+.event-row-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.event-transform-grid {
+  display: grid;
+  gap: 8px;
 }
 
 .event-actions strong {
