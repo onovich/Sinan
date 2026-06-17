@@ -17,6 +17,12 @@ import { TransformEntityCommand } from './commands/TransformEntityCommand';
 import { AddCameraShotCommand, UpdateCameraShotCommand } from './commands/UpdateCameraShotCommand';
 import { UpdateEventCommand } from './commands/UpdateEventCommand';
 import {
+  AddTimelineItemCommand,
+  RemoveTimelineItemCommand,
+  UpdateTimelineItemCommand,
+  type TimelineItemOperation,
+} from './commands/UpdateTimelineItemCommand';
+import {
   AddTimelineTrackCommand,
   RemoveTimelineTrackCommand,
   UpdateTimelineTrackCommand,
@@ -242,6 +248,32 @@ export function EditorApp() {
       commandContext,
     );
     dispatch({ type: 'selectTimelineTrack', trackId: undefined });
+    setTimelineSaveStatus('idle');
+    refreshHistoryState(commandHistoryRef.current, setHistoryState);
+  };
+
+  const applyTimelineTrackItem = (
+    timelineId: string,
+    track: TimelineTrackData,
+    operation: TimelineItemOperation,
+    itemLabel: string,
+  ) => {
+    const timeline = projectRef.current?.timelines[timelineId];
+
+    if (!timeline) {
+      return;
+    }
+
+    const nextTimeline = replaceTimelineTrack(timeline, track);
+    const command =
+      operation === 'add'
+        ? new AddTimelineItemCommand(timeline, nextTimeline, itemLabel)
+        : operation === 'remove'
+          ? new RemoveTimelineItemCommand(timeline, nextTimeline, itemLabel)
+          : new UpdateTimelineItemCommand(timeline, nextTimeline, itemLabel);
+
+    commandHistoryRef.current.execute(command, commandContext);
+    dispatch({ type: 'selectTimelineTrack', trackId: track.id });
     setTimelineSaveStatus('idle');
     refreshHistoryState(commandHistoryRef.current, setHistoryState);
   };
@@ -521,6 +553,7 @@ export function EditorApp() {
           onScrubTimeline={scrubTimeline}
           onAddTrack={addTimelineTrack}
           onApplyTrack={applyTimelineTrack}
+          onApplyTrackItem={applyTimelineTrackItem}
           onRemoveTrack={removeTimelineTrack}
           onSaveTimeline={saveTimeline}
         />
@@ -829,6 +862,13 @@ function createTimelineTrackId(timeline: TimelineData, trackType: TimelineTrackK
   }
 
   return id;
+}
+
+function replaceTimelineTrack(timeline: TimelineData, track: TimelineTrackData): TimelineData {
+  return {
+    ...timeline,
+    tracks: timeline.tracks.map((item) => (item.id === track.id ? track : item)),
+  };
 }
 
 function createDefaultCameraShot(

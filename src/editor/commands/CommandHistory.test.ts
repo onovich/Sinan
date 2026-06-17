@@ -9,6 +9,11 @@ import { TransformEntityCommand } from './TransformEntityCommand';
 import { AddCameraShotCommand, UpdateCameraShotCommand } from './UpdateCameraShotCommand';
 import { UpdateEventCommand } from './UpdateEventCommand';
 import {
+  AddTimelineItemCommand,
+  RemoveTimelineItemCommand,
+  UpdateTimelineItemCommand,
+} from './UpdateTimelineItemCommand';
+import {
   AddTimelineTrackCommand,
   RemoveTimelineTrackCommand,
   UpdateTimelineTrackCommand,
@@ -138,6 +143,87 @@ describe('CommandHistory', () => {
       [actionTrack],
       [],
       [actionTrack],
+    ]);
+  });
+
+  it('executes, undoes, and redoes timeline item commands', () => {
+    const applied: TimelineData[] = [];
+    const history = new CommandHistory();
+    const propertyTrack: TimelineTrackData = {
+      id: 'track_gate_open_amount',
+      type: 'property',
+      target: 'gate_a',
+      property: 'Door.openAmount',
+      keys: [
+        { time: 0, value: 0, ease: 'linear' },
+        { time: 1, value: 1, ease: 'linear' },
+      ],
+    };
+    const timeline = createTimeline([propertyTrack]);
+    const addedKeyTrack: TimelineTrackData = {
+      ...propertyTrack,
+      keys: [...propertyTrack.keys, { time: 2, value: 0.5, ease: 'easeOutCubic' }],
+    };
+    const movedKeyTrack: TimelineTrackData = {
+      ...addedKeyTrack,
+      keys: addedKeyTrack.keys.map((key, index) => (index === 2 ? { ...key, time: 2.5 } : key)),
+    };
+    const removedKeyTrack: TimelineTrackData = {
+      ...movedKeyTrack,
+      keys: movedKeyTrack.keys.slice(0, 2),
+    };
+    const context = {
+      updateEntityTransform: () => undefined,
+      updateEvent: () => undefined,
+      updateTimeline: (_timelineId: string, nextTimeline: TimelineData) => {
+        applied.push(nextTimeline);
+      },
+      upsertCameraShot: () => undefined,
+      removeCameraShot: () => undefined,
+    };
+
+    history.execute(
+      new AddTimelineItemCommand(
+        timeline,
+        createTimeline([addedKeyTrack]),
+        'track_gate_open_amount key',
+      ),
+      context,
+    );
+    history.undo(context);
+    history.redo(context);
+    history.execute(
+      new UpdateTimelineItemCommand(
+        createTimeline([addedKeyTrack]),
+        createTimeline([movedKeyTrack]),
+        'track_gate_open_amount key',
+      ),
+      context,
+    );
+    history.undo(context);
+    history.execute(
+      new RemoveTimelineItemCommand(
+        createTimeline([movedKeyTrack]),
+        createTimeline([removedKeyTrack]),
+        'track_gate_open_amount key',
+      ),
+      context,
+    );
+    history.undo(context);
+
+    expect(
+      applied.map((item) => {
+        const track = item.tracks[0];
+        return track.type === 'property' ? track.keys.map((key) => key.time) : [];
+      }),
+    ).toEqual([
+      [0, 1, 2],
+      [0, 1],
+      [0, 1, 2],
+      [0, 1, 2.5],
+      [0, 1, 2],
+      [0, 1],
+      [0, 1, 2.5],
     ]);
   });
 });

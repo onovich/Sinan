@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { ActionSchema, type ActionData } from '../../schemas/action.schema';
 import {
   TimelineSchema,
   type TimelineData,
@@ -8,6 +9,10 @@ import {
 
 export type TimelineSaveStatus = 'idle' | 'saving' | 'saved' | 'failed';
 export type TimelineTrackKind = TimelineTrackData['type'];
+export type TimelineItemOperation = 'add' | 'update' | 'remove';
+
+type PropertyTimelineTrack = Extract<TimelineTrackData, { type: 'property' }>;
+type PropertyTimelineKey = PropertyTimelineTrack['keys'][number];
 
 export interface TimelinePanelProps {
   timelines: readonly TimelineData[];
@@ -24,6 +29,12 @@ export interface TimelinePanelProps {
   onScrubTimeline: (timelineId: string, time: number) => void;
   onAddTrack: (timelineId: string, trackType: TimelineTrackKind) => void;
   onApplyTrack: (timelineId: string, track: TimelineTrackData) => void;
+  onApplyTrackItem: (
+    timelineId: string,
+    track: TimelineTrackData,
+    operation: TimelineItemOperation,
+    itemLabel: string,
+  ) => void;
   onRemoveTrack: (timelineId: string, trackId: string) => void;
   onSaveTimeline: (timeline: TimelineData) => void;
 }
@@ -52,6 +63,7 @@ export function TimelinePanel({
   onScrubTimeline,
   onAddTrack,
   onApplyTrack,
+  onApplyTrackItem,
   onRemoveTrack,
   onSaveTimeline,
 }: TimelinePanelProps) {
@@ -61,6 +73,18 @@ export function TimelinePanel({
     trackId: string;
     track: TimelineTrackData;
   }>();
+  const [keyIndexState, setKeyIndexState] = useState({ timelineId: '', trackId: '', index: 0 });
+  const [draftKeyState, setDraftKeyState] = useState<{
+    timelineId: string;
+    trackId: string;
+    index: number;
+    key: PropertyTimelineKey;
+  }>();
+  const [actionPayloadState, setActionPayloadState] = useState({
+    timelineId: '',
+    trackId: '',
+    json: '',
+  });
   const selectedTrack =
     selectedTimeline?.tracks.find((track) => track.id === selectedTrackId) ??
     selectedTimeline?.tracks[0];
@@ -94,6 +118,65 @@ export function TimelinePanel({
     Boolean(draftTrack) &&
     validationResult?.success === true &&
     JSON.stringify(draftTrack) !== JSON.stringify(selectedTrack);
+  const propertyTrack = draftTrack?.type === 'property' ? draftTrack : undefined;
+  const keyIndex =
+    selectedTimeline &&
+    propertyTrack &&
+    keyIndexState.timelineId === selectedTimeline.id &&
+    keyIndexState.trackId === propertyTrack.id
+      ? Math.min(keyIndexState.index, propertyTrack.keys.length - 1)
+      : 0;
+  const selectedKey = propertyTrack?.keys[keyIndex];
+  const draftKey =
+    selectedTimeline &&
+    propertyTrack &&
+    selectedKey &&
+    draftKeyState?.timelineId === selectedTimeline.id &&
+    draftKeyState.trackId === propertyTrack.id &&
+    draftKeyState.index === keyIndex
+      ? draftKeyState.key
+      : selectedKey;
+  const draftKeyTrack =
+    propertyTrack && draftKey ? replacePropertyKey(propertyTrack, keyIndex, draftKey) : undefined;
+  const keyValidationResult =
+    selectedTimeline && draftKeyTrack
+      ? TimelineSchema.safeParse(replaceTrack(selectedTimeline, draftKeyTrack))
+      : undefined;
+  const keyValidationMessages =
+    keyValidationResult && !keyValidationResult.success
+      ? keyValidationResult.error.issues.map((issue) => {
+          const path = issue.path.join('.') || 'timeline';
+          return `${path}: ${issue.message}`;
+        })
+      : [];
+  const canApplyKey =
+    Boolean(draftKeyTrack) &&
+    keyValidationResult?.success === true &&
+    JSON.stringify(draftKey) !== JSON.stringify(selectedKey);
+  const actionPayloadJson =
+    selectedTimeline &&
+    draftTrack?.type === 'action' &&
+    actionPayloadState.timelineId === selectedTimeline.id &&
+    actionPayloadState.trackId === draftTrack.id
+      ? actionPayloadState.json
+      : draftTrack?.type === 'action'
+        ? JSON.stringify(draftTrack.action, null, 2)
+        : '';
+  const actionPayloadParseResult =
+    draftTrack?.type === 'action' ? parseActionPayload(actionPayloadJson) : undefined;
+  const actionValidationMessages =
+    actionPayloadParseResult && !actionPayloadParseResult.success
+      ? actionPayloadParseResult.messages
+      : [];
+  const canApplyAction =
+    draftTrack?.type === 'action' &&
+    actionPayloadParseResult?.success === true &&
+    JSON.stringify(actionPayloadParseResult.action) !== JSON.stringify(draftTrack.action);
+  const parsedFlagSetAction =
+    actionPayloadParseResult?.success === true &&
+    actionPayloadParseResult.action.type === 'flag.set'
+      ? actionPayloadParseResult.action
+      : undefined;
 
   const updateDraftTrack = (track: TimelineTrackData) => {
     if (!selectedTimeline) {
@@ -117,6 +200,87 @@ export function TimelinePanel({
     if (parsedTrack) {
       onApplyTrack(selectedTimeline.id, parsedTrack);
     }
+  };
+
+  const updateDraftKey = (key: PropertyTimelineKey) => {
+    if (!selectedTimeline || !propertyTrack) {
+      return;
+    }
+
+    setDraftKeyState({
+      timelineId: selectedTimeline.id,
+      trackId: propertyTrack.id,
+      index: keyIndex,
+      key,
+    });
+  };
+
+  const addPropertyKey = () => {
+    if (!selectedTimeline || !propertyTrack) {
+      return;
+    }
+
+    const lastKey = propertyTrack.keys[propertyTrack.keys.length - 1];
+    const nextKey: PropertyTimelineKey = {
+      time: clampTime(lastKey.time + 0.5, selectedTimeline.duration),
+      value: lastKey.value,
+      ease: lastKey.ease ?? 'linear',
+    };
+    const nextTrack: PropertyTimelineTrack = {
+      ...propertyTrack,
+      keys: sortPropertyKeys([...propertyTrack.keys, nextKey]),
+    };
+
+    onApplyTrackItem(selectedTimeline.id, nextTrack, 'add', `${propertyTrack.id} key`);
+  };
+
+  const applyPropertyKey = () => {
+    if (!selectedTimeline || !draftKeyTrack || !keyValidationResult?.success) {
+      return;
+    }
+
+    const parsedTrack = keyValidationResult.data.tracks.find(
+      (track) => track.id === draftKeyTrack.id,
+    );
+
+    if (parsedTrack) {
+      onApplyTrackItem(selectedTimeline.id, parsedTrack, 'update', `${draftKeyTrack.id} key`);
+    }
+  };
+
+  const removePropertyKey = () => {
+    if (!selectedTimeline || !propertyTrack || propertyTrack.keys.length <= 1) {
+      return;
+    }
+
+    const nextTrack: PropertyTimelineTrack = {
+      ...propertyTrack,
+      keys: propertyTrack.keys.filter((_, index) => index !== keyIndex),
+    };
+
+    onApplyTrackItem(selectedTimeline.id, nextTrack, 'remove', `${propertyTrack.id} key`);
+    setKeyIndexState({
+      timelineId: selectedTimeline.id,
+      trackId: propertyTrack.id,
+      index: Math.max(0, keyIndex - 1),
+    });
+  };
+
+  const applyActionPayload = () => {
+    if (
+      !selectedTimeline ||
+      draftTrack?.type !== 'action' ||
+      actionPayloadParseResult?.success !== true
+    ) {
+      return;
+    }
+
+    onApplyTrackItem(
+      selectedTimeline.id,
+      { ...draftTrack, action: actionPayloadParseResult.action },
+      'update',
+      `${draftTrack.id} action`,
+    );
   };
 
   if (timelines.length === 0) {
@@ -264,6 +428,164 @@ export function TimelinePanel({
                   Remove Track
                 </button>
               </div>
+
+              {draftTrack.type === 'action' ? (
+                <section className="timeline-item-editor" aria-labelledby="timeline-action-heading">
+                  <div className="panel-title-row">
+                    <h3 id="timeline-action-heading">Action Marker</h3>
+                    <span>{draftTrack.action.type}</span>
+                  </div>
+                  <label className="field-stack" htmlFor="timeline-action-json">
+                    <span>Payload JSON</span>
+                    <textarea
+                      id="timeline-action-json"
+                      value={actionPayloadJson}
+                      rows={5}
+                      spellCheck={false}
+                      onChange={(event) =>
+                        setActionPayloadState({
+                          timelineId: selectedTimeline.id,
+                          trackId: draftTrack.id,
+                          json: event.target.value,
+                        })
+                      }
+                    />
+                  </label>
+
+                  {actionValidationMessages.length > 0 ? (
+                    <ul className="validation-list" role="alert">
+                      {actionValidationMessages.map((message) => (
+                        <li key={message}>{message}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  <div className="timeline-command-row">
+                    {parsedFlagSetAction && typeof parsedFlagSetAction.value === 'boolean' ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActionPayloadState({
+                            timelineId: selectedTimeline.id,
+                            trackId: draftTrack.id,
+                            json: JSON.stringify(
+                              {
+                                ...parsedFlagSetAction,
+                                value: !parsedFlagSetAction.value,
+                              },
+                              null,
+                              2,
+                            ),
+                          })
+                        }
+                      >
+                        Toggle Flag Value
+                      </button>
+                    ) : null}
+                    <button type="button" onClick={applyActionPayload} disabled={!canApplyAction}>
+                      Apply Action
+                    </button>
+                  </div>
+                </section>
+              ) : null}
+
+              {propertyTrack && draftKey ? (
+                <section className="timeline-item-editor" aria-labelledby="timeline-key-heading">
+                  <div className="panel-title-row">
+                    <h3 id="timeline-key-heading">Keyframe</h3>
+                    <span>{keyIndex + 1}</span>
+                  </div>
+
+                  <label className="field-stack" htmlFor="timeline-key-select">
+                    <span>Key</span>
+                    <select
+                      id="timeline-key-select"
+                      value={keyIndex}
+                      onChange={(event) =>
+                        setKeyIndexState({
+                          timelineId: selectedTimeline.id,
+                          trackId: propertyTrack.id,
+                          index: Number(event.target.value),
+                        })
+                      }
+                    >
+                      {propertyTrack.keys.map((key, index) => (
+                        <option key={`${propertyTrack.id}-${index}`} value={index}>
+                          {index + 1} @ {key.time}s
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="timeline-track-fields">
+                    <label className="field-stack" htmlFor="timeline-key-time">
+                      <span>Time</span>
+                      <input
+                        id="timeline-key-time"
+                        type="number"
+                        min="0"
+                        step="0.05"
+                        value={draftKey.time}
+                        onChange={(event) =>
+                          updateDraftKey({ ...draftKey, time: Number(event.target.value) })
+                        }
+                      />
+                    </label>
+                    <label className="field-stack" htmlFor="timeline-key-value">
+                      <span>Value</span>
+                      <input
+                        id="timeline-key-value"
+                        type="text"
+                        value={formatPropertyValue(draftKey.value)}
+                        onChange={(event) =>
+                          updateDraftKey({
+                            ...draftKey,
+                            value: parsePropertyValue(event.target.value),
+                          })
+                        }
+                      />
+                    </label>
+                    <label className="field-stack" htmlFor="timeline-key-ease">
+                      <span>Ease</span>
+                      <input
+                        id="timeline-key-ease"
+                        type="text"
+                        value={draftKey.ease ?? ''}
+                        onChange={(event) =>
+                          updateDraftKey({
+                            ...draftKey,
+                            ease: event.target.value || undefined,
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+
+                  {keyValidationMessages.length > 0 ? (
+                    <ul className="validation-list" role="alert">
+                      {keyValidationMessages.map((message) => (
+                        <li key={message}>{message}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  <div className="timeline-command-row">
+                    <button type="button" onClick={addPropertyKey}>
+                      Add Key
+                    </button>
+                    <button type="button" onClick={applyPropertyKey} disabled={!canApplyKey}>
+                      Apply Keyframe
+                    </button>
+                    <button
+                      type="button"
+                      onClick={removePropertyKey}
+                      disabled={propertyTrack.keys.length <= 1}
+                    >
+                      Remove Key
+                    </button>
+                  </div>
+                </section>
+              ) : null}
             </section>
           ) : null}
         </>
@@ -421,6 +743,76 @@ function replaceTrack(timeline: TimelineData, track: TimelineTrackData): Timelin
     ...timeline,
     tracks: timeline.tracks.map((item) => (item.id === track.id ? track : item)),
   };
+}
+
+function replacePropertyKey(
+  track: PropertyTimelineTrack,
+  keyIndex: number,
+  key: PropertyTimelineKey,
+): PropertyTimelineTrack {
+  return {
+    ...track,
+    keys: track.keys.map((item, index) => (index === keyIndex ? key : item)),
+  };
+}
+
+function sortPropertyKeys(keys: readonly PropertyTimelineKey[]): PropertyTimelineKey[] {
+  return [...keys].sort((left, right) => left.time - right.time);
+}
+
+function parseActionPayload(
+  json: string,
+): { success: true; action: ActionData } | { success: false; messages: string[] } {
+  try {
+    const parsed = ActionSchema.safeParse(JSON.parse(json) as unknown);
+
+    if (parsed.success) {
+      return { success: true, action: parsed.data };
+    }
+
+    return {
+      success: false,
+      messages: parsed.error.issues.map((issue) => {
+        const path = issue.path.join('.') || 'action';
+        return `${path}: ${issue.message}`;
+      }),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      messages: [error instanceof Error ? error.message : String(error)],
+    };
+  }
+}
+
+function formatPropertyValue(value: PropertyTimelineKey['value']): string {
+  return JSON.stringify(value);
+}
+
+function parsePropertyValue(value: string): PropertyTimelineKey['value'] {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+
+    if (typeof parsed === 'boolean' || typeof parsed === 'number' || typeof parsed === 'string') {
+      return parsed;
+    }
+
+    if (
+      Array.isArray(parsed) &&
+      parsed.length === 3 &&
+      parsed.every((item) => typeof item === 'number')
+    ) {
+      return [parsed[0], parsed[1], parsed[2]];
+    }
+  } catch {
+    const numeric = Number(value);
+
+    if (Number.isFinite(numeric)) {
+      return numeric;
+    }
+  }
+
+  return value;
 }
 
 function buildTicks(duration: number): number[] {

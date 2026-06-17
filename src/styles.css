@@ -322,7 +322,8 @@ button:hover {
 }
 
 .field-stack input,
-.field-stack select {
+.field-stack select,
+.field-stack textarea {
   width: 100%;
   min-height: 34px;
   border: 1px solid #46515d;
@@ -331,6 +332,13 @@ button:hover {
   color: #e8ecef;
   background: #202830;
   font: inherit;
+}
+
+.field-stack textarea {
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .validation-list {
@@ -638,14 +646,16 @@ button:hover {
   font-size: 12px;
 }
 
-.timeline-track-editor {
+.timeline-track-editor,
+.timeline-item-editor {
   display: grid;
   gap: 10px;
   border-top: 1px solid #313c46;
   padding-top: 10px;
 }
 
-.timeline-track-editor h3 {
+.timeline-track-editor h3,
+.timeline-item-editor h3 {
   margin: 0;
   color: #cfd7df;
   font-size: 13px;
