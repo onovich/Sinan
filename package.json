@@ -9,6 +9,7 @@
     "test": "vitest run",
     "lint": "eslint .",
     "typecheck": "tsc -b --pretty false",
+    "validate-data": "tsx scripts/validate-data.ts",
     "format": "prettier \"src/**/*.{ts,tsx,css}\" \"*.{json,js,ts,html}\" --write",
     "format:check": "prettier \"src/**/*.{ts,tsx,css}\" \"*.{json,js,ts,html}\" --check",
     "preview": "vite preview --host 127.0.0.1"
@@ -32,6 +33,7 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "prettier": "^3.7.4",
+    "tsx": "^4.22.4",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.0",
     "vite": "^7.2.7",

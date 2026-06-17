@@ -1,5 +1,10 @@
 export type RuntimeObjectId = string;
 
 export interface RuntimeObjectHandle {
-  id: RuntimeObjectId;
+  entityId: string;
+  runtimeObjectId: RuntimeObjectId;
+}
+
+export interface ModelHandle {
+  assetId: string;
 }

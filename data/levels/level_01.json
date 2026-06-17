@@ -54,8 +54,5 @@
         }
       }
     }
-  ],
-  "events": ["ev_switch_a_open_gate"],
-  "timelines": ["tl_open_gate"],
-  "cameraShots": ["cam_gate_reveal"]
+  ]
 }

@@ -42,9 +42,10 @@ npm run typecheck
 npm run lint
 npm run build
 npm run test
+npm run validate-data
 ```
 
-`validate-data` is not established yet. Phase 1.3 should add `npm run validate-data` and wire it into this sequence.
+`validate-data` currently performs JSON parse, Zod schema validation, duplicate id checks, and reference checks for prefabs, assets, timelines, camera shots, and events where those data directories exist.
 
 ## Dev Server
 

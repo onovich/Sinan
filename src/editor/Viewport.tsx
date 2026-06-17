@@ -1,12 +1,17 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
+import { createDemoDataRepository } from '../data/demoDataLoader';
+import { getRenderableModelAssetId } from '../data/projectDataSelectors';
 import type { WebRuntime } from '../runtime/WebRuntime';
 import { ThreeRuntime } from '../runtime/three/ThreeRuntime';
+
+type ViewportStatus = 'Loading level data' | 'Level loaded' | 'Load failed';
 
 export function Viewport() {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const runtimeRef = useRef<WebRuntime | null>(null);
+  const [status, setStatus] = useState<ViewportStatus>('Loading level data');
 
   useEffect(() => {
     const host = hostRef.current;
@@ -30,6 +35,18 @@ export function Viewport() {
     };
 
     runtime.init({ canvas, ...readSize() });
+    void loadDemoLevel(runtime, () => disposed)
+      .then(() => {
+        if (!disposed) {
+          setStatus('Level loaded');
+        }
+      })
+      .catch((error: unknown) => {
+        console.error(error);
+        if (!disposed) {
+          setStatus('Load failed');
+        }
+      });
 
     const resizeObserver = new ResizeObserver(() => {
       runtime.resize(readSize());
@@ -68,8 +85,39 @@ export function Viewport() {
       <canvas ref={canvasRef} className="runtime-canvas" aria-label="Runtime viewport" />
       <div className="viewport-status">
         <strong>Editor Viewport</strong>
-        <span>Three runtime online</span>
+        <span>{status}</span>
       </div>
     </div>
   );
+}
+
+async function loadDemoLevel(runtime: WebRuntime, isDisposed: () => boolean): Promise<void> {
+  const repository = createDemoDataRepository();
+  const project = await repository.loadProjectLevel('level_01');
+
+  if (isDisposed()) {
+    return;
+  }
+
+  await Promise.all(
+    Object.entries(project.assets.assets)
+      .filter(([, asset]) => asset.type === 'model')
+      .map(([assetId, asset]) => runtime.loadModel(assetId, asset.url)),
+  );
+
+  for (const entity of project.level.entities) {
+    if (isDisposed()) {
+      return;
+    }
+
+    const modelAssetId = getRenderableModelAssetId(project, entity);
+
+    if (modelAssetId) {
+      runtime.instantiateModel(modelAssetId, entity.id);
+    } else {
+      runtime.createEmpty(entity.id);
+    }
+
+    runtime.setTransform(entity.id, entity.transform);
+  }
 }
