@@ -54,3 +54,12 @@ export interface RuntimeAnimationTimeOptions {
   clip: string;
   time: number;
 }
+
+export interface RuntimeCameraPose {
+  position: Vec3;
+  rotation?: Quat;
+  lookAt?: Vec3;
+  fov: number;
+  near?: number;
+  far?: number;
+}

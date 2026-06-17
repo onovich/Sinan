@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { AssetManifestSchema } from '../src/schemas/asset.schema';
+import { CameraShotSchema } from '../src/schemas/cameraShot.schema';
 import { EventSchema } from '../src/schemas/event.schema';
 import { LevelSchema } from '../src/schemas/level.schema';
 import { PrefabSchema } from '../src/schemas/prefab.schema';
@@ -13,6 +14,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 
 async function main(): Promise<void> {
   const assets = AssetManifestSchema.parse(await readJson('data/assets.manifest.json'));
+  const cameraShots = await readSchemaDirectory('data/cameraShots', CameraShotSchema);
   const events = await readSchemaDirectory('data/events', EventSchema);
   const timelines = await readSchemaDirectory('data/timelines', TimelineSchema);
   const prefabs = await readSchemaDirectory('data/prefabs', PrefabSchema);
@@ -23,7 +25,7 @@ async function main(): Promise<void> {
     prefabs,
     levels,
     availableTimelineIds: new Set(timelines.map((timeline) => timeline.id)),
-    availableCameraShotIds: await readJsonIdStems('data/cameraShots'),
+    availableCameraShotIds: new Set(cameraShots.map((shot) => shot.id)),
   });
 
   if (result.issues.length > 0) {
@@ -36,7 +38,7 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    `Data validation passed: ${prefabs.length} prefabs, ${levels.length} levels, ${events.length} events, ${timelines.length} timelines, ${Object.keys(assets.assets).length} assets.`,
+    `Data validation passed: ${prefabs.length} prefabs, ${levels.length} levels, ${events.length} events, ${timelines.length} timelines, ${cameraShots.length} camera shots, ${Object.keys(assets.assets).length} assets.`,
   );
 }
 
@@ -59,17 +61,6 @@ async function readSchemaDirectory<T>(
       schema.parse(await readJson(path.join(relativePath, fileName))),
     ),
   );
-}
-
-async function readJsonIdStems(relativePath: string): Promise<ReadonlySet<string> | undefined> {
-  const absolutePath = path.join(repoRoot, relativePath);
-  const fileNames = await readJsonFileNames(absolutePath);
-
-  if (fileNames.length === 0) {
-    return undefined;
-  }
-
-  return new Set(fileNames.map((fileName) => path.basename(fileName, '.json')));
 }
 
 async function readJsonFileNames(absolutePath: string): Promise<string[]> {

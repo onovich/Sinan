@@ -7,6 +7,7 @@ import type {
   RuntimeAnimationPlayOptions,
   RuntimeAnimationStopOptions,
   RuntimeAnimationTimeOptions,
+  RuntimeCameraPose,
   RuntimeInitOptions,
   RuntimeSize,
   TransformGizmoCallbacks,
@@ -212,6 +213,29 @@ export class ThreeRuntime implements WebRuntime {
       playing: false,
       time: Math.max(0, options.time),
     });
+  }
+
+  setCameraPose(pose: RuntimeCameraPose): void {
+    if (!this.camera) {
+      return;
+    }
+
+    this.camera.position.set(...pose.position);
+
+    if (pose.lookAt) {
+      this.camera.lookAt(...pose.lookAt);
+    } else if (pose.rotation) {
+      this.camera.quaternion.set(...pose.rotation);
+    }
+
+    this.camera.fov = pose.fov;
+    if (pose.near !== undefined) {
+      this.camera.near = pose.near;
+    }
+    if (pose.far !== undefined) {
+      this.camera.far = pose.far;
+    }
+    this.camera.updateProjectionMatrix();
   }
 
   pick(clientX: number, clientY: number): PickResult | null {

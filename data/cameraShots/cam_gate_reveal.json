@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "cam_gate_reveal",
+  "name": "Gate Reveal",
+  "type": "keyframed",
+  "duration": 3.5,
+  "keys": [
+    {
+      "time": 0,
+      "position": [
+        2,
+        1.6,
+        5
+      ],
+      "lookAt": [
+        4,
+        1.2,
+        8
+      ],
+      "fov": 55,
+      "ease": "easeInOutCubic"
+    },
+    {
+      "time": 1.5,
+      "position": [
+        3,
+        1.8,
+        6.5
+      ],
+      "lookAt": "gate_a",
+      "fov": 45,
+      "ease": "easeInOutCubic"
+    },
+    {
+      "time": 3.5,
+      "position": [
+        5,
+        2.2,
+        9
+      ],
+      "lookAt": "gate_a",
+      "fov": 38,
+      "ease": "easeOutCubic"
+    }
+  ]
+}

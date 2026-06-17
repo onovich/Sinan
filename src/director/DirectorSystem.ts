@@ -1,11 +1,13 @@
 import { EventSystem } from '../events/EventSystem';
 import type { ActionExecutionContext, DirectorCommand } from '../events/types';
 import type { WebRuntime } from '../runtime/WebRuntime';
+import type { CameraShotData } from '../schemas/cameraShot.schema';
 import type { TimelineData, TimelineTrackData } from '../schemas/timeline.schema';
 import { ActionTrackPlayer } from './ActionTrackPlayer';
 import { AnimationTrackPlayer } from './AnimationTrackPlayer';
 import { AudioTrackPlayer } from './AudioTrackPlayer';
 import { CameraShotTrackPlayer } from './CameraShotTrackPlayer';
+import { DirectorCameraSystem } from './DirectorCameraSystem';
 import { PropertyTrackPlayer, type PropertyTrackSample } from './PropertyTrackPlayer';
 import { SubtitleTrackPlayer } from './SubtitleTrackPlayer';
 import { TimelinePlayer } from './TimelinePlayer';
@@ -29,6 +31,7 @@ export class DirectorSystem {
   constructor(
     private readonly timelines: Readonly<Record<string, TimelineData>>,
     private readonly eventSystem = new EventSystem([]),
+    private readonly cameraShots: Readonly<Record<string, CameraShotData>> = {},
   ) {
     this.timelinePlayer = new TimelinePlayer(timelines, {
       onTrackReached: ({ timeline, track }) => {
@@ -102,6 +105,7 @@ export class DirectorSystem {
         break;
       case 'camera.shot':
         this.cameraShotTrackPlayer.play(track, context);
+        this.applyCameraShotTrack(track.shotId, 0, context);
         break;
       case 'sound':
         this.audioTrackPlayer.play(track, context);
@@ -146,6 +150,11 @@ export class DirectorSystem {
         break;
       case 'camera.shot':
         this.cameraShotTrackPlayer.scrub(track, context, timelineTime);
+        this.applyCameraShotTrack(
+          track.shotId,
+          clampTrackTime(timelineTime - track.start, track.duration),
+          context,
+        );
         break;
       case 'property':
         this.lastPropertySamples = [
@@ -177,6 +186,16 @@ export class DirectorSystem {
       for (const track of timeline.tracks) {
         if (track.type === 'property') {
           samples.push(this.propertyTrackPlayer.sample(track, state.time));
+        } else if (
+          track.type === 'camera.shot' &&
+          state.time >= track.start &&
+          state.time <= track.start + track.duration
+        ) {
+          this.applyCameraShotTrack(
+            track.shotId,
+            clampTrackTime(state.time - track.start, track.duration),
+            this.activeContext,
+          );
         }
       }
     }
@@ -193,4 +212,26 @@ export class DirectorSystem {
 
     return timeline;
   }
+
+  private applyCameraShotTrack(
+    shotId: string,
+    shotTime: number,
+    context: DirectorSystemContext | undefined,
+  ): void {
+    if (!context?.runtime) {
+      return;
+    }
+
+    const shot = this.cameraShots[shotId];
+
+    if (!shot) {
+      return;
+    }
+
+    new DirectorCameraSystem(context.runtime).applyShot(shot, shotTime);
+  }
+}
+
+function clampTrackTime(time: number, duration: number): number {
+  return Math.round(Math.min(Math.max(time, 0), duration) * 1_000_000) / 1_000_000;
 }

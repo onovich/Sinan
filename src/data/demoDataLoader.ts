@@ -1,4 +1,5 @@
 import assetsManifest from '../../data/assets.manifest.json';
+import gateRevealCameraShot from '../../data/cameraShots/cam_gate_reveal.json';
 import switchEvent from '../../data/events/ev_switch_a_open_gate.json';
 import level01 from '../../data/levels/level_01.json';
 import doorWood from '../../data/prefabs/door_wood.json';
@@ -10,6 +11,7 @@ import type { ProjectJsonLoader } from './loadJson';
 
 const demoJsonByPath: Record<string, unknown> = {
   'data/assets.manifest.json': assetsManifest,
+  'data/cameraShots/cam_gate_reveal.json': gateRevealCameraShot,
   'data/events/ev_switch_a_open_gate.json': switchEvent,
   'data/levels/level_01.json': level01,
   'data/prefabs/door_wood.json': doorWood,

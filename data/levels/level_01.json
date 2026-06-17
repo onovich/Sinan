@@ -100,5 +100,7 @@
   "timelines": [
     "tl_open_gate"
   ],
-  "cameraShots": []
+  "cameraShots": [
+    "cam_gate_reveal"
+  ]
 }

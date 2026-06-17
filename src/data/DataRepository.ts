@@ -1,5 +1,7 @@
 import type { AssetManifestData } from '../schemas/asset.schema';
 import { AssetManifestSchema } from '../schemas/asset.schema';
+import type { CameraShotData } from '../schemas/cameraShot.schema';
+import { CameraShotSchema } from '../schemas/cameraShot.schema';
 import type { EventData } from '../schemas/event.schema';
 import { EventSchema } from '../schemas/event.schema';
 import type { LevelData } from '../schemas/level.schema';
@@ -16,6 +18,7 @@ export interface ProjectData {
   prefabs: Record<string, PrefabData>;
   events: Record<string, EventData>;
   timelines: Record<string, TimelineData>;
+  cameraShots: Record<string, CameraShotData>;
 }
 
 export class DataRepository {
@@ -41,6 +44,10 @@ export class DataRepository {
     return loadAndParseJson(this.loader, `data/timelines/${timelineId}.json`, TimelineSchema);
   }
 
+  loadCameraShot(cameraShotId: string): Promise<CameraShotData> {
+    return loadAndParseJson(this.loader, `data/cameraShots/${cameraShotId}.json`, CameraShotSchema);
+  }
+
   async loadProjectLevel(levelId: string): Promise<ProjectData> {
     const [assets, level] = await Promise.all([this.loadAssetManifest(), this.loadLevel(levelId)]);
     const prefabIds = Array.from(
@@ -51,6 +58,9 @@ export class DataRepository {
     const timelines = await Promise.all(
       level.timelines.map(async (timelineId) => this.loadTimeline(timelineId)),
     );
+    const cameraShots = await Promise.all(
+      level.cameraShots.map(async (cameraShotId) => this.loadCameraShot(cameraShotId)),
+    );
 
     return {
       assets,
@@ -58,6 +68,7 @@ export class DataRepository {
       prefabs: Object.fromEntries(prefabs.map((prefab) => [prefab.id, prefab])),
       events: Object.fromEntries(events.map((event) => [event.id, event])),
       timelines: Object.fromEntries(timelines.map((timeline) => [timeline.id, timeline])),
+      cameraShots: Object.fromEntries(cameraShots.map((shot) => [shot.id, shot])),
     };
   }
 }

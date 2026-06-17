@@ -7,6 +7,7 @@ import type {
   RuntimeAnimationPlayOptions,
   RuntimeAnimationStopOptions,
   RuntimeAnimationTimeOptions,
+  RuntimeCameraPose,
 } from './RuntimeTypes';
 import type { ModelHandle, RuntimeObjectHandle } from './RuntimeObjectHandle';
 import type { RuntimeTransform } from './RuntimeTypes';
@@ -23,6 +24,7 @@ export interface WebRuntime {
   playAnimation(options: RuntimeAnimationPlayOptions): void;
   stopAnimation(options: RuntimeAnimationStopOptions): void;
   setAnimationTime(options: RuntimeAnimationTimeOptions): void;
+  setCameraPose(pose: RuntimeCameraPose): void;
   pick(clientX: number, clientY: number): PickResult | null;
   attachTransformGizmo(entityId: string, callbacks?: TransformGizmoCallbacks): void;
   detachTransformGizmo(): void;

@@ -112,6 +112,26 @@ const fixtures: Record<string, unknown> = {
       },
     ],
   },
+  'data/cameraShots/cam_gate_reveal.json': {
+    schemaVersion: 1,
+    id: 'cam_gate_reveal',
+    type: 'keyframed',
+    duration: 2,
+    keys: [
+      {
+        time: 0,
+        position: [2, 1.6, 5],
+        lookAt: 'gate_a',
+        fov: 55,
+      },
+      {
+        time: 2,
+        position: [5, 2.2, 9],
+        lookAt: 'gate_a',
+        fov: 38,
+      },
+    ],
+  },
 };
 
 describe('DataRepository', () => {
@@ -123,6 +143,7 @@ describe('DataRepository', () => {
     expect(Object.keys(project.prefabs).sort()).toEqual(['door_wood', 'switch_wall']);
     expect(Object.keys(project.events)).toEqual(['ev_switch_a_open_gate']);
     expect(Object.keys(project.timelines)).toEqual(['tl_open_gate']);
+    expect(Object.keys(project.cameraShots)).toEqual(['cam_gate_reveal']);
     expect(project.level.entities.map((entity) => entity.id)).toEqual(['switch_a', 'gate_a']);
   });
 
