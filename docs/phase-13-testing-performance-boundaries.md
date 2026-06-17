@@ -23,7 +23,8 @@ This document tracks Phase 13 hardening work after the Phase 12 authoring/data-s
 ## Current Validation Coverage
 
 - `Validate.cmd` runs format, typecheck, lint, build, unit tests, data validation, and migration check.
-- `Smoke.cmd` runs Playwright browser smoke on the desktop and narrow viewport paths.
+- `Smoke.cmd` runs Playwright browser smoke on the desktop, save/reload, and narrow viewport paths.
+- Browser smoke records console errors and page errors during common editor flows.
 - Automated architecture checks cover forbidden Three imports and dynamic-code execution patterns.
 
 ## Bundle Hygiene
@@ -37,6 +38,15 @@ This document tracks Phase 13 hardening work after the Phase 12 authoring/data-s
   - `three-vendor`: 631 kB minified / 164 kB gzip.
 - The Vite chunk warning limit is set to 700 kB because the remaining large chunk is the isolated Three.js/GLTF runtime dependency, not editor application growth. If `three-vendor` grows past this threshold, revisit runtime imports or defer heavier optional Three examples.
 
-## Remaining Phase 13 Work
+## Runtime Lifecycle Coverage
 
-- Add runtime lifecycle/disposal regression tests and no-console-error smoke where practical.
+- `ThreeRuntime` tests cover repeated loaded model instantiation for the same entity, object replacement cleanup, explicit object destruction, cached model disposal, and harmless update/render/resize calls after dispose.
+- This guards the Phase 8 asset-backed runtime against stale object, animation mixer, and resource references during repeated editor load/destroy cycles.
+
+## Phase 13 Gate Evidence
+
+- Expanded smoke covers selection, mode/timeline runtime controls, save/reload across level/event/timeline/camera data, and narrow viewport layout.
+- Boundary checks are automated through `npm run check-boundaries` and wired into regular validation.
+- Production build is split into editor, React vendor, Three runtime, and Three vendor chunks, and now builds without the previous chunk-size warning.
+- Runtime lifecycle tests cover repeated model replacement, object destruction, cached model disposal, and post-dispose no-op safety.
+- `Validate.cmd` and `Smoke.cmd` pass with these checks enabled.

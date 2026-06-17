@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   ThreeAssetLoader,
@@ -57,6 +57,59 @@ describe('ThreeRuntime asset-backed models', () => {
     });
 
     expect(runtime.getTransform('animated_entity')?.position[0]).toBeCloseTo(1);
+  });
+
+  it('disposes replaced objects, destroyed objects, and cached model resources', async () => {
+    const runtime = new ThreeRuntime({
+      modelAssets: new ThreeAssetLoader(
+        new FakeModelLoader(() => Promise.resolve(createAnimatedLoadResult())),
+      ),
+    });
+    const geometryDispose = vi.spyOn(THREE.BufferGeometry.prototype, 'dispose');
+    const materialDispose = vi.spyOn(THREE.Material.prototype, 'dispose');
+
+    try {
+      await runtime.loadModel('model.animated', '/models/animated.glb');
+
+      runtime.instantiateModel('model.animated', 'animated_entity');
+      runtime.playAnimation({
+        entityId: 'animated_entity',
+        clip: 'Slide',
+      });
+      runtime.instantiateModel('model.animated', 'animated_entity');
+
+      expect(geometryDispose).toHaveBeenCalled();
+      expect(materialDispose).toHaveBeenCalled();
+      expect(runtime.getTransform('animated_entity')).not.toBeNull();
+
+      geometryDispose.mockClear();
+      materialDispose.mockClear();
+
+      runtime.destroyObject('animated_entity');
+
+      expect(runtime.getTransform('animated_entity')).toBeNull();
+      expect(geometryDispose).toHaveBeenCalled();
+      expect(materialDispose).toHaveBeenCalled();
+
+      geometryDispose.mockClear();
+      materialDispose.mockClear();
+
+      runtime.dispose();
+
+      expect(geometryDispose).toHaveBeenCalled();
+      expect(materialDispose).toHaveBeenCalled();
+      expect(() => {
+        runtime.update(1);
+        runtime.render();
+        runtime.resize({ width: 64, height: 64, pixelRatio: 1 });
+        runtime.destroyObject('animated_entity');
+        runtime.dispose();
+      }).not.toThrow();
+    } finally {
+      runtime.dispose();
+      geometryDispose.mockRestore();
+      materialDispose.mockRestore();
+    }
   });
 });
 
