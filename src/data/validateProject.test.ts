@@ -30,6 +30,19 @@ const switchPrefab: PrefabData = {
   components: {},
 };
 
+const doorPrefab: PrefabData = {
+  schemaVersion: 1,
+  id: 'door_wood',
+  name: 'Wood Door',
+  model: 'model.door_wood',
+  defaultTransform: {
+    position: [0, 0, 0],
+    rotation: [0, 0, 0, 1],
+    scale: [1, 1, 1],
+  },
+  components: {},
+};
+
 const level: LevelData = {
   schemaVersion: 1,
   id: 'level_01',
@@ -130,6 +143,39 @@ describe('validateProject', () => {
     );
   });
 
+  it('reports asset URL, file, and type problems', () => {
+    const issues = validateProject({
+      assets: {
+        schemaVersion: 1,
+        assets: {
+          'model.bad_extension': {
+            type: 'model',
+            url: '/models/bad.txt',
+          },
+          'audio.missing': {
+            type: 'audio',
+            url: '/audio/missing.wav',
+          },
+          'model.not_root_relative': {
+            type: 'model',
+            url: 'models/not-root.glb',
+          },
+        },
+      },
+      prefabs: [],
+      levels: [],
+      availablePublicAssetUrls: new Set(['/models/bad.txt']),
+    }).issues;
+
+    expect(issues.map((issue) => issue.message)).toEqual(
+      expect.arrayContaining([
+        'Asset type "model" expects one of .glb, .gltf.',
+        'Missing asset file "public/audio/missing.wav".',
+        'Asset URL "models/not-root.glb" must be a root-relative public path.',
+      ]),
+    );
+  });
+
   it('reports duplicate entity ids', () => {
     const issues = validateProject({
       assets,
@@ -184,6 +230,110 @@ describe('validateProject', () => {
       expect.arrayContaining([
         'Unregistered action type "flag.set".',
         'Unregistered action type "flag.set".',
+      ]),
+    );
+  });
+
+  it('reports timeline, camera shot, and animation clip reference problems', () => {
+    const animatedAssets: AssetManifestData = {
+      schemaVersion: 1,
+      assets: {
+        ...assets.assets,
+        'model.door_wood': {
+          type: 'model',
+          url: '/models/props/door_wood.glb',
+          metadata: {
+            clips: ['Open'],
+          },
+        },
+      },
+    };
+    const levelWithGate: LevelData = {
+      ...level,
+      entities: [
+        ...level.entities,
+        {
+          id: 'gate_a',
+          prefab: 'door_wood',
+          transform: {
+            position: [0, 0, 0],
+            rotation: [0, 0, 0, 1],
+            scale: [1, 1, 1],
+          },
+          components: {},
+        },
+      ],
+    };
+    const issues = validateProject({
+      assets: animatedAssets,
+      prefabs: [switchPrefab, doorPrefab],
+      levels: [levelWithGate],
+      timelines: [
+        {
+          ...timeline,
+          tracks: [
+            {
+              id: 'track_bad_clip',
+              type: 'animation.play',
+              start: 0,
+              entityId: 'gate_a',
+              clip: 'Close',
+            },
+            {
+              id: 'track_bad_clip',
+              type: 'sound',
+              time: 0,
+              soundId: 'model.switch_wall',
+            },
+            {
+              id: 'track_missing_target',
+              type: 'property',
+              target: 'missing_entity',
+              property: 'Door.openAmount',
+              keys: [{ time: 0, value: 0 }],
+            },
+          ],
+        },
+      ],
+      cameraShots: [
+        {
+          schemaVersion: 1,
+          id: 'cam_bad',
+          type: 'lookAt',
+          position: [0, 1, 2],
+          target: 'missing_camera_target',
+          fov: 50,
+        },
+      ],
+    }).issues;
+
+    expect(issues.map((issue) => issue.message)).toEqual(
+      expect.arrayContaining([
+        'Duplicate timeline track id "track_bad_clip".',
+        'Animation clip "Close" is not listed in metadata.clips for asset "model.door_wood".',
+        'Asset "model.switch_wall" must be type "audio", got "model".',
+        'Missing entity "missing_entity".',
+        'Missing camera lookAt target "missing_camera_target".',
+      ]),
+    );
+  });
+
+  it('reports schema and registry coverage mismatches', () => {
+    const issues = validateProject({
+      assets,
+      prefabs: [switchPrefab],
+      levels: [level],
+      schemaActionTypes: new Set(['door.open', 'flag.set']),
+      registeredActionTypes: new Set(['flag.set']),
+      schemaConditionTypes: new Set(['flag.equals']),
+      registeredConditionTypes: new Set(['flag.exists']),
+    }).issues;
+
+    expect(issues.map((issue) => issue.message)).toEqual(
+      expect.arrayContaining([
+        'Action schema type "door.open" is not registered.',
+        'Condition schema type "flag.equals" is not registered.',
+        'Registered condition type "flag.exists" is not in the schema.',
       ]),
     );
   });

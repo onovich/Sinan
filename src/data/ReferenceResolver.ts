@@ -1,7 +1,11 @@
 import type { AssetManifestData } from '../schemas/asset.schema';
+import type { ActionData } from '../schemas/action.schema';
+import type { CameraShotData, CameraLookAtData } from '../schemas/cameraShot.schema';
+import type { ConditionData } from '../schemas/condition.schema';
 import type { EventData } from '../schemas/event.schema';
 import type { LevelData } from '../schemas/level.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
+import type { TimelineData, TimelineTrackData } from '../schemas/timeline.schema';
 import { getRenderableModelAssetId } from './projectDataSelectors';
 
 export type ReferenceSeverity = 'error';
@@ -16,7 +20,9 @@ export interface ReferenceValidationInput {
   assets: AssetManifestData;
   prefabs: readonly PrefabData[];
   levels: readonly LevelData[];
+  cameraShots?: readonly CameraShotData[];
   events?: readonly EventData[];
+  timelines?: readonly TimelineData[];
   availableEventIds?: ReadonlySet<string>;
   availableTimelineIds?: ReadonlySet<string>;
   availableCameraShotIds?: ReadonlySet<string>;
@@ -28,6 +34,8 @@ export function validateProjectReferences(
   const issues: ReferenceValidationIssue[] = [];
   const prefabIds = new Set<string>();
   const assetIds = new Set(Object.keys(input.assets.assets));
+  const entityIds = new Set<string>();
+  const entityModelAssetIds = new Map<string, string>();
 
   addDuplicateIdIssues(
     input.prefabs.map((prefab) => prefab.id),
@@ -39,9 +47,23 @@ export function validateProjectReferences(
   for (const prefab of input.prefabs) {
     prefabIds.add(prefab.id);
     addMissingAssetIssue(prefab.model, assetIds, `data/prefabs/${prefab.id}.json.model`, issues);
+    addAssetTypeIssue(
+      prefab.model,
+      input.assets,
+      'model',
+      `data/prefabs/${prefab.id}.json.model`,
+      issues,
+    );
     addMissingAssetIssue(
       getPrefabRenderableModel(prefab),
       assetIds,
+      `data/prefabs/${prefab.id}.json.components.Renderable.model`,
+      issues,
+    );
+    addAssetTypeIssue(
+      getPrefabRenderableModel(prefab),
+      input.assets,
+      'model',
       `data/prefabs/${prefab.id}.json.components.Renderable.model`,
       issues,
     );
@@ -69,6 +91,8 @@ export function validateProjectReferences(
     };
 
     for (const entity of level.entities) {
+      entityIds.add(entity.id);
+
       if (entity.prefab && !prefabIds.has(entity.prefab)) {
         issues.push({
           severity: 'error',
@@ -77,9 +101,21 @@ export function validateProjectReferences(
         });
       }
 
+      const modelAssetId = getRenderableModelAssetId(project, entity);
+      if (modelAssetId) {
+        entityModelAssetIds.set(entity.id, modelAssetId);
+      }
+
       addMissingAssetIssue(
-        getRenderableModelAssetId(project, entity),
+        modelAssetId,
         assetIds,
+        `data/levels/${level.id}.json.entities.${entity.id}.components.Renderable.model`,
+        issues,
+      );
+      addAssetTypeIssue(
+        modelAssetId,
+        input.assets,
+        'model',
         `data/levels/${level.id}.json.entities.${entity.id}.components.Renderable.model`,
         issues,
       );
@@ -108,10 +144,6 @@ export function validateProjectReferences(
     );
   }
 
-  const entityIds = new Set(
-    input.levels.flatMap((level) => level.entities.map((entity) => entity.id)),
-  );
-
   if (input.events) {
     addDuplicateIdIssues(
       input.events.map((event) => event.id),
@@ -122,6 +154,69 @@ export function validateProjectReferences(
 
     for (const event of input.events) {
       addEventTriggerReferenceIssues(event, entityIds, input.availableTimelineIds, issues);
+      event.actions.forEach((action, index) =>
+        addActionReferenceIssues(
+          action,
+          `data/events/${event.id}.json.actions.${index}`,
+          input,
+          entityIds,
+          entityModelAssetIds,
+          assetIds,
+          issues,
+        ),
+      );
+
+      if (event.condition) {
+        addConditionReferenceIssues(
+          event.condition,
+          `data/events/${event.id}.json.condition`,
+          entityIds,
+          issues,
+        );
+      }
+    }
+  }
+
+  if (input.timelines) {
+    addDuplicateIdIssues(
+      input.timelines.map((timeline) => timeline.id),
+      'data/timelines',
+      'timeline',
+      issues,
+    );
+
+    for (const timeline of input.timelines) {
+      addDuplicateIdIssues(
+        timeline.tracks.map((track) => track.id),
+        `data/timelines/${timeline.id}.json.tracks`,
+        'timeline track',
+        issues,
+      );
+
+      for (const track of timeline.tracks) {
+        addTimelineTrackReferenceIssues(
+          track,
+          `data/timelines/${timeline.id}.json.tracks.${track.id}`,
+          input,
+          entityIds,
+          entityModelAssetIds,
+          assetIds,
+          issues,
+        );
+      }
+    }
+  }
+
+  if (input.cameraShots) {
+    addDuplicateIdIssues(
+      input.cameraShots.map((shot) => shot.id),
+      'data/cameraShots',
+      'camera shot',
+      issues,
+    );
+
+    for (const shot of input.cameraShots) {
+      addCameraShotReferenceIssues(shot, entityIds, issues);
     }
   }
 
@@ -172,6 +267,218 @@ function addEventTriggerReferenceIssues(
       issues,
     );
   }
+}
+
+function addActionReferenceIssues(
+  action: ActionData,
+  path: string,
+  input: ReferenceValidationInput,
+  entityIds: ReadonlySet<string>,
+  entityModelAssetIds: ReadonlyMap<string, string>,
+  assetIds: ReadonlySet<string>,
+  issues: ReferenceValidationIssue[],
+): void {
+  switch (action.type) {
+    case 'entity.setVisible':
+    case 'entity.setEnabled':
+    case 'entity.setTransform':
+    case 'entity.animateTransform':
+    case 'switch.setState':
+    case 'door.open':
+    case 'door.close':
+      addMissingEntityReference(action.entityId, entityIds, `${path}.entityId`, 'entity', issues);
+      break;
+    case 'timeline.play':
+    case 'timeline.stop':
+      addMissingSetReferences(
+        [action.timelineId],
+        input.availableTimelineIds,
+        `${path}.timelineId`,
+        'timeline',
+        issues,
+      );
+      break;
+    case 'camera.playShot':
+      addMissingSetReferences(
+        [action.shotId],
+        input.availableCameraShotIds,
+        `${path}.shotId`,
+        'camera shot',
+        issues,
+      );
+      break;
+    case 'animation.play':
+      addMissingEntityReference(action.entityId, entityIds, `${path}.entityId`, 'entity', issues);
+      addAnimationClipReferenceIssue(
+        action.entityId,
+        action.clip,
+        `${path}.clip`,
+        input.assets,
+        entityModelAssetIds,
+        issues,
+      );
+      break;
+    case 'animation.stop':
+      addMissingEntityReference(action.entityId, entityIds, `${path}.entityId`, 'entity', issues);
+      if (action.clip) {
+        addAnimationClipReferenceIssue(
+          action.entityId,
+          action.clip,
+          `${path}.clip`,
+          input.assets,
+          entityModelAssetIds,
+          issues,
+        );
+      }
+      break;
+    case 'sound.play':
+      addMissingAssetIssue(action.soundId, assetIds, `${path}.soundId`, issues);
+      addAssetTypeIssue(action.soundId, input.assets, 'audio', `${path}.soundId`, issues);
+      break;
+    case 'subtitle.show':
+      if (action.speaker) {
+        addMissingEntityReference(action.speaker, entityIds, `${path}.speaker`, 'speaker', issues);
+      }
+      break;
+    case 'flag.set':
+    case 'flag.toggle':
+    case 'function.call':
+      break;
+  }
+}
+
+function addConditionReferenceIssues(
+  condition: ConditionData,
+  path: string,
+  entityIds: ReadonlySet<string>,
+  issues: ReferenceValidationIssue[],
+): void {
+  if ('all' in condition) {
+    condition.all.forEach((child, index) =>
+      addConditionReferenceIssues(child, `${path}.all.${index}`, entityIds, issues),
+    );
+    return;
+  }
+
+  if ('any' in condition) {
+    condition.any.forEach((child, index) =>
+      addConditionReferenceIssues(child, `${path}.any.${index}`, entityIds, issues),
+    );
+    return;
+  }
+
+  if ('not' in condition) {
+    addConditionReferenceIssues(condition.not, `${path}.not`, entityIds, issues);
+    return;
+  }
+
+  if (condition.type === 'entity.stateEquals') {
+    addMissingEntityReference(condition.entityId, entityIds, `${path}.entityId`, 'entity', issues);
+    return;
+  }
+
+  if (condition.type === 'distance.lessThan') {
+    addMissingEntityReference(condition.entityA, entityIds, `${path}.entityA`, 'entity', issues);
+    addMissingEntityReference(condition.entityB, entityIds, `${path}.entityB`, 'entity', issues);
+  }
+}
+
+function addTimelineTrackReferenceIssues(
+  track: TimelineTrackData,
+  path: string,
+  input: ReferenceValidationInput,
+  entityIds: ReadonlySet<string>,
+  entityModelAssetIds: ReadonlyMap<string, string>,
+  assetIds: ReadonlySet<string>,
+  issues: ReferenceValidationIssue[],
+): void {
+  switch (track.type) {
+    case 'action':
+      addActionReferenceIssues(
+        track.action,
+        `${path}.action`,
+        input,
+        entityIds,
+        entityModelAssetIds,
+        assetIds,
+        issues,
+      );
+      break;
+    case 'animation.play':
+      addMissingEntityReference(track.entityId, entityIds, `${path}.entityId`, 'entity', issues);
+      addAnimationClipReferenceIssue(
+        track.entityId,
+        track.clip,
+        `${path}.clip`,
+        input.assets,
+        entityModelAssetIds,
+        issues,
+      );
+      break;
+    case 'camera.shot':
+      addMissingSetReferences(
+        [track.shotId],
+        input.availableCameraShotIds,
+        `${path}.shotId`,
+        'camera shot',
+        issues,
+      );
+      break;
+    case 'property':
+      addMissingEntityReference(track.target, entityIds, `${path}.target`, 'entity', issues);
+      break;
+    case 'sound':
+      addMissingAssetIssue(track.soundId, assetIds, `${path}.soundId`, issues);
+      addAssetTypeIssue(track.soundId, input.assets, 'audio', `${path}.soundId`, issues);
+      break;
+    case 'subtitle':
+      if (track.speaker) {
+        addMissingEntityReference(track.speaker, entityIds, `${path}.speaker`, 'speaker', issues);
+      }
+      break;
+    case 'wait':
+      break;
+  }
+}
+
+function addCameraShotReferenceIssues(
+  shot: CameraShotData,
+  entityIds: ReadonlySet<string>,
+  issues: ReferenceValidationIssue[],
+): void {
+  const path = `data/cameraShots/${shot.id}.json`;
+
+  if (shot.type === 'follow') {
+    addMissingEntityReference(shot.target, entityIds, `${path}.target`, 'camera target', issues);
+    return;
+  }
+
+  if (shot.type === 'lookAt') {
+    addCameraLookAtReferenceIssue(shot.target, entityIds, `${path}.target`, issues);
+    return;
+  }
+
+  if (shot.type === 'static') {
+    addCameraLookAtReferenceIssue(shot.pose.lookAt, entityIds, `${path}.pose.lookAt`, issues);
+    return;
+  }
+
+  shot.keys.forEach((key, index) =>
+    addCameraLookAtReferenceIssue(key.lookAt, entityIds, `${path}.keys.${index}.lookAt`, issues),
+  );
+}
+
+function addCameraLookAtReferenceIssue(
+  lookAt: CameraLookAtData | undefined,
+  entityIds: ReadonlySet<string>,
+  path: string,
+  issues: ReferenceValidationIssue[],
+): void {
+  if (!lookAt || Array.isArray(lookAt)) {
+    return;
+  }
+
+  addMissingEntityReference(lookAt, entityIds, path, 'camera lookAt target', issues);
 }
 
 function addMissingEntityReference(
@@ -232,6 +539,65 @@ function addMissingAssetIssue(
     path,
     message: `Missing asset "${assetId}".`,
   });
+}
+
+function addAssetTypeIssue(
+  assetId: string | undefined,
+  assets: AssetManifestData,
+  expectedType: string,
+  path: string,
+  issues: ReferenceValidationIssue[],
+): void {
+  if (!assetId) {
+    return;
+  }
+
+  const asset = assets.assets[assetId];
+
+  if (!asset || asset.type === expectedType) {
+    return;
+  }
+
+  issues.push({
+    severity: 'error',
+    path,
+    message: `Asset "${assetId}" must be type "${expectedType}", got "${asset.type}".`,
+  });
+}
+
+function addAnimationClipReferenceIssue(
+  entityId: string,
+  clip: string,
+  path: string,
+  assets: AssetManifestData,
+  entityModelAssetIds: ReadonlyMap<string, string>,
+  issues: ReferenceValidationIssue[],
+): void {
+  const assetId = entityModelAssetIds.get(entityId);
+  const clips = assetId ? getModelClipMetadata(assets, assetId) : undefined;
+
+  if (!assetId || !clips || clips.has(clip)) {
+    return;
+  }
+
+  issues.push({
+    severity: 'error',
+    path,
+    message: `Animation clip "${clip}" is not listed in metadata.clips for asset "${assetId}".`,
+  });
+}
+
+function getModelClipMetadata(
+  assets: AssetManifestData,
+  assetId: string,
+): ReadonlySet<string> | undefined {
+  const clips = assets.assets[assetId]?.metadata?.clips;
+
+  if (!Array.isArray(clips) || !clips.every((clip) => typeof clip === 'string')) {
+    return undefined;
+  }
+
+  return new Set(clips);
 }
 
 function addMissingSetReferences(

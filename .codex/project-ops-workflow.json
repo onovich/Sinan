@@ -56,7 +56,8 @@
     },
     "structureCheck": {
       "commands": [
-        "npm run validate-data"
+        "npm run validate-data",
+        "npm run migrate-data -- --check"
       ]
     },
     "codegen": {

@@ -2,8 +2,10 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { ActionSchema } from '../src/schemas/action.schema';
 import { AssetManifestSchema } from '../src/schemas/asset.schema';
 import { CameraShotSchema } from '../src/schemas/cameraShot.schema';
+import { TYPED_CONDITION_TYPES } from '../src/schemas/condition.schema';
 import { EventSchema } from '../src/schemas/event.schema';
 import { LevelSchema } from '../src/schemas/level.schema';
 import { PrefabSchema } from '../src/schemas/prefab.schema';
@@ -23,15 +25,20 @@ async function main(): Promise<void> {
   const levels = await readSchemaDirectory('data/levels', LevelSchema);
   const actionRegistry = createDefaultActionRegistry();
   const conditionRegistry = createDefaultConditionRegistry();
+  const availablePublicAssetUrls = await readPublicAssetUrls();
   const result = validateProject({
     assets,
+    availablePublicAssetUrls,
     availableEventIds: new Set(events.map((event) => event.id)),
     prefabs,
     levels,
+    cameraShots,
     events,
     timelines,
     availableTimelineIds: new Set(timelines.map((timeline) => timeline.id)),
     availableCameraShotIds: new Set(cameraShots.map((shot) => shot.id)),
+    schemaActionTypes: getActionSchemaTypes(),
+    schemaConditionTypes: new Set(TYPED_CONDITION_TYPES),
     registeredActionTypes: new Set(actionRegistry.types()),
     registeredConditionTypes: new Set(conditionRegistry.types()),
     registeredActionFunctionNames: new Set(actionRegistry.customFunctionNames()),
@@ -57,6 +64,53 @@ async function readJson(relativePath: string): Promise<unknown> {
   const raw = await readFile(absolutePath, 'utf8');
 
   return JSON.parse(raw) as unknown;
+}
+
+async function readPublicAssetUrls(): Promise<ReadonlySet<string>> {
+  const publicRoot = path.join(repoRoot, 'public');
+  const urls = new Set<string>();
+
+  await collectPublicFileUrls(publicRoot, publicRoot, urls);
+
+  return urls;
+}
+
+async function collectPublicFileUrls(
+  publicRoot: string,
+  currentPath: string,
+  urls: Set<string>,
+): Promise<void> {
+  let entries;
+
+  try {
+    entries = await readdir(currentPath, { withFileTypes: true });
+  } catch (error) {
+    if (isNodeError(error) && error.code === 'ENOENT') {
+      return;
+    }
+
+    throw error;
+  }
+
+  for (const entry of entries) {
+    const absolutePath = path.join(currentPath, entry.name);
+
+    if (entry.isDirectory()) {
+      await collectPublicFileUrls(publicRoot, absolutePath, urls);
+    } else if (entry.isFile()) {
+      urls.add(`/${toPosixPath(path.relative(publicRoot, absolutePath))}`);
+    }
+  }
+}
+
+function getActionSchemaTypes(): ReadonlySet<string> {
+  type ActionSchemaOption = { shape: { type: { value: string } } };
+
+  return new Set(
+    ActionSchema.options.map(
+      (option) => (option as unknown as ActionSchemaOption).shape.type.value,
+    ),
+  );
 }
 
 async function readSchemaDirectory<T>(
@@ -92,6 +146,10 @@ async function readJsonFileNames(absolutePath: string): Promise<string[]> {
 
 function isNodeError(error: unknown): error is NodeJS.ErrnoException {
   return error instanceof Error && 'code' in error;
+}
+
+function toPosixPath(value: string): string {
+  return value.replaceAll(path.sep, '/');
 }
 
 void main().catch((error: unknown) => {

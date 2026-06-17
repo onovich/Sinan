@@ -41,6 +41,22 @@ This document tracks Phase 12 authoring workflow and data safety behavior.
 - Save failures from local schema validation or the dev save API are surfaced in the top project toolbar or the selected event, timeline, and camera shot panels.
 - Dirty state is derived from last-saved JSON snapshots for level, event, timeline, and camera shot data. Undoing or redoing back to saved content returns the affected domain to `Clean`; successful saves refresh only the saved snapshot for that domain.
 
+## Migration Workflow
+
+- Data migrations live under `src/migrations/**`; the first migration adds `schemaVersion: 1` to pre-versioned project JSON.
+- `npm run migrate-data -- --check` verifies all known `data/**/*.json` files are already at the current schema version without writing.
+- `npm run migrate-data -- --write` applies pending migrations and writes pretty JSON with a trailing newline.
+- Migration output is validated with the destination Zod schema before it is reported or written.
+- New migrations must be deterministic, data-only, renderer-neutral, and covered by tests before use on repository data.
+
+## Stronger Validation Reports
+
+- `validate-data` now checks asset URLs are root-relative public paths, use type-appropriate extensions, and point to files under `public/`.
+- Prefab, entity renderable, sound action, and sound track references check asset type as well as asset id existence.
+- Timeline tracks, action references, condition entity references, camera shot targets, duplicate timeline track ids, duplicate camera shot ids, and animation clip metadata are validated.
+- Animation clip checks are metadata-aware: they only reject a clip when the referenced model asset declares `metadata.clips` and the clip is absent.
+- Registry coverage compares action and condition schema types against the default registries, and still validates `function.call` and `custom.condition` whitelist names when those JSON hooks are used.
+
 ## Current Smoke Coverage
 
 - Browser smoke selects `switch_a`, edits the `Interactable.prompt` field, checks the level dirty state, and verifies undo/redo restores the prompt value.
@@ -49,7 +65,7 @@ This document tracks Phase 12 authoring workflow and data safety behavior.
 - Browser smoke adds, reorders, removes, undoes, and redoes a camera shot keyframe.
 - Browser smoke verifies the dev save API rejects a schema-invalid event payload and that undoing event and level edits back to saved content restores `Clean` status.
 
-## Remaining Phase 12 Work
+## Phase 12 Gate Status
 
-- Migration scaffolding and migration tests.
-- Stronger asset/reference/registry validation reports.
+- Phase 12 implementation work is complete once validation, smoke, and architecture boundary checks pass for this checkpoint.
+- Phase 13 should begin with expanded browser smoke and automated boundary checks.

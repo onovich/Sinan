@@ -12,7 +12,8 @@
     "npm run lint",
     "npm run build",
     "npm run test",
-    "npm run validate-data"
+    "npm run validate-data",
+    "npm run migrate-data -- --check"
   ],
   "stagingPolicy": "all changes",
   "commitCommand": "",

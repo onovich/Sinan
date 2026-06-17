@@ -7,6 +7,8 @@ import type { ReferenceValidationIssue } from './ReferenceResolver';
 export interface RegistryCoverageValidationInput {
   events?: readonly EventData[];
   timelines?: readonly TimelineData[];
+  schemaActionTypes?: ReadonlySet<string>;
+  schemaConditionTypes?: ReadonlySet<string>;
   registeredActionTypes?: ReadonlySet<string>;
   registeredConditionTypes?: ReadonlySet<string>;
   registeredActionFunctionNames?: ReadonlySet<string>;
@@ -17,6 +19,19 @@ export function validateRegistryCoverage(
   input: RegistryCoverageValidationInput,
 ): ReferenceValidationIssue[] {
   const issues: ReferenceValidationIssue[] = [];
+
+  addSchemaRegistryCoverageIssues(
+    input.schemaActionTypes,
+    input.registeredActionTypes,
+    'action',
+    issues,
+  );
+  addSchemaRegistryCoverageIssues(
+    input.schemaConditionTypes,
+    input.registeredConditionTypes,
+    'condition',
+    issues,
+  );
 
   for (const event of input.events ?? []) {
     for (const [index, action] of event.actions.entries()) {
@@ -50,6 +65,41 @@ export function validateRegistryCoverage(
   }
 
   return issues;
+}
+
+function addSchemaRegistryCoverageIssues(
+  schemaTypes: ReadonlySet<string> | undefined,
+  registeredTypes: ReadonlySet<string> | undefined,
+  label: 'action' | 'condition',
+  issues: ReferenceValidationIssue[],
+): void {
+  if (!schemaTypes || !registeredTypes) {
+    return;
+  }
+
+  for (const type of schemaTypes) {
+    if (!registeredTypes.has(type)) {
+      issues.push({
+        severity: 'error',
+        path: `${label}Registry`,
+        message: `${titleCase(label)} schema type "${type}" is not registered.`,
+      });
+    }
+  }
+
+  for (const type of registeredTypes) {
+    if (!schemaTypes.has(type)) {
+      issues.push({
+        severity: 'error',
+        path: `${label}Registry`,
+        message: `Registered ${label} type "${type}" is not in the schema.`,
+      });
+    }
+  }
+}
+
+function titleCase(value: string): string {
+  return value[0].toUpperCase() + value.slice(1);
 }
 
 function addTimelineTrackCoverageIssues(
