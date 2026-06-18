@@ -20,6 +20,8 @@ export interface AssetReportRow {
   type: AssetEntryData['type'];
   url: string;
   exists: boolean | undefined;
+  hasMetadata: boolean;
+  compressed: boolean;
   byteSize: number | undefined;
   sizeBudgetBytes: number | undefined;
   budgetDeltaBytes: number | undefined;
@@ -34,6 +36,15 @@ export interface AssetReportSummary {
   assetCount: number;
   totalBytes: number;
   totalBudgetBytes: number;
+  compressedAssetCount: number;
+  totalCompressedBytes: number;
+  sourceAssetCount: number;
+  totalSourceBytes: number;
+  budgetPassCount: number;
+  budgetFailCount: number;
+  budgetUnknownCount: number;
+  missingMetadataCount: number;
+  missingFileCount: number;
   issueCount: number;
 }
 
@@ -68,6 +79,23 @@ export function createAssetReport(input: AssetReportInput): AssetReport {
       assetCount: rows.length,
       totalBytes: rows.reduce((total, row) => total + (row.byteSize ?? 0), 0),
       totalBudgetBytes: rows.reduce((total, row) => total + (row.sizeBudgetBytes ?? 0), 0),
+      compressedAssetCount: rows.filter((row) => row.compressed).length,
+      totalCompressedBytes: rows
+        .filter((row) => row.compressed)
+        .reduce((total, row) => total + (row.byteSize ?? 0), 0),
+      sourceAssetCount: rows.filter((row) => !row.compressed).length,
+      totalSourceBytes: rows
+        .filter((row) => !row.compressed)
+        .reduce((total, row) => total + (row.byteSize ?? 0), 0),
+      budgetPassCount: rows.filter(
+        (row) => row.budgetDeltaBytes !== undefined && row.budgetDeltaBytes >= 0,
+      ).length,
+      budgetFailCount: rows.filter(
+        (row) => row.budgetDeltaBytes !== undefined && row.budgetDeltaBytes < 0,
+      ).length,
+      budgetUnknownCount: rows.filter((row) => row.budgetDeltaBytes === undefined).length,
+      missingMetadataCount: rows.filter((row) => !row.hasMetadata).length,
+      missingFileCount: rows.filter((row) => row.exists === false).length,
       issueCount: issues.length,
     },
     rows,
@@ -81,6 +109,12 @@ export function formatAssetReport(report: AssetReport): string {
     `Summary: ${report.summary.assetCount} assets, ${formatBytes(
       report.summary.totalBytes,
     )} used, ${formatBytes(report.summary.totalBudgetBytes)} budget, ${report.summary.issueCount} issues.`,
+    `Compression: ${report.summary.compressedAssetCount} compressed assets / ${formatBytes(
+      report.summary.totalCompressedBytes,
+    )}, ${report.summary.sourceAssetCount} source assets / ${formatBytes(
+      report.summary.totalSourceBytes,
+    )}.`,
+    `Budget: ${report.summary.budgetPassCount} pass, ${report.summary.budgetFailCount} fail, ${report.summary.budgetUnknownCount} unknown. Metadata missing: ${report.summary.missingMetadataCount}. Missing files: ${report.summary.missingFileCount}.`,
     '',
     '| Asset | Type | URL | Bytes | Budget | Delta | Compression | Material | Texture | Clips | Status |',
     '| --- | --- | --- | ---: | ---: | ---: | --- | --- | --- | --- | --- |',
@@ -120,6 +154,8 @@ function createAssetReportRow(
     type: asset.type,
     url: asset.url,
     exists: publicAssetByteSizes ? byteSize !== undefined : undefined,
+    hasMetadata: asset.metadata !== undefined,
+    compressed: asset.metadata?.compressed === true,
     byteSize,
     sizeBudgetBytes,
     budgetDeltaBytes,

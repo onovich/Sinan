@@ -36,15 +36,27 @@ describe('AssetReport', () => {
       assetCount: 1,
       totalBytes: 1596,
       totalBudgetBytes: 4096,
+      compressedAssetCount: 0,
+      totalCompressedBytes: 0,
+      sourceAssetCount: 1,
+      totalSourceBytes: 1596,
+      budgetPassCount: 1,
+      budgetFailCount: 0,
+      budgetUnknownCount: 0,
+      missingMetadataCount: 0,
+      missingFileCount: 0,
       issueCount: 0,
     });
     expect(report.rows[0]).toEqual(
       expect.objectContaining({
         assetId: 'model.switch_wall',
+        compressed: false,
+        hasMetadata: true,
         compression: 'none/source',
         status: 'ok',
       }),
     );
+    expect(formatAssetReport(report)).toContain('Budget: 1 pass, 0 fail, 0 unknown.');
     expect(formatAssetReport(report)).toContain(
       '| model.switch_wall | model | /models/props/switch_wall.glb | 1596 B | 4096 B | +2500 B | none/source | palette-toon | - | - | ok |',
     );

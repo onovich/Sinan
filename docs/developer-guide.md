@@ -69,6 +69,16 @@ Model assets are declared in `data/assets.manifest.json` with `type: "model"` an
     "type": "model",
     "url": "/models/props/door_wood.glb",
     "metadata": {
+      "category": "prop",
+      "materialProfile": "palette-toon",
+      "maxTriangles": 64,
+      "textureBudgetKb": 0,
+      "sizeBudgetBytes": 4096,
+      "compressed": false,
+      "compression": {
+        "codec": "none",
+        "status": "source"
+      },
       "clips": ["Open"]
     }
   }
@@ -81,8 +91,19 @@ Rules:
 - Store audio files under `public/audio/**`; use `.mp3`, `.ogg`, or `.wav`.
 - Use root-relative URLs such as `/models/props/door_wood.glb`; do not use `..`, backslashes, or protocol-relative URLs.
 - Use stable asset ids such as `model.door_wood` or `audio.switch_click`.
+- Declare `metadata.sizeBudgetBytes` for every asset. Model assets also declare `materialProfile`, `maxTriangles`, `textureBudgetKb`, `compressed`, and `compression`.
+- Texture/image assets declare `metadata.textureUsage` and `metadata.colorSpace`; color/emissive textures use `srgb`, while data-like textures use `linear` or `none`.
 - Put known animation clip names in `metadata.clips`. `validate-data` rejects timeline/action clip references only when metadata declares a clip list and the referenced clip is absent.
 - Generated blockout assets come from `npm run generate:dev-assets`; replace them with real art by keeping ids and URLs stable or updating all references together.
+
+Asset reporting:
+
+```powershell
+npm run report-assets
+npm run report-assets -- --json
+```
+
+The human report lists byte sizes, byte budgets, compression status, material profile, texture usage/colorSpace, clips, and per-asset status. The JSON report exposes the same summary, rows, and issues for future CI or release notes.
 
 GLB export guidance:
 

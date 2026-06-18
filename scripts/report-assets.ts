@@ -15,7 +15,11 @@ async function main(): Promise<void> {
     publicAssetByteSizes,
   });
 
-  console.log(formatAssetReport(report));
+  if (process.argv.includes('--json')) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    console.log(formatAssetReport(report));
+  }
 
   if (report.issues.length > 0) {
     process.exitCode = 1;

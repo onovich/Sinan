@@ -70,15 +70,24 @@ The first implementation should keep failures as validation errors for local dat
 Human output should include:
 
 - total asset count and total bytes;
+- compressed/source asset counts and byte totals;
+- default budget pass, fail, and unknown counts;
 - one row per asset with id, type, URL, actual bytes, budget bytes, delta, compression mode, and status;
 - texture rows include texture usage and color-space metadata when present;
 - grouped error lines for missing metadata, over-budget assets, missing files, and unsupported decoder declarations.
 
 Machine output should be available as JSON through a CLI flag so later CI or release notes can consume the same calculations without parsing text. The JSON should include:
 
-- `summary`: asset count, total bytes, total budget bytes, and error count;
+- `summary`: asset count, total bytes, total budget bytes, compressed/source byte totals, budget pass/fail/unknown counts, missing metadata count, missing file count, and error count;
 - `assets`: normalized per-asset rows;
 - `issues`: path, severity, asset id, and message.
+
+Command examples:
+
+```powershell
+npm run report-assets
+npm run report-assets -- --json
+```
 
 The current five assets should report as five rows with actual byte sizes taken from `public/`; after the metadata pass they should all be within budget.
 
