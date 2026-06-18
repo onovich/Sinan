@@ -46,6 +46,117 @@ describe('core data schemas', () => {
     expect(result.success).toBe(true);
   });
 
+  it('parses typed asset metadata', () => {
+    const result = AssetManifestSchema.safeParse({
+      schemaVersion: 1,
+      assets: {
+        'model.door_wood': {
+          type: 'model',
+          url: '/models/props/door_wood.glb',
+          metadata: {
+            category: 'prop',
+            materialProfile: 'palette-toon',
+            maxTriangles: 512,
+            textureBudgetKb: 256,
+            sizeBudgetBytes: 16384,
+            compressed: false,
+            compression: {
+              codec: 'draco',
+              status: 'ready',
+              decoder: 'draco',
+            },
+            lodGroup: 'gate-demo-props',
+            instancing: 'eligible',
+            clips: ['Open'],
+            source: {
+              generated: true,
+              authoringTool: 'Sinan development GLB generator',
+            },
+            extras: {
+              reviewer: 'phase-17',
+            },
+          },
+        },
+        'texture.noise': {
+          type: 'texture',
+          url: '/textures/noise.webp',
+          metadata: {
+            category: 'texture',
+            textureUsage: 'noise',
+            colorSpace: 'linear',
+          },
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects unknown asset metadata fields outside extras', () => {
+    const result = AssetManifestSchema.safeParse({
+      schemaVersion: 1,
+      assets: {
+        'model.door_wood': {
+          type: 'model',
+          url: '/models/props/door_wood.glb',
+          metadata: {
+            triangleCount: 12,
+          },
+        },
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects invalid asset budgets and compression metadata', () => {
+    const result = AssetManifestSchema.safeParse({
+      schemaVersion: 1,
+      assets: {
+        'model.door_wood': {
+          type: 'model',
+          url: '/models/props/door_wood.glb',
+          metadata: {
+            maxTriangles: -1,
+            textureBudgetKb: -1,
+            sizeBudgetBytes: -1,
+            compression: {
+              codec: 'zip',
+            },
+          },
+        },
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects invalid texture usage and color space combinations', () => {
+    const result = AssetManifestSchema.safeParse({
+      schemaVersion: 1,
+      assets: {
+        'texture.albedo': {
+          type: 'texture',
+          url: '/textures/albedo.webp',
+          metadata: {
+            textureUsage: 'color',
+            colorSpace: 'linear',
+          },
+        },
+        'texture.mask': {
+          type: 'texture',
+          url: '/textures/mask.webp',
+          metadata: {
+            textureUsage: 'mask',
+            colorSpace: 'srgb',
+          },
+        },
+      },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it('rejects asset entries without urls', () => {
     const result = AssetManifestSchema.safeParse({
       schemaVersion: 1,

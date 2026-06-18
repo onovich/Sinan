@@ -35,6 +35,8 @@ Each manifest entry keeps `type` and `url` required. Phase 17 will replace loose
 
 - `clips`: model animation clip names used by event/timeline validation.
 - `sizeBudgetBytes`: optional per-asset byte budget checked against the resolved `public` file.
+- `textureUsage`: optional texture intent such as color, emissive, normal, mask, noise, or data.
+- `colorSpace`: optional texture color-space metadata; color/emissive textures use `srgb`, while data-like textures avoid `srgb`.
 - `compression`: optional declared compression readiness for model assets.
 - `notes`: optional short author-facing notes for manual asset review.
 
@@ -69,6 +71,7 @@ Human output should include:
 
 - total asset count and total bytes;
 - one row per asset with id, type, URL, actual bytes, budget bytes, delta, compression mode, and status;
+- texture rows include texture usage and color-space metadata when present;
 - grouped error lines for missing metadata, over-budget assets, missing files, and unsupported decoder declarations.
 
 Machine output should be available as JSON through a CLI flag so later CI or release notes can consume the same calculations without parsing text. The JSON should include:
