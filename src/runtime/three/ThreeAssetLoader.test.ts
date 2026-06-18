@@ -3,12 +3,23 @@ import { describe, expect, it } from 'vitest';
 
 import {
   cloneLoadedModelScene,
+  GltfThreeModelLoader,
   ThreeAssetLoader,
   type ThreeModelLoader,
   type ThreeModelLoadResult,
 } from './ThreeAssetLoader';
 
 describe('ThreeAssetLoader', () => {
+  it('keeps GLTF compression hooks optional by default', () => {
+    const loader = new GltfThreeModelLoader();
+
+    expect(loader.compressionStatus).toMatchObject({
+      draco: 'not-configured',
+      meshopt: 'not-configured',
+      ktx2: 'not-configured',
+    });
+  });
+
   it('loads a GLB model once and returns cached loaded state', async () => {
     const loadResult = createLoadResult('DoorRoot', [new THREE.AnimationClip('Open', 1, [])]);
     const loader = new FakeModelLoader(() => Promise.resolve(loadResult));

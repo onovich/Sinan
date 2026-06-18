@@ -3,6 +3,12 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
+import {
+  configureCompressedGltfLoader,
+  type CompressionCapableGltfLoader,
+  type ThreeCompressedAssetLoaderStatus,
+  type ThreeGltfCompressionConfig,
+} from './ThreeCompressedAssetLoader';
 import { cloneRenderableResources, disposeObjectTree } from './ThreeObjectResources';
 
 export interface ThreeLoadedModelAsset {
@@ -43,9 +49,14 @@ export type ThreeModelAssetState =
 
 export class GltfThreeModelLoader implements ThreeModelLoader {
   private readonly loader: GLTFLoader;
+  readonly compressionStatus: ThreeCompressedAssetLoaderStatus;
 
-  constructor(loader = new GLTFLoader()) {
+  constructor(loader = new GLTFLoader(), compressionConfig: ThreeGltfCompressionConfig = {}) {
     this.loader = loader;
+    this.compressionStatus = configureCompressedGltfLoader(
+      loader as unknown as CompressionCapableGltfLoader,
+      compressionConfig,
+    );
   }
 
   async load(url: string): Promise<ThreeModelLoadResult> {

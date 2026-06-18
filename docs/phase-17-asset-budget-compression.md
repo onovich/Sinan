@@ -97,10 +97,13 @@ Runtime behavior stays stable while loader strategy becomes explicit:
 
 - default model loading continues through `GLTFLoader` in `src/runtime/three/ThreeAssetLoader.ts`;
 - compression helpers and decoder configuration stay under `src/runtime/three/**`;
+- `src/runtime/three/ThreeCompressedAssetLoader.ts` configures optional Draco, Meshopt, and KTX2 hooks when factories and decoder/transcoder paths are supplied;
 - unsupported or unavailable decoder states must fail into the existing asset-loader failure path, preserving placeholder fallback behavior in the editor/runtime;
 - cache semantics stay keyed by asset id and URL, with compression strategy changes considered part of the loader input only when they affect the fetched representation.
 
 Phase 17 may add Draco or Meshopt readiness metadata and tests, but it does not need to ship compressed replacement assets. The phase is successful when the manifest, report, validation, and runtime fallback path can distinguish compressed-ready, uncompressed, missing decoder, and failed-load states without breaking the current GLB demo.
+
+Texture `metadata.textureUsage` and `metadata.colorSpace` stay renderer-neutral. Phase 18 can map those values to Three texture color-space constants inside `src/runtime/three/**` without exposing Three constants in JSON data.
 
 ## Non-Scope
 
