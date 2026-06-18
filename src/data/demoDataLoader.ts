@@ -4,6 +4,7 @@ import gateTriggerEnterEvent from '../../data/events/ev_gate_trigger_enter.json'
 import gateTriggerExitEvent from '../../data/events/ev_gate_trigger_exit.json';
 import switchEvent from '../../data/events/ev_switch_a_open_gate.json';
 import level01 from '../../data/levels/level_01.json';
+import world01Palette from '../../data/palettes/world_01.json';
 import doorWood from '../../data/prefabs/door_wood.json';
 import playerSpawn from '../../data/prefabs/player_spawn.json';
 import roomBlockout from '../../data/prefabs/room_blockout.json';
@@ -20,6 +21,7 @@ const demoJsonByPath: Record<string, unknown> = {
   'data/events/ev_gate_trigger_exit.json': gateTriggerExitEvent,
   'data/events/ev_switch_a_open_gate.json': switchEvent,
   'data/levels/level_01.json': level01,
+  'data/palettes/world_01.json': world01Palette,
   'data/prefabs/door_wood.json': doorWood,
   'data/prefabs/player_spawn.json': playerSpawn,
   'data/prefabs/room_blockout.json': roomBlockout,

@@ -9,6 +9,16 @@
     "scale": [1, 1, 1]
   },
   "components": {
+    "Renderable": {
+      "model": "model.player_spawn",
+      "renderStyle": {
+        "profile": "palette-toon",
+        "palette": "world_01",
+        "tone": "base",
+        "outline": "selected",
+        "highlight": "selected"
+      }
+    },
     "PlayerSpawn": {
       "kind": "default"
     }

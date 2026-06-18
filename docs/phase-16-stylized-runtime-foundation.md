@@ -110,6 +110,17 @@ The Three implementation should be small and disposable:
 - Failed GLB load: existing placeholder fallback must still work and accept style application.
 - Low-end mode: disable outline/highlight extras while preserving a readable palette or standard material.
 
+## Gate Demo Style Pass
+
+Round 16.7 applies the first data-backed style pass to existing Gate Demo prefabs:
+
+- `room_blockout`: `palette-toon` with `world_01.neutral`, no outline/highlight.
+- `switch_wall`: `palette-toon` with `world_01.accent`, interactable outline, selected highlight.
+- `door_wood`: `palette-toon` with `world_01.warm`, selected outline/highlight.
+- `player_spawn`: `palette-toon` with `world_01.base`, selected outline/highlight.
+
+The level entity ids, prefab ids, model asset ids, event ids, timeline ids, and camera shot ids remain unchanged. Trigger helpers remain debug AABB overlays instead of gameplay meshes.
+
 ## Tests And Validation Strategy
 
 Targeted tests by layer:

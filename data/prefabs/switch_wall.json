@@ -10,7 +10,14 @@
   },
   "components": {
     "Renderable": {
-      "model": "model.switch_wall"
+      "model": "model.switch_wall",
+      "renderStyle": {
+        "profile": "palette-toon",
+        "palette": "world_01",
+        "tone": "accent",
+        "outline": "interactable",
+        "highlight": "selected"
+      }
     },
     "Switch": {
       "initialState": false

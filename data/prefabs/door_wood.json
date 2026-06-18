@@ -10,7 +10,14 @@
   },
   "components": {
     "Renderable": {
-      "model": "model.door_wood"
+      "model": "model.door_wood",
+      "renderStyle": {
+        "profile": "palette-toon",
+        "palette": "world_01",
+        "tone": "warm",
+        "outline": "selected",
+        "highlight": "selected"
+      }
     },
     "Door": {
       "locked": true,

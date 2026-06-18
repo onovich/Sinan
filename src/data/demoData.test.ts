@@ -6,6 +6,7 @@ import gateTriggerEnterEvent from '../../data/events/ev_gate_trigger_enter.json'
 import gateTriggerExitEvent from '../../data/events/ev_gate_trigger_exit.json';
 import switchEvent from '../../data/events/ev_switch_a_open_gate.json';
 import level01 from '../../data/levels/level_01.json';
+import world01Palette from '../../data/palettes/world_01.json';
 import doorWood from '../../data/prefabs/door_wood.json';
 import playerSpawn from '../../data/prefabs/player_spawn.json';
 import roomBlockout from '../../data/prefabs/room_blockout.json';
@@ -17,6 +18,7 @@ import { AssetManifestSchema } from '../schemas/asset.schema';
 import { CameraShotSchema } from '../schemas/cameraShot.schema';
 import { EventSchema } from '../schemas/event.schema';
 import { LevelSchema } from '../schemas/level.schema';
+import { PaletteSchema } from '../schemas/palette.schema';
 import { PrefabSchema } from '../schemas/prefab.schema';
 import { TimelineSchema } from '../schemas/timeline.schema';
 
@@ -28,6 +30,7 @@ describe('demo project data', () => {
     expect(PrefabSchema.safeParse(switchWall).success).toBe(true);
     expect(PrefabSchema.safeParse(doorWood).success).toBe(true);
     expect(PrefabSchema.safeParse(triggerBox).success).toBe(true);
+    expect(PaletteSchema.safeParse(world01Palette).success).toBe(true);
     expect(CameraShotSchema.safeParse(gateRevealCameraShot).success).toBe(true);
     expect(EventSchema.safeParse(switchEvent).success).toBe(true);
     expect(EventSchema.safeParse(gateTriggerEnterEvent).success).toBe(true);
@@ -40,6 +43,7 @@ describe('demo project data', () => {
     const project = await createDemoDataRepository().loadProjectLevel('level_01');
 
     expect(project.prefabs.trigger_box).toBeDefined();
+    expect(project.palettes.world_01).toBeDefined();
     expect(project.events.ev_gate_trigger_enter).toBeDefined();
     expect(project.events.ev_gate_trigger_exit).toBeDefined();
   });
