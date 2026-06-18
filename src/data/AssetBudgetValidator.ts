@@ -7,7 +7,9 @@ export interface AssetBudgetValidationInput {
   availablePublicAssetByteSizes?: ReadonlyMap<string, number>;
 }
 
-export function validateAssetBudgets(input: AssetBudgetValidationInput): ReferenceValidationIssue[] {
+export function validateAssetBudgets(
+  input: AssetBudgetValidationInput,
+): ReferenceValidationIssue[] {
   const issues: ReferenceValidationIssue[] = [];
 
   for (const [assetId, asset] of Object.entries(input.assets.assets)) {
@@ -68,7 +70,12 @@ function addTypeSpecificMetadataIssues(
   issues: ReferenceValidationIssue[],
 ): void {
   if (type === 'model') {
-    addRequiredMetadataIssue(assetId, metadata.maxTriangles, `${metadataPath}.maxTriangles`, issues);
+    addRequiredMetadataIssue(
+      assetId,
+      metadata.maxTriangles,
+      `${metadataPath}.maxTriangles`,
+      issues,
+    );
     addRequiredMetadataIssue(
       assetId,
       metadata.textureBudgetKb,
