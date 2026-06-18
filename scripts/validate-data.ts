@@ -1,4 +1,4 @@
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,10 +27,11 @@ async function main(): Promise<void> {
   const levels = await readSchemaDirectory('data/levels', LevelSchema);
   const actionRegistry = createDefaultActionRegistry();
   const conditionRegistry = createDefaultConditionRegistry();
-  const availablePublicAssetUrls = await readPublicAssetUrls();
+  const publicAssets = await readPublicAssets();
   const result = validateProject({
     assets,
-    availablePublicAssetUrls,
+    availablePublicAssetUrls: publicAssets.urls,
+    availablePublicAssetByteSizes: publicAssets.byteSizes,
     availableEventIds: new Set(events.map((event) => event.id)),
     prefabs,
     levels,
@@ -69,19 +70,24 @@ async function readJson(relativePath: string): Promise<unknown> {
   return JSON.parse(raw) as unknown;
 }
 
-async function readPublicAssetUrls(): Promise<ReadonlySet<string>> {
+async function readPublicAssets(): Promise<{
+  urls: ReadonlySet<string>;
+  byteSizes: ReadonlyMap<string, number>;
+}> {
   const publicRoot = path.join(repoRoot, 'public');
   const urls = new Set<string>();
+  const byteSizes = new Map<string, number>();
 
-  await collectPublicFileUrls(publicRoot, publicRoot, urls);
+  await collectPublicFileUrls(publicRoot, publicRoot, urls, byteSizes);
 
-  return urls;
+  return { urls, byteSizes };
 }
 
 async function collectPublicFileUrls(
   publicRoot: string,
   currentPath: string,
   urls: Set<string>,
+  byteSizes: Map<string, number>,
 ): Promise<void> {
   let entries;
 
@@ -99,9 +105,13 @@ async function collectPublicFileUrls(
     const absolutePath = path.join(currentPath, entry.name);
 
     if (entry.isDirectory()) {
-      await collectPublicFileUrls(publicRoot, absolutePath, urls);
+      await collectPublicFileUrls(publicRoot, absolutePath, urls, byteSizes);
     } else if (entry.isFile()) {
-      urls.add(`/${toPosixPath(path.relative(publicRoot, absolutePath))}`);
+      const url = `/${toPosixPath(path.relative(publicRoot, absolutePath))}`;
+      const fileStat = await stat(absolutePath);
+
+      urls.add(url);
+      byteSizes.set(url, fileStat.size);
     }
   }
 }

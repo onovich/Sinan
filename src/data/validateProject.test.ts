@@ -8,12 +8,33 @@ import type { PrefabData } from '../schemas/prefab.schema';
 import type { TimelineData } from '../schemas/timeline.schema';
 import { validateProject } from './validateProject';
 
+type AssetMetadata = NonNullable<AssetManifestData['assets'][string]['metadata']>;
+
+const modelMetadata: AssetMetadata = {
+  category: 'prop',
+  materialProfile: 'palette-toon',
+  maxTriangles: 64,
+  textureBudgetKb: 0,
+  sizeBudgetBytes: 4096,
+  compressed: false,
+  compression: {
+    codec: 'none',
+    status: 'source',
+  },
+};
+
+const audioMetadata: AssetMetadata = {
+  category: 'audio',
+  sizeBudgetBytes: 4096,
+};
+
 const assets: AssetManifestData = {
   schemaVersion: 1,
   assets: {
     'model.switch_wall': {
       type: 'model',
       url: '/models/props/switch_wall.glb',
+      metadata: modelMetadata,
     },
   },
 };
@@ -186,6 +207,57 @@ describe('validateProject', () => {
     );
   });
 
+  it('reports missing asset metadata, over-budget files, and unsupported material profiles', () => {
+    const issues = validateProject({
+      assets: {
+        schemaVersion: 1,
+        assets: {
+          'model.no_metadata': {
+            type: 'model',
+            url: '/models/no-metadata.glb',
+          },
+          'audio.over_budget': {
+            type: 'audio',
+            url: '/audio/over-budget.wav',
+            metadata: {
+              ...audioMetadata,
+              sizeBudgetBytes: 10,
+            },
+          },
+          'model.bad_profile': {
+            type: 'model',
+            url: '/models/bad-profile.glb',
+            metadata: {
+              ...modelMetadata,
+              materialProfile: 'shader-toon',
+            },
+          },
+        },
+      },
+      prefabs: [],
+      levels: [],
+      availablePublicAssetByteSizes: new Map([['/audio/over-budget.wav', 20]]),
+    }).issues;
+
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: 'data/assets.manifest.json.assets.model.no_metadata.metadata',
+          message: 'Asset "model.no_metadata" is missing metadata.',
+        }),
+        expect.objectContaining({
+          path: 'data/assets.manifest.json.assets.audio.over_budget.metadata.sizeBudgetBytes',
+          message:
+            'Asset "audio.over_budget" is over byte budget: 20 bytes used, 10 bytes declared.',
+        }),
+        expect.objectContaining({
+          path: 'data/assets.manifest.json.assets.model.bad_profile.metadata.materialProfile',
+          message: 'Asset "model.bad_profile" has unsupported materialProfile "shader-toon".',
+        }),
+      ]),
+    );
+  });
+
   it('reports duplicate entity ids', () => {
     const issues = validateProject({
       assets,
@@ -253,6 +325,7 @@ describe('validateProject', () => {
           type: 'model',
           url: '/models/props/door_wood.glb',
           metadata: {
+            ...modelMetadata,
             clips: ['Open'],
           },
         },
