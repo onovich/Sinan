@@ -114,6 +114,52 @@ GLB export guidance:
 - Keep the useful mesh origin and transform clean before export. Entity placement should still live in `data/levels/*.json`, not be baked into every scene file.
 - If an asset is missing or invalid, `ThreeRuntime` falls back to deterministic placeholder geometry and logs a warning.
 
+Suggested authoring flow:
+
+1. Create or update the asset in Blender or another DCC tool.
+2. Apply transforms, keep the mesh origin meaningful, and name exported nodes/clips deliberately.
+3. Export `.glb` to a stable path under `public/models/**`, or export audio to `public/audio/**`.
+4. Update `data/assets.manifest.json` while keeping existing asset ids stable when replacing art.
+5. Fill in metadata:
+   - `category`: broad authoring bucket such as `environment`, `prop`, `marker`, `audio`, or `texture`.
+   - `materialProfile`: current render style profile for model assets, usually `standard` or `palette-toon`.
+   - `maxTriangles`: declared triangle budget for the model source.
+   - `textureBudgetKb`: declared texture budget for textures used by the model; use `0` for generated untextured placeholder GLBs.
+   - `sizeBudgetBytes`: byte budget for the resolved file under `public/`.
+   - `textureUsage` and `colorSpace`: required for texture/image assets; use `srgb` for color/emissive textures and `linear` or `none` for normal, mask, noise, occlusion, or data textures.
+   - `compression`: model compression readiness. Current dev assets use `{"codec": "none", "status": "source"}`. Use `ready` only for optional readiness and `required` only when the runtime has decoder support.
+   - `textureCompression`: KTX2/Basis readiness for texture/image assets, separate from `textureUsage` and `colorSpace`.
+   - `clips`: known animation clips.
+   - `source` and `notes`: authoring provenance and short review notes.
+6. Run `npm run report-assets`, `npm run validate-data`, and `npm run test` before committing.
+
+Optional optimization recommendations:
+
+- The project does not require glTF Transform as a local dependency. If you already have `gltf-transform` available, use it to inspect and optimize assets before updating budgets.
+- Example inspection command:
+
+```powershell
+gltf-transform inspect public/models/props/door_wood.glb
+```
+
+- Example optimization shape, adjusted per asset:
+
+```powershell
+gltf-transform optimize public/models/props/door_wood.glb public/models/props/door_wood.glb --compress draco
+```
+
+- Do not mark `compression.status` as `required` until the repository has the matching decoder strategy configured and validation/reporting passes.
+- Phase 17 does not add ShaderMaterial, material timeline tracks, LOD switching, instancing, spherical-world placement, gameplay, or multiplayer behavior.
+
+Common asset validation failures:
+
+- Missing file: the manifest URL does not resolve under `public/`.
+- Missing metadata: required budget metadata is absent.
+- Over budget: actual file bytes exceed `metadata.sizeBudgetBytes`.
+- Unsupported material profile: `metadata.materialProfile` is not a known render style profile.
+- Missing decoder: compression is marked `required` for a codec without configured runtime support.
+- Invalid texture metadata: color/emissive textures are not `srgb`, or data-like textures are marked `srgb`.
+
 ## Render Style Authoring
 
 Phase 16 adds data-driven render styles for the Gate Demo. Style data stays in schemas and JSON; Three.js material work stays in `src/runtime/three/**`.
