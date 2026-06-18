@@ -357,6 +357,37 @@ test('viewport navigation and numeric scrub inputs provide live interaction feed
   expect(browserErrors).toEqual([]);
 });
 
+test('styled runtime rendering is nonblank and low-end mode changes visible pixels', async ({
+  page,
+}) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/');
+  await expect(page.getByTestId('editor-shell')).toBeVisible();
+  const standardCanvas = await captureRuntimeCanvas(page);
+  const standardPixels = inspectPng(standardCanvas);
+  expect(standardPixels.sampledUniqueColors).toBeGreaterThan(8);
+  expect(standardPixels.maxLuma - standardPixels.minLuma).toBeGreaterThan(20);
+
+  await page.getByRole('button', { name: /^switch_a/ }).click();
+  await expect(page.locator('.selection-tag')).toContainText('switch_a');
+  await page.waitForTimeout(120);
+  const selectedCanvas = await page.locator('canvas.runtime-canvas').screenshot();
+  expect(sampleAveragePngDelta(standardCanvas, selectedCanvas)).toBeGreaterThan(0.05);
+
+  await page.goto('/?styleQuality=low-end');
+  await expect(page.getByTestId('editor-shell')).toBeVisible();
+  await page.getByRole('button', { name: /^switch_a/ }).click();
+  await expect(page.locator('.selection-tag')).toContainText('switch_a');
+  await page.waitForTimeout(120);
+  const lowEndCanvas = await captureRuntimeCanvas(page);
+  const lowEndPixels = inspectPng(lowEndCanvas);
+  expect(lowEndPixels.sampledUniqueColors).toBeGreaterThan(8);
+  expect(lowEndPixels.maxLuma - lowEndPixels.minLuma).toBeGreaterThan(20);
+  expect(sampleAveragePngDelta(selectedCanvas, lowEndCanvas)).toBeGreaterThan(0.2);
+  expect(browserErrors).toEqual([]);
+});
+
 test('transform gizmo previews inspector and overlay before commit', async ({ page }) => {
   const browserErrors = collectBrowserErrors(page);
 
@@ -1172,6 +1203,15 @@ async function readComputedStyleNumber(locator: Locator, property: string): Prom
 
 async function readInputNumber(locator: Locator): Promise<number> {
   return Number(await locator.inputValue());
+}
+
+async function captureRuntimeCanvas(page: Page): Promise<Buffer> {
+  await expect(page.locator('.viewport-status')).toContainText('runtime ready');
+  const canvas = page.locator('canvas.runtime-canvas');
+  await expect(canvas).toBeVisible();
+  await page.waitForTimeout(120);
+
+  return canvas.screenshot();
 }
 
 async function readTrackStartFromAria(locator: Locator): Promise<number> {
