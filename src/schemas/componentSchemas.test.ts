@@ -8,6 +8,18 @@ describe('component schemas', () => {
       true,
     );
     expect(
+      parseKnownComponentPayload('Renderable', {
+        model: 'model.switch_wall',
+        renderStyle: {
+          profile: 'palette-toon',
+          palette: 'world_01',
+          tone: 'accent',
+          outline: 'interactable',
+          highlight: 'selected',
+        },
+      })?.success,
+    ).toBe(true);
+    expect(
       parseKnownComponentPayload('Door', {
         locked: true,
         requiredKey: 'gate_key',
@@ -33,6 +45,14 @@ describe('component schemas', () => {
     expect(parseKnownComponentPayload('Door', { locked: true, openAngle: 270 })?.success).toBe(
       false,
     );
+    expect(
+      parseKnownComponentPayload('Renderable', {
+        model: 'model.switch_wall',
+        renderStyle: {
+          profile: 'shader-graph',
+        },
+      })?.success,
+    ).toBe(false);
     expect(
       parseKnownComponentPayload('Collider', {
         shape: 'aabb',

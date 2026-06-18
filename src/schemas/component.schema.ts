@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { AabbColliderComponentSchema, TriggerZoneComponentSchema } from './collider.schema';
 import { AssetIdSchema, ComponentTypeSchema } from './common.schema';
+import { RenderStyleSchema } from './renderStyle.schema';
 
 export const ComponentPayloadSchema = z.record(z.string(), z.unknown());
 export const ComponentMapSchema = z.record(ComponentTypeSchema, ComponentPayloadSchema);
@@ -9,6 +10,7 @@ export const ComponentMapSchema = z.record(ComponentTypeSchema, ComponentPayload
 export const RenderableComponentSchema = z
   .object({
     model: AssetIdSchema,
+    renderStyle: RenderStyleSchema.optional(),
   })
   .strict();
 
