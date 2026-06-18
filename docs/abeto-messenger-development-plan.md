@@ -140,7 +140,9 @@ Goal: make the current Gate Demo capable of switching from default Three.js bloc
 
 Estimated rounds: 4.
 
-Execution: `docs/phase-16-stylized-runtime-foundation-goal-mode-execution-guide.md` expands this into a 16-round goal-mode plan. Implementation notes and authoring guidance are captured in `docs/phase-16-stylized-runtime-foundation.md` and `docs/developer-guide.md`; final PASS/BLOCKED status is recorded in the Phase 16 final report after Round 16.16.
+Status: PASS. Final report: `docs/phase-16-stylized-runtime-foundation-final-report.md`.
+
+Execution: `docs/phase-16-stylized-runtime-foundation-goal-mode-execution-guide.md` expands this into a 16-round goal-mode plan. Implementation notes and authoring guidance are captured in `docs/phase-16-stylized-runtime-foundation.md` and `docs/developer-guide.md`.
 
 Scope:
 

@@ -1,7 +1,7 @@
 # Phase 16 Stylized Runtime Foundation Notes
 
 Date: 2026-06-18
-Status: Implemented through Round 16.12; buffer and final validation rounds remain.
+Status: PASS. Final report: `docs/phase-16-stylized-runtime-foundation-final-report.md`.
 
 Phase 16 starts from the accepted Phase 14 release-candidate baseline and the Phase 15 Abeto Scope Lock final report. Its implementation target is the existing Gate Demo, not a new world, gameplay layer, asset compression pipeline, LOD system, spherical world, Showcase Mode, or multiplayer feature.
 
