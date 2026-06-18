@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { AssetManifestData } from '../schemas/asset.schema';
 import type { EventData } from '../schemas/event.schema';
 import type { LevelData } from '../schemas/level.schema';
+import type { PaletteData } from '../schemas/palette.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 import type { TimelineData } from '../schemas/timeline.schema';
 import { validateProject } from './validateProject';
@@ -14,6 +15,15 @@ const assets: AssetManifestData = {
       type: 'model',
       url: '/models/props/switch_wall.glb',
     },
+  },
+};
+
+const palette: PaletteData = {
+  schemaVersion: 1,
+  id: 'world_01',
+  tones: {
+    base: '#76b28b',
+    accent: '#5aa7d6',
   },
 };
 
@@ -370,6 +380,116 @@ describe('validateProject', () => {
       expect.arrayContaining([
         'Unregistered action function "missing.function".',
         'Unregistered custom condition "missing.condition".',
+      ]),
+    );
+  });
+
+  it('validates render style palette references and default styles', () => {
+    const styledPrefab: PrefabData = {
+      ...switchPrefab,
+      components: {
+        Renderable: {
+          model: 'model.switch_wall',
+          renderStyle: {
+            profile: 'palette-toon',
+            palette: 'world_01',
+            tone: 'accent',
+          },
+        },
+      },
+    };
+    const defaultStylePrefab: PrefabData = {
+      ...switchPrefab,
+      id: 'switch_wall_default',
+      components: {
+        Renderable: {
+          model: 'model.switch_wall',
+          renderStyle: {
+            profile: 'standard',
+          },
+        },
+      },
+    };
+
+    expect(
+      validateProject({
+        assets,
+        prefabs: [styledPrefab, defaultStylePrefab],
+        levels: [level],
+        palettes: [palette],
+      }).issues,
+    ).toEqual([]);
+  });
+
+  it('reports missing render style palettes and tones with actionable paths', () => {
+    const styledLevel: LevelData = {
+      ...level,
+      entities: [
+        {
+          ...level.entities[0],
+          components: {
+            Renderable: {
+              model: 'model.switch_wall',
+              renderStyle: {
+                profile: 'palette-toon',
+                palette: 'missing_palette',
+                tone: 'accent',
+              },
+            },
+          },
+        },
+        {
+          id: 'switch_b',
+          prefab: 'switch_wall',
+          transform: level.entities[0].transform,
+          components: {
+            Renderable: {
+              model: 'model.switch_wall',
+              renderStyle: {
+                profile: 'palette-toon',
+                palette: 'world_01',
+                tone: 'missing_tone',
+              },
+            },
+          },
+        },
+        {
+          id: 'switch_c',
+          prefab: 'switch_wall',
+          transform: level.entities[0].transform,
+          components: {
+            Renderable: {
+              model: 'model.switch_wall',
+              renderStyle: {
+                profile: 'palette-toon',
+              },
+            },
+          },
+        },
+      ],
+    };
+
+    const issues = validateProject({
+      assets,
+      prefabs: [switchPrefab],
+      levels: [styledLevel],
+      palettes: [palette],
+    }).issues;
+
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: 'data/levels/level_01.json.entities.switch_a.components.Renderable.renderStyle.palette',
+          message: 'Missing palette "missing_palette".',
+        }),
+        expect.objectContaining({
+          path: 'data/levels/level_01.json.entities.switch_b.components.Renderable.renderStyle.tone',
+          message: 'Palette "world_01" is missing tone "missing_tone".',
+        }),
+        expect.objectContaining({
+          path: 'data/levels/level_01.json.entities.switch_c.components.Renderable.renderStyle.palette',
+          message: 'Render style profile "palette-toon" requires a palette.',
+        }),
       ]),
     );
   });

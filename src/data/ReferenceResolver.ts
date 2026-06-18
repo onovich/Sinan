@@ -4,9 +4,11 @@ import type { CameraShotData, CameraLookAtData } from '../schemas/cameraShot.sch
 import type { ConditionData } from '../schemas/condition.schema';
 import type { EventData } from '../schemas/event.schema';
 import type { LevelData } from '../schemas/level.schema';
+import type { PaletteData } from '../schemas/palette.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
+import { RenderStyleSchema, type RenderStyleData } from '../schemas/renderStyle.schema';
 import type { TimelineData, TimelineTrackData } from '../schemas/timeline.schema';
-import { getRenderableModelAssetId } from './projectDataSelectors';
+import { getComponentPayload, getRenderableModelAssetId } from './projectDataSelectors';
 
 export type ReferenceSeverity = 'error';
 
@@ -20,6 +22,7 @@ export interface ReferenceValidationInput {
   assets: AssetManifestData;
   prefabs: readonly PrefabData[];
   levels: readonly LevelData[];
+  palettes?: readonly PaletteData[];
   cameraShots?: readonly CameraShotData[];
   events?: readonly EventData[];
   timelines?: readonly TimelineData[];
@@ -34,6 +37,7 @@ export function validateProjectReferences(
   const issues: ReferenceValidationIssue[] = [];
   const prefabIds = new Set<string>();
   const assetIds = new Set(Object.keys(input.assets.assets));
+  const palettesById = new Map((input.palettes ?? []).map((palette) => [palette.id, palette]));
   const entityIds = new Set<string>();
   const entityModelAssetIds = new Map<string, string>();
 
@@ -65,6 +69,12 @@ export function validateProjectReferences(
       input.assets,
       'model',
       `data/prefabs/${prefab.id}.json.components.Renderable.model`,
+      issues,
+    );
+    addRenderableStyleIssues(
+      prefab.components.Renderable,
+      palettesById,
+      `data/prefabs/${prefab.id}.json.components.Renderable.renderStyle`,
       issues,
     );
   }
@@ -117,6 +127,12 @@ export function validateProjectReferences(
         input.assets,
         'model',
         `data/levels/${level.id}.json.entities.${entity.id}.components.Renderable.model`,
+        issues,
+      );
+      addRenderableStyleIssues(
+        getComponentPayload(entity.components, 'Renderable'),
+        palettesById,
+        `data/levels/${level.id}.json.entities.${entity.id}.components.Renderable.renderStyle`,
         issues,
       );
     }
@@ -622,6 +638,87 @@ function addMissingSetReferences(
   }
 }
 
+function addRenderableStyleIssues(
+  renderablePayload: unknown,
+  palettesById: ReadonlyMap<string, PaletteData>,
+  path: string,
+  issues: ReferenceValidationIssue[],
+): void {
+  if (!isRecord(renderablePayload) || !('renderStyle' in renderablePayload)) {
+    return;
+  }
+
+  const result = RenderStyleSchema.safeParse(renderablePayload.renderStyle);
+
+  if (!result.success) {
+    issues.push({
+      severity: 'error',
+      path,
+      message: `Invalid renderStyle: ${formatZodIssues(result.error.issues)}.`,
+    });
+    return;
+  }
+
+  addRenderStylePaletteIssues(result.data, palettesById, path, issues);
+}
+
+function addRenderStylePaletteIssues(
+  style: RenderStyleData,
+  palettesById: ReadonlyMap<string, PaletteData>,
+  path: string,
+  issues: ReferenceValidationIssue[],
+): void {
+  if (style.profile === 'palette-toon' && !style.palette) {
+    issues.push({
+      severity: 'error',
+      path: `${path}.palette`,
+      message: 'Render style profile "palette-toon" requires a palette.',
+    });
+  }
+
+  if (style.tone && !style.palette) {
+    issues.push({
+      severity: 'error',
+      path: `${path}.tone`,
+      message: `Render style tone "${style.tone}" requires a palette.`,
+    });
+    return;
+  }
+
+  if (!style.palette) {
+    return;
+  }
+
+  const palette = palettesById.get(style.palette);
+
+  if (!palette) {
+    issues.push({
+      severity: 'error',
+      path: `${path}.palette`,
+      message: `Missing palette "${style.palette}".`,
+    });
+    return;
+  }
+
+  if (style.tone && !Object.hasOwn(palette.tones, style.tone)) {
+    issues.push({
+      severity: 'error',
+      path: `${path}.tone`,
+      message: `Palette "${style.palette}" is missing tone "${style.tone}".`,
+    });
+  }
+}
+
+function formatZodIssues(issues: readonly { path: PropertyKey[]; message: string }[]): string {
+  return issues
+    .map((issue) => {
+      const issuePath = issue.path.join('.');
+
+      return issuePath ? `${issuePath}: ${issue.message}` : issue.message;
+    })
+    .join('; ');
+}
+
 function getPrefabRenderableModel(prefab: PrefabData): string | undefined {
   const renderable = prefab.components.Renderable;
 
@@ -635,4 +732,8 @@ function getPrefabRenderableModel(prefab: PrefabData): string | undefined {
   }
 
   return undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

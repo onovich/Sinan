@@ -2,6 +2,7 @@ import type { AssetManifestData } from '../schemas/asset.schema';
 import type { CameraShotData } from '../schemas/cameraShot.schema';
 import type { EventData } from '../schemas/event.schema';
 import type { LevelData } from '../schemas/level.schema';
+import type { PaletteData } from '../schemas/palette.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 import type { TimelineData } from '../schemas/timeline.schema';
 import { validateAssetUrls } from './AssetUrlValidator';
@@ -13,6 +14,7 @@ export interface ProjectValidationInput {
   assets: AssetManifestData;
   prefabs: readonly PrefabData[];
   levels: readonly LevelData[];
+  palettes?: readonly PaletteData[];
   cameraShots?: readonly CameraShotData[];
   events?: readonly EventData[];
   timelines?: readonly TimelineData[];
@@ -37,6 +39,7 @@ export function validateProject(input: ProjectValidationInput): ProjectValidatio
     assets: input.assets,
     prefabs: input.prefabs,
     levels: input.levels,
+    palettes: input.palettes,
     cameraShots: input.cameraShots,
     events: input.events,
     timelines: input.timelines,

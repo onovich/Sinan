@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "world_01",
+  "tones": {
+    "base": "#76b28b",
+    "accent": "#5aa7d6",
+    "warm": "#d6a15a",
+    "cool": "#6d8fd6",
+    "neutral": "#9fb0b7"
+  }
+}

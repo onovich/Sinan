@@ -8,6 +8,7 @@ import { CameraShotSchema } from '../src/schemas/cameraShot.schema';
 import { TYPED_CONDITION_TYPES } from '../src/schemas/condition.schema';
 import { EventSchema } from '../src/schemas/event.schema';
 import { LevelSchema } from '../src/schemas/level.schema';
+import { PaletteSchema } from '../src/schemas/palette.schema';
 import { PrefabSchema } from '../src/schemas/prefab.schema';
 import { TimelineSchema } from '../src/schemas/timeline.schema';
 import { validateProject } from '../src/data/validateProject';
@@ -21,6 +22,7 @@ async function main(): Promise<void> {
   const cameraShots = await readSchemaDirectory('data/cameraShots', CameraShotSchema);
   const events = await readSchemaDirectory('data/events', EventSchema);
   const timelines = await readSchemaDirectory('data/timelines', TimelineSchema);
+  const palettes = await readSchemaDirectory('data/palettes', PaletteSchema);
   const prefabs = await readSchemaDirectory('data/prefabs', PrefabSchema);
   const levels = await readSchemaDirectory('data/levels', LevelSchema);
   const actionRegistry = createDefaultActionRegistry();
@@ -32,6 +34,7 @@ async function main(): Promise<void> {
     availableEventIds: new Set(events.map((event) => event.id)),
     prefabs,
     levels,
+    palettes,
     cameraShots,
     events,
     timelines,
@@ -55,7 +58,7 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    `Data validation passed: ${prefabs.length} prefabs, ${levels.length} levels, ${events.length} events, ${timelines.length} timelines, ${cameraShots.length} camera shots, ${Object.keys(assets.assets).length} assets.`,
+    `Data validation passed: ${prefabs.length} prefabs, ${levels.length} levels, ${events.length} events, ${timelines.length} timelines, ${cameraShots.length} camera shots, ${palettes.length} palettes, ${Object.keys(assets.assets).length} assets.`,
   );
 }
 
