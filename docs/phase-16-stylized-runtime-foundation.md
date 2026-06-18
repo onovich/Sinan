@@ -121,6 +121,15 @@ Round 16.7 applies the first data-backed style pass to existing Gate Demo prefab
 
 The level entity ids, prefab ids, model asset ids, event ids, timeline ids, and camera shot ids remain unchanged. Trigger helpers remain debug AABB overlays instead of gameplay meshes.
 
+## Environment Style Pass
+
+Round 16.9 applies the first renderer-neutral level environment controls to the Gate Demo:
+
+- `level.environment.background` sets the Three scene background and renderer clear color.
+- `level.environment.fog` maps to a lightweight Three fog with disable support.
+- `level.environment.colorGrade` maps exposure and saturation to lightweight renderer/CSS controls without an EffectComposer path.
+- Editor helper roots are kept fog-readable so the grid, transform gizmo, and style helpers remain authoring aids.
+
 ## Tests And Validation Strategy
 
 Targeted tests by layer:

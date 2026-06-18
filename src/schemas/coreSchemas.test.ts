@@ -89,6 +89,17 @@ describe('core data schemas', () => {
       environment: {
         background: '#111111',
         ambientLight: 0.35,
+        fog: {
+          enabled: true,
+          color: '#162024',
+          near: 8,
+          far: 18,
+        },
+        colorGrade: {
+          enabled: true,
+          exposure: 1.05,
+          saturation: 1.08,
+        },
       },
       entities: [
         {
@@ -115,6 +126,42 @@ describe('core data schemas', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it('rejects invalid level environment render controls', () => {
+    const baseLevel = {
+      schemaVersion: 1,
+      id: 'level_01',
+      name: 'Gate Demo',
+      entities: [],
+      events: [],
+      timelines: [],
+      cameraShots: [],
+    };
+
+    expect(
+      LevelSchema.safeParse({
+        ...baseLevel,
+        environment: {
+          fog: {
+            enabled: true,
+            near: 20,
+            far: 8,
+          },
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      LevelSchema.safeParse({
+        ...baseLevel,
+        environment: {
+          colorGrade: {
+            enabled: true,
+            saturation: 4,
+          },
+        },
+      }).success,
+    ).toBe(false);
   });
 
   it('parses collider and trigger zone component payloads', () => {

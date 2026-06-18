@@ -11,10 +11,38 @@ import {
 } from './common.schema';
 import { EntitySchema } from './entity.schema';
 
+const LevelEnvironmentFogSchema = z
+  .object({
+    enabled: z.boolean().default(true),
+    color: HexColorSchema.optional(),
+    near: z.number().min(0).optional(),
+    far: z.number().positive().optional(),
+  })
+  .strict()
+  .superRefine((fog, context) => {
+    if (fog.near !== undefined && fog.far !== undefined && fog.far <= fog.near) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Fog far distance must be greater than near distance.',
+        path: ['far'],
+      });
+    }
+  });
+
+const LevelEnvironmentColorGradeSchema = z
+  .object({
+    enabled: z.boolean().default(true),
+    exposure: z.number().min(0).max(4).optional(),
+    saturation: z.number().min(0).max(3).optional(),
+  })
+  .strict();
+
 export const LevelEnvironmentSchema = z
   .object({
     background: HexColorSchema.optional(),
     ambientLight: z.number().min(0).max(10).optional(),
+    fog: LevelEnvironmentFogSchema.optional(),
+    colorGrade: LevelEnvironmentColorGradeSchema.optional(),
   })
   .strict();
 

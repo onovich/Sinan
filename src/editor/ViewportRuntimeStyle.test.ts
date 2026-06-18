@@ -32,6 +32,17 @@ describe('Viewport runtime style flow', () => {
         environment: {
           background: '#111111',
           ambientLight: 0.35,
+          fog: {
+            enabled: true,
+            color: '#162024',
+            near: 8,
+            far: 18,
+          },
+          colorGrade: {
+            enabled: true,
+            exposure: 1.05,
+            saturation: 1.08,
+          },
         },
         entities: [
           {
@@ -103,6 +114,17 @@ describe('Viewport runtime style flow', () => {
         environment: {
           background: '#111111',
           ambientLight: 0.35,
+          fog: {
+            enabled: true,
+            color: '#162024',
+            near: 8,
+            far: 18,
+          },
+          colorGrade: {
+            enabled: true,
+            exposure: 1.05,
+            saturation: 1.08,
+          },
         },
       },
       { type: 'loadModel', assetId: 'model.switch_wall', url: '/models/props/switch_wall.glb' },

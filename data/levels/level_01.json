@@ -4,7 +4,18 @@
   "name": "Gate Demo",
   "environment": {
     "background": "#111111",
-    "ambientLight": 0.35
+    "ambientLight": 0.35,
+    "fog": {
+      "enabled": true,
+      "color": "#162024",
+      "near": 8,
+      "far": 18
+    },
+    "colorGrade": {
+      "enabled": true,
+      "exposure": 1.05,
+      "saturation": 1.08
+    }
   },
   "entities": [
     {

@@ -30,6 +30,7 @@ import {
   type EditorCameraDragMode,
   type EditorCameraWheelInput,
 } from './EditorCameraController';
+import { applyThreeEnvironmentStyle } from './ThreeEnvironmentStyle';
 import { ThreeMaterialRegistry } from './ThreeMaterialRegistry';
 import { disposeObjectResources } from './ThreeObjectResources';
 import { pickThreeObject } from './ThreePicking';
@@ -55,6 +56,8 @@ export class ThreeRuntime implements WebRuntime {
   private scene: THREE.Scene | undefined;
   private objectRoot: THREE.Group | undefined;
   private styleHelperRoot: THREE.Group | undefined;
+  private editorHelperRoot: THREE.Group | undefined;
+  private ambientLight: THREE.HemisphereLight | undefined;
   private camera: THREE.PerspectiveCamera | undefined;
   private editorCamera: EditorCameraController | undefined;
   private transformControls: TransformControls | undefined;
@@ -109,6 +112,9 @@ export class ThreeRuntime implements WebRuntime {
     const styleHelperRoot = new THREE.Group();
     styleHelperRoot.name = 'style-helpers';
     scene.add(styleHelperRoot);
+    const editorHelperRoot = new THREE.Group();
+    editorHelperRoot.name = 'editor-helpers';
+    scene.add(editorHelperRoot);
 
     const camera = new THREE.PerspectiveCamera(64, this.width / this.height, 0.1, 1000);
     camera.position.set(4, 2.6, 0.35);
@@ -116,7 +122,7 @@ export class ThreeRuntime implements WebRuntime {
     const editorCamera = new EditorCameraController(camera);
 
     const grid = new THREE.GridHelper(18, 18, 0x668091, 0x263842);
-    scene.add(grid);
+    editorHelperRoot.add(grid);
 
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(18, 18),
@@ -148,17 +154,20 @@ export class ThreeRuntime implements WebRuntime {
     transformControls.addEventListener('mouseUp', () => {
       this.emitTransformGizmoChange('onCommit');
     });
-    scene.add(transformControlsHelper);
+    editorHelperRoot.add(transformControlsHelper);
 
     this.renderer = renderer;
     this.scene = scene;
     this.objectRoot = objectRoot;
     this.styleHelperRoot = styleHelperRoot;
+    this.editorHelperRoot = editorHelperRoot;
+    this.ambientLight = fillLight;
     this.camera = camera;
     this.editorCamera = editorCamera;
     this.styleDecorators = new ThreeStyleDecorators(styleHelperRoot);
     this.transformControls = transformControls;
     this.transformControlsHelper = transformControlsHelper;
+    this.applyRenderEnvironment();
   }
 
   async loadModel(assetId: string, url: string): Promise<ModelHandle> {
@@ -434,6 +443,7 @@ export class ThreeRuntime implements WebRuntime {
 
   setRenderEnvironment(environment: RuntimeRenderEnvironmentStyle | undefined): void {
     this.renderEnvironment = environment;
+    this.applyRenderEnvironment();
   }
 
   setStyleQualityProfile(profile: RuntimeStyleQualityProfile): void {
@@ -588,6 +598,8 @@ export class ThreeRuntime implements WebRuntime {
     this.scene = undefined;
     this.objectRoot = undefined;
     this.styleHelperRoot = undefined;
+    this.editorHelperRoot = undefined;
+    this.ambientLight = undefined;
     this.camera = undefined;
     this.editorCamera = undefined;
     this.styleDecorators = undefined;
@@ -628,6 +640,22 @@ export class ThreeRuntime implements WebRuntime {
 
     this.materialRegistry.applyStyle(object, this.renderStyleByEntityId.get(entityId));
     this.styleDecorators?.syncEntity(entityId, object, this.renderStyleByEntityId.get(entityId));
+  }
+
+  private applyRenderEnvironment(): void {
+    if (!this.scene || !this.renderer) {
+      return;
+    }
+
+    applyThreeEnvironmentStyle(
+      {
+        scene: this.scene,
+        renderer: this.renderer,
+        ambientLight: this.ambientLight,
+        helperRoots: [this.editorHelperRoot, this.styleHelperRoot],
+      },
+      this.renderEnvironment,
+    );
   }
 
   private emitTransformGizmoChange(callbackName: keyof TransformGizmoCallbacks): void {

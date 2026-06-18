@@ -558,5 +558,7 @@ function toRuntimeRenderEnvironment(
   return {
     background: environment.background,
     ambientLight: environment.ambientLight,
+    fog: environment.fog,
+    colorGrade: environment.colorGrade,
   };
 }
