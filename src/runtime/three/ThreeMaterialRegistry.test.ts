@@ -43,7 +43,7 @@ describe('ThreeMaterialRegistry', () => {
       },
     }).applyStyle(root, {
       profile: 'palette-toon',
-      palette: 'world_01',
+      palette: 'missing_world',
       tone: 'accent',
     });
 
@@ -53,8 +53,41 @@ describe('ThreeMaterialRegistry', () => {
       fallbackUsed: true,
     });
     expect(warnings).toEqual([
-      'Render style profile "palette-toon" is not implemented yet; using standard material fallback.',
+      'Render style profile "palette-toon" could not find palette "missing_world"; using standard material fallback.',
     ]);
+  });
+
+  it('applies a palette-toon material from named palette tones', () => {
+    const root = new THREE.Group();
+    const original = new THREE.MeshStandardMaterial({ color: 0x76b28b });
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), original);
+    root.add(mesh);
+
+    const result = new ThreeMaterialRegistry({
+      resources: {
+        palettes: {
+          world_01: {
+            id: 'world_01',
+            tones: {
+              accent: '#5aa7d6',
+            },
+          },
+        },
+      },
+    }).applyStyle(root, {
+      profile: 'palette-toon',
+      palette: 'world_01',
+      tone: 'accent',
+    });
+
+    expect(result).toEqual({
+      profile: 'palette-toon',
+      styledMeshCount: 1,
+      fallbackUsed: false,
+    });
+    const material = expectMeshToonMaterial(mesh.material);
+    expect(material.color.getHexString()).toBe('5aa7d6');
+    expect(mesh.userData.sinanRenderStyleProfile).toBe('palette-toon');
   });
 
   it('restores original materials and disposes replaced material resources', () => {
@@ -73,4 +106,54 @@ describe('ThreeMaterialRegistry', () => {
     expect(mesh.material).toBe(original);
     expect(replacementDispose).toHaveBeenCalledTimes(1);
   });
+
+  it('disposes previous styled materials when palette-toon style changes', () => {
+    const root = new THREE.Group();
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshStandardMaterial({ color: 0x76b28b }),
+    );
+    const registry = new ThreeMaterialRegistry({
+      resources: {
+        palettes: {
+          world_01: {
+            id: 'world_01',
+            tones: {
+              accent: '#5aa7d6',
+              warm: '#d6a15a',
+            },
+          },
+        },
+      },
+    });
+    root.add(mesh);
+
+    registry.applyStyle(root, {
+      profile: 'palette-toon',
+      palette: 'world_01',
+      tone: 'accent',
+    });
+    const firstStyledMaterial = mesh.material as THREE.Material;
+    const firstDispose = vi.spyOn(firstStyledMaterial, 'dispose');
+    registry.applyStyle(root, {
+      profile: 'palette-toon',
+      palette: 'world_01',
+      tone: 'warm',
+    });
+
+    expect(firstDispose).toHaveBeenCalledTimes(1);
+    expect(expectMeshToonMaterial(mesh.material).color.getHexString()).toBe('d6a15a');
+  });
 });
+
+function expectMeshToonMaterial(
+  material: THREE.Material | THREE.Material[],
+): THREE.MeshToonMaterial {
+  expect(material).toBeInstanceOf(THREE.MeshToonMaterial);
+
+  if (!(material instanceof THREE.MeshToonMaterial)) {
+    throw new Error('Expected a MeshToonMaterial.');
+  }
+
+  return material;
+}

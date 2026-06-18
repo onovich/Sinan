@@ -213,6 +213,7 @@ export class ThreeRuntime implements WebRuntime {
       return;
     }
 
+    this.materialRegistry.applyStyle(object, { profile: 'standard' });
     object.removeFromParent();
     object.traverse((child) => {
       disposeObjectResources(child);
@@ -561,6 +562,9 @@ export class ThreeRuntime implements WebRuntime {
     }
 
     this.disposed = true;
+    for (const object of this.objectByEntityId.values()) {
+      this.materialRegistry.applyStyle(object, { profile: 'standard' });
+    }
     this.scene?.traverse((object) => {
       disposeObjectResources(object);
     });
