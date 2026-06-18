@@ -38,6 +38,7 @@ Each manifest entry keeps `type` and `url` required. Phase 17 will replace loose
 - `textureUsage`: optional texture intent such as color, emissive, normal, mask, noise, or data.
 - `colorSpace`: optional texture color-space metadata; color/emissive textures use `srgb`, while data-like textures avoid `srgb`.
 - `compression`: optional declared compression readiness for model assets.
+- `textureCompression`: optional declared KTX2/Basis readiness for texture/image assets, kept separate from `textureUsage` and `colorSpace`.
 - `notes`: optional short author-facing notes for manual asset review.
 
 Compression metadata is descriptive and deterministic. It must not embed arbitrary scripts, functions, decoder code, or generated runtime behavior in data.
@@ -59,7 +60,14 @@ Validation states:
 - Missing metadata: an asset has no required budget metadata once Phase 17 enforcement is enabled.
 - Over budget: resolved public file size exceeds the declared `sizeBudgetBytes`.
 - Missing file: the manifest URL does not resolve to a file under `public/`.
-- Unsupported decoder: model compression metadata asks for a decoder or compression mode that the current Three runtime strategy does not support.
+- Unsupported decoder: model compression metadata marks a non-`none` codec as `required`, but the current Three runtime strategy has no decoder support for that codec.
+
+Compression readiness policy:
+
+- `compression.codec: "none"` with `status: "source"` means the current checked-in file is an ordinary uncompressed source asset.
+- `status: "ready"` means metadata or tooling is ready for a codec, but the asset does not require that decoder at runtime.
+- `status: "required"` means loading needs that decoder; validation and reports fail unless the codec is listed as supported.
+- `status: "unknown"` is allowed for audit input but should not be used as a final release state.
 
 The first implementation should keep failures as validation errors for local data and should make warnings explicit only when a state is intentionally non-blocking. Release-candidate validation should run asset reporting before handoff.
 

@@ -5,7 +5,7 @@ import type { LevelData } from '../schemas/level.schema';
 import type { PaletteData } from '../schemas/palette.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 import type { TimelineData } from '../schemas/timeline.schema';
-import { validateAssetBudgets } from './AssetBudgetValidator';
+import { validateAssetBudgets, type SupportedModelCompressionCodec } from './AssetBudgetValidator';
 import { validateAssetUrls } from './AssetUrlValidator';
 import { validateRegistryCoverage } from './RegistryCoverageValidator';
 import type { ReferenceValidationIssue, ReferenceValidationInput } from './ReferenceResolver';
@@ -21,6 +21,7 @@ export interface ProjectValidationInput {
   timelines?: readonly TimelineData[];
   availablePublicAssetUrls?: ReadonlySet<string>;
   availablePublicAssetByteSizes?: ReadonlyMap<string, number>;
+  supportedModelCompressionCodecs?: ReadonlySet<SupportedModelCompressionCodec>;
   availableEventIds?: ReadonlySet<string>;
   availableTimelineIds?: ReadonlySet<string>;
   availableCameraShotIds?: ReadonlySet<string>;
@@ -59,6 +60,7 @@ export function validateProject(input: ProjectValidationInput): ProjectValidatio
       ...validateAssetBudgets({
         assets: input.assets,
         availablePublicAssetByteSizes: input.availablePublicAssetByteSizes,
+        supportedModelCompressionCodecs: input.supportedModelCompressionCodecs,
       }),
       ...validateProjectReferences(referenceInput),
       ...validateRegistryCoverage({

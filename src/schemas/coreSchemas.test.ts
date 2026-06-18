@@ -62,8 +62,12 @@ describe('core data schemas', () => {
             compressed: false,
             compression: {
               codec: 'draco',
-              status: 'ready',
+              status: 'required',
               decoder: 'draco',
+            },
+            textureCompression: {
+              codec: 'ktx2',
+              status: 'ready',
             },
             lodGroup: 'gate-demo-props',
             instancing: 'eligible',
@@ -75,6 +79,17 @@ describe('core data schemas', () => {
             notes: 'Generated test asset.',
             extras: {
               reviewer: 'phase-17',
+            },
+          },
+        },
+        'model.unknown_compression': {
+          type: 'model',
+          url: '/models/unknown.glb',
+          metadata: {
+            sizeBudgetBytes: 4096,
+            compression: {
+              codec: 'meshopt',
+              status: 'unknown',
             },
           },
         },

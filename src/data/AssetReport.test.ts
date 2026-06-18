@@ -117,4 +117,46 @@ describe('AssetReport', () => {
     );
     expect(formatAssetReport(report)).toContain('| audio.over_budget | audio |');
   });
+
+  it('marks required compression without decoder support', () => {
+    const report = createAssetReport({
+      assets: {
+        schemaVersion: 1,
+        assets: {
+          'model.required_draco': {
+            type: 'model',
+            url: '/models/required-draco.glb',
+            metadata: {
+              category: 'prop',
+              materialProfile: 'palette-toon',
+              maxTriangles: 64,
+              textureBudgetKb: 0,
+              sizeBudgetBytes: 4096,
+              compressed: true,
+              compression: {
+                codec: 'draco',
+                status: 'required',
+              },
+              textureCompression: {
+                codec: 'ktx2',
+                status: 'ready',
+              },
+            },
+          },
+        },
+      },
+      publicAssetByteSizes: new Map([['/models/required-draco.glb', 2048]]),
+    });
+
+    expect(report.rows[0]).toEqual(
+      expect.objectContaining({
+        assetId: 'model.required_draco',
+        compression: 'draco/required, texture:ktx2/ready',
+        status: 'missing-decoder',
+      }),
+    );
+    expect(report.issues.map((issue) => issue.message)).toContain(
+      'Asset "model.required_draco" requires compression codec "draco", but no decoder support is configured.',
+    );
+  });
 });

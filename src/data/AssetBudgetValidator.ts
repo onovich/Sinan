@@ -1,16 +1,25 @@
-import type { AssetManifestData, AssetType } from '../schemas/asset.schema';
+import type { AssetManifestData, AssetMetadataData, AssetType } from '../schemas/asset.schema';
 import { RenderStyleProfileSchema } from '../schemas/renderStyle.schema';
 import type { ReferenceValidationIssue } from './ReferenceResolver';
+
+export type SupportedModelCompressionCodec = NonNullable<AssetMetadataData['compression']>['codec'];
 
 export interface AssetBudgetValidationInput {
   assets: AssetManifestData;
   availablePublicAssetByteSizes?: ReadonlyMap<string, number>;
+  supportedModelCompressionCodecs?: ReadonlySet<SupportedModelCompressionCodec>;
 }
+
+const DEFAULT_SUPPORTED_MODEL_COMPRESSION_CODECS = new Set<SupportedModelCompressionCodec>([
+  'none',
+]);
 
 export function validateAssetBudgets(
   input: AssetBudgetValidationInput,
 ): ReferenceValidationIssue[] {
   const issues: ReferenceValidationIssue[] = [];
+  const supportedModelCompressionCodecs =
+    input.supportedModelCompressionCodecs ?? DEFAULT_SUPPORTED_MODEL_COMPRESSION_CODECS;
 
   for (const [assetId, asset] of Object.entries(input.assets.assets)) {
     const metadataPath = `data/assets.manifest.json.assets.${assetId}.metadata`;
@@ -38,7 +47,14 @@ export function validateAssetBudgets(
       addByteBudgetIssue(assetId, byteSize, metadata.sizeBudgetBytes, metadataPath, issues);
     }
 
-    addTypeSpecificMetadataIssues(assetId, asset.type, metadata, metadataPath, issues);
+    addTypeSpecificMetadataIssues(
+      assetId,
+      asset.type,
+      metadata,
+      metadataPath,
+      supportedModelCompressionCodecs,
+      issues,
+    );
   }
 
   return issues;
@@ -67,6 +83,7 @@ function addTypeSpecificMetadataIssues(
   type: AssetType,
   metadata: NonNullable<AssetManifestData['assets'][string]['metadata']>,
   metadataPath: string,
+  supportedModelCompressionCodecs: ReadonlySet<SupportedModelCompressionCodec>,
   issues: ReferenceValidationIssue[],
 ): void {
   if (type === 'model') {
@@ -92,6 +109,13 @@ function addTypeSpecificMetadataIssues(
     addRequiredMetadataIssue(assetId, metadata.compression, `${metadataPath}.compression`, issues);
     addMaterialProfileIssue(assetId, metadata.materialProfile, metadataPath, issues);
     addCompressionConsistencyIssue(assetId, metadata, metadataPath, issues);
+    addRequiredCompressionSupportIssue(
+      assetId,
+      metadata,
+      metadataPath,
+      supportedModelCompressionCodecs,
+      issues,
+    );
     return;
   }
 
@@ -157,4 +181,35 @@ function addCompressionConsistencyIssue(
       message: `Asset "${assetId}" cannot be marked compressed with compression codec "none".`,
     });
   }
+}
+
+function addRequiredCompressionSupportIssue(
+  assetId: string,
+  metadata: NonNullable<AssetManifestData['assets'][string]['metadata']>,
+  metadataPath: string,
+  supportedModelCompressionCodecs: ReadonlySet<SupportedModelCompressionCodec>,
+  issues: ReferenceValidationIssue[],
+): void {
+  if (!metadata.compression || metadata.compression.status !== 'required') {
+    return;
+  }
+
+  if (metadata.compression.codec === 'none') {
+    issues.push({
+      severity: 'error',
+      path: `${metadataPath}.compression.codec`,
+      message: `Asset "${assetId}" cannot require compression codec "none".`,
+    });
+    return;
+  }
+
+  if (supportedModelCompressionCodecs.has(metadata.compression.codec)) {
+    return;
+  }
+
+  issues.push({
+    severity: 'error',
+    path: `${metadataPath}.compression.codec`,
+    message: `Asset "${assetId}" requires compression codec "${metadata.compression.codec}", but no decoder support is configured.`,
+  });
 }

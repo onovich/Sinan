@@ -1,5 +1,5 @@
 import type { AssetEntryData, AssetManifestData } from '../schemas/asset.schema';
-import { validateAssetBudgets } from './AssetBudgetValidator';
+import { validateAssetBudgets, type SupportedModelCompressionCodec } from './AssetBudgetValidator';
 import { validateAssetUrls } from './AssetUrlValidator';
 import type { ReferenceValidationIssue } from './ReferenceResolver';
 
@@ -7,12 +7,14 @@ export type AssetReportStatus =
   | 'ok'
   | 'missing-file'
   | 'missing-metadata'
+  | 'missing-decoder'
   | 'over-budget'
   | 'invalid-metadata';
 
 export interface AssetReportInput {
   assets: AssetManifestData;
   publicAssetByteSizes?: ReadonlyMap<string, number>;
+  supportedModelCompressionCodecs?: ReadonlySet<SupportedModelCompressionCodec>;
 }
 
 export interface AssetReportRow {
@@ -66,6 +68,7 @@ export function createAssetReport(input: AssetReportInput): AssetReport {
     ...validateAssetBudgets({
       assets: input.assets,
       availablePublicAssetByteSizes: input.publicAssetByteSizes,
+      supportedModelCompressionCodecs: input.supportedModelCompressionCodecs,
     }),
   ];
   const rows = Object.entries(input.assets.assets)
@@ -169,12 +172,24 @@ function createAssetReportRow(
 
 function getCompressionLabel(asset: AssetEntryData): string {
   const compression = asset.metadata?.compression;
+  const textureCompression = asset.metadata?.textureCompression;
+  const labels: string[] = [];
 
-  if (!compression) {
+  if (compression) {
+    labels.push(`${compression.codec}/${compression.status ?? 'unspecified'}`);
+  }
+
+  if (textureCompression) {
+    labels.push(
+      `texture:${textureCompression.codec}/${textureCompression.status ?? 'unspecified'}`,
+    );
+  }
+
+  if (labels.length === 0) {
     return '-';
   }
 
-  return `${compression.codec}/${compression.status ?? 'unspecified'}`;
+  return labels.join(', ');
 }
 
 function getTextureLabel(asset: AssetEntryData): string {
@@ -203,6 +218,10 @@ function getAssetReportStatus(
     return 'missing-metadata';
   }
 
+  if (hasRequiredCompressionSupportIssue(assetId, issues)) {
+    return 'missing-decoder';
+  }
+
   if (budgetDeltaBytes !== undefined && budgetDeltaBytes < 0) {
     return 'over-budget';
   }
@@ -213,6 +232,20 @@ function getAssetReportStatus(
   }
 
   return 'ok';
+}
+
+function hasRequiredCompressionSupportIssue(
+  assetId: string,
+  issues: readonly ReferenceValidationIssue[],
+): boolean {
+  const compressionPath = `data/assets.manifest.json.assets.${assetId}.metadata.compression.codec`;
+
+  return issues.some(
+    (issue) =>
+      issue.path === compressionPath &&
+      issue.message.includes('requires compression codec') &&
+      issue.message.includes('no decoder support is configured'),
+  );
 }
 
 function formatBytes(value: number | undefined): string {

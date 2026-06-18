@@ -258,6 +258,65 @@ describe('validateProject', () => {
     );
   });
 
+  it('reports required compression codecs without decoder support', () => {
+    const issues = validateProject({
+      assets: {
+        schemaVersion: 1,
+        assets: {
+          'model.required_draco': {
+            type: 'model',
+            url: '/models/required-draco.glb',
+            metadata: {
+              ...modelMetadata,
+              compressed: true,
+              compression: {
+                codec: 'draco',
+                status: 'required',
+              },
+            },
+          },
+        },
+      },
+      prefabs: [],
+      levels: [],
+    }).issues;
+
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: 'data/assets.manifest.json.assets.model.required_draco.metadata.compression.codec',
+          message:
+            'Asset "model.required_draco" requires compression codec "draco", but no decoder support is configured.',
+        }),
+      ]),
+    );
+
+    expect(
+      validateProject({
+        assets: {
+          schemaVersion: 1,
+          assets: {
+            'model.required_draco': {
+              type: 'model',
+              url: '/models/required-draco.glb',
+              metadata: {
+                ...modelMetadata,
+                compressed: true,
+                compression: {
+                  codec: 'draco',
+                  status: 'required',
+                },
+              },
+            },
+          },
+        },
+        prefabs: [],
+        levels: [],
+        supportedModelCompressionCodecs: new Set(['none', 'draco']),
+      }).issues,
+    ).toEqual([]);
+  });
+
   it('reports duplicate entity ids', () => {
     const issues = validateProject({
       assets,

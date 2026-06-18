@@ -30,8 +30,10 @@ export const AssetCompressionStatusSchema = z.enum([
   'source',
   'pending',
   'ready',
+  'required',
   'compressed',
   'unsupported',
+  'unknown',
 ]);
 
 export const AssetInstancingHintSchema = z.enum(['none', 'eligible', 'required']);
@@ -49,11 +51,21 @@ export const AssetTextureUsageSchema = z.enum([
   'data',
 ]);
 
+export const AssetTextureCompressionCodecSchema = z.enum(['none', 'ktx2', 'basisu']);
+
 export const AssetCompressionMetadataSchema = z
   .object({
     codec: AssetCompressionCodecSchema,
     status: AssetCompressionStatusSchema.optional(),
     decoder: AssetCompressionCodecSchema.optional(),
+    sourceUrl: z.string().min(1).optional(),
+  })
+  .strict();
+
+export const AssetTextureCompressionMetadataSchema = z
+  .object({
+    codec: AssetTextureCompressionCodecSchema,
+    status: AssetCompressionStatusSchema.optional(),
     sourceUrl: z.string().min(1).optional(),
   })
   .strict();
@@ -78,6 +90,7 @@ export const AssetMetadataSchema = z
     colorSpace: AssetTextureColorSpaceSchema.optional(),
     compressed: z.boolean().optional(),
     compression: AssetCompressionMetadataSchema.optional(),
+    textureCompression: AssetTextureCompressionMetadataSchema.optional(),
     lodGroup: z.string().min(1).optional(),
     instancing: AssetInstancingHintSchema.optional(),
     notes: z.string().min(1).optional(),
