@@ -29,15 +29,19 @@ One session round means one complete implementation checkpoint:
 | Phase 12 | Authoring Workflow And Data Safety | Improve authoring flows, save-time validation, dirty-state tracking, migrations, and asset/reference hardening | 4 |
 | Phase 13 | Testing, Performance, And Boundaries | Expand browser automation, enforce architecture boundaries, and address build/runtime performance risks | 4 |
 | Phase 14 | Release Candidate Packaging | Prepare a documented, reproducible, demo-ready release candidate | 2 |
-| Phase 15 | Optional Advanced Gameplay Layer | Add optional Rapier/physics or richer gameplay systems after the asset-backed demo is stable | 4-6 |
+| Historical optional track | Superseded Advanced Gameplay Layer | Former Rapier, character-control, or dialogue/quest direction; use only if explicitly requested outside the Abeto route | 4-6 |
 
-Recommended core path: Phase 8 through Phase 14.
+Recommended core path: Phase 8 through Phase 14. Phase 14 is accepted for the current release-candidate baseline.
 
-Optional path: Phase 15 only after Phase 14 is stable.
+Optional path: the earlier Phase 15 advanced gameplay track is now superseded by the Abeto Messenger-like roadmap unless the user explicitly asks for Rapier, character control, or dialogue/quest work first.
 
 Core path estimate: 27 rounds.
 
-With optional Phase 15: 31-33 rounds.
+With the superseded optional Phase 15: 31-33 rounds.
+
+After Phase 14, continue with `docs/abeto-messenger-development-plan.md` for the Messenger-like vertical-slice roadmap. The next planning handoff is `docs/phase-15-abeto-scope-lock-goal-mode-execution-guide.md`.
+
+After the Phase 15 scope-lock final report is PASS, the next implementation goal is Phase 16 from `docs/abeto-messenger-development-plan.md`: Stylized Runtime Foundation. The executor should read `AGENTS.md` and `docs/Sinan_Scene_Director_研发方案与架构指南.md` before starting Phase 16.
 
 ## Rendering And Demo Visual Principles
 
@@ -394,7 +398,9 @@ Round 14.2: release candidate checklist
 - The project has clear docs for adding assets, actions, conditions, timelines, and camera shots.
 - Release checklist passes.
 
-## Phase 15: Optional Advanced Gameplay Layer
+## Superseded Optional Advanced Gameplay Layer
+
+This section was the earlier optional Phase 15 concept from the post-MVP route. It is no longer the default Phase 15 meaning. Phase 15 now means Abeto Scope Lock, described by `docs/phase-15-abeto-scope-lock-goal-mode-execution-guide.md`.
 
 Goal: add optional advanced gameplay/physics features after the asset-backed demo is stable.
 
@@ -426,12 +432,18 @@ Choose one track before starting:
 
 ## Recommended Next Step
 
-Start with Phase 8.
+Current status: Phase 8 through Phase 14 are complete, and Phase 14 is accepted for the current release-candidate baseline.
 
-Use this goal:
+Use this goal if Phase 15 Abeto Scope Lock is not yet marked PASS:
 
 ```txt
-Implement Phase 8 from docs/post-mvp-development-plan.md: real GLB/glTF asset runtime inside the ThreeRuntime adapter, with cache, clone, animation bridge, fallback placeholders, tests, docs, and validation.
+Complete Phase 15 from docs/abeto-messenger-development-plan.md: lock the Abeto Messenger-like vertical-slice scope, clean up readable project documentation, define budgets and phase gates, update entry points, and prepare Phase 16 implementation handoff without staging unrelated current worktree changes.
 ```
 
-Do not start Phase 9 until Phase 8 acceptance passes.
+After Phase 15 is committed and pushed with a PASS final report, use this implementation goal:
+
+```txt
+Complete Phase 16 from docs/abeto-messenger-development-plan.md: Stylized Runtime Foundation.
+```
+
+Before starting either goal, read `AGENTS.md` and `docs/Sinan_Scene_Director_研发方案与架构指南.md`. Do not start Phase 16 until the Phase 15 final report is PASS.

@@ -19,7 +19,11 @@ Use this objective for the next long-running goal:
 Complete the core post-MVP roadmap for Sinan Scene Director, Phase 8 through Phase 14, following docs/post-mvp-development-plan.md and docs/post-mvp-execution-workflow.md. Keep every phase tested, browser-smoked, architecture-safe, documented, committed, and pushed.
 ```
 
-Optional Phase 15 should not be included in the same goal unless the user explicitly asks for physics/advanced gameplay after Phase 14 passes.
+The earlier optional advanced-gameplay track is superseded by the Abeto route unless the user explicitly asks for Rapier, character-control, or dialogue/quest work outside that route.
+
+After Phase 14, the next product route is the Abeto Messenger-like vertical slice. Use `docs/abeto-messenger-development-plan.md` as the roadmap and `docs/phase-15-abeto-scope-lock-goal-mode-execution-guide.md` as the next goal-mode entry point. Phase 15 is a scope-lock and handoff phase, not runtime implementation. After Phase 15 passes, Phase 16 is the next implementation phase: Stylized Runtime Foundation.
+
+The next executor should start by reading `AGENTS.md`, `docs/Sinan_Scene_Director_研发方案与架构指南.md`, the Abeto roadmap, and the active goal guide.
 
 ## Execution Budget
 
@@ -36,11 +40,11 @@ Phase 14  2 rounds
 Total    27 rounds
 ```
 
-Optional route:
+Superseded optional route:
 
 ```txt
-Phase 15  4-6 rounds
-Total with optional advanced gameplay: 31-33 rounds
+Historical advanced gameplay track  4-6 rounds
+Total with historical optional track: 31-33 rounds
 ```
 
 ## Round Contract

@@ -279,10 +279,18 @@ Acceptance:
 - Release docs explain how to run, validate, and demo the vertical slice.
 - Git status is clean and pushed.
 
-## Recommended Next Guide
+## Recommended Next Guides
 
-Start with Phase 15:
+Start with Phase 15 until the scope-lock final report is PASS:
 
 ```txt
 Complete Phase 15 from docs/abeto-messenger-development-plan.md: lock the Abeto Messenger-like vertical-slice scope, clean up readable project documentation, define budgets and phase gates, update entry points, and prepare Phase 16 implementation handoff without staging unrelated current worktree changes.
 ```
+
+After Phase 15 is committed and pushed with a PASS final report, use this implementation goal:
+
+```txt
+Complete Phase 16 from docs/abeto-messenger-development-plan.md: Stylized Runtime Foundation.
+```
+
+Before starting Phase 16, re-read `AGENTS.md` and `docs/Sinan_Scene_Director_研发方案与架构指南.md` and keep Three.js work inside `src/runtime/three/**`.

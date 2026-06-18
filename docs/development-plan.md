@@ -206,3 +206,12 @@ Phase 0-7 now define the architecture MVP. Continue with:
 - `docs/post-mvp-execution-workflow.md` for the goal-mode execution workflow, phase gates, validation commands, and commit rhythm.
 
 The post-MVP route explicitly prioritizes rendering quality and editor UI/UX maturity. Phase 9 is the demo visual pass, Phase 11 is the editor UI/UX redesign, and Phase 12 carries detailed authoring workflows plus data safety.
+
+After Phase 14, the next product route is the Abeto Messenger-like vertical slice:
+
+- `docs/abeto-messenger-development-plan.md` for Phase 15-22 scope, budgets, acceptance gates, and estimated session rounds.
+- `docs/phase-15-abeto-scope-lock-goal-mode-execution-guide.md` for the next goal-mode handoff.
+
+Phase 14 release-candidate status is accepted in `docs/phase-14-release-candidate-finalization.md`. Phase 15 is a scope-lock and handoff phase only; it should not start runtime, UI, shader, gameplay, multiplayer, or asset-compression implementation.
+
+For the next implementation goal after Phase 15 passes, read `AGENTS.md` and `docs/Sinan_Scene_Director_研发方案与架构指南.md`, then execute Phase 16 from `docs/abeto-messenger-development-plan.md`: Stylized Runtime Foundation.
