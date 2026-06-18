@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ProjectData } from '../data/DataRepository';
-import type { RuntimeRenderStyle, RuntimeStyleResources } from '../runtime/RuntimeTypes';
+import type {
+  RuntimeRenderStyle,
+  RuntimeStyleQualityProfile,
+  RuntimeStyleResources,
+} from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
 import type { TransformData } from '../schemas/transform.schema';
 import { loadProjectIntoRuntime } from './Viewport';
@@ -96,6 +100,10 @@ describe('Viewport runtime style flow', () => {
 
     expect(calls).toEqual([
       {
+        type: 'styleQuality',
+        profile: 'standard',
+      },
+      {
         type: 'styleResources',
         resources: {
           palettes: {
@@ -143,6 +151,21 @@ describe('Viewport runtime style flow', () => {
       },
     ]);
   });
+
+  it('accepts a deterministic low-end style quality profile override', async () => {
+    const calls: unknown[] = [];
+    await loadProjectIntoRuntime(
+      createRuntimeMock(calls),
+      createEmptyProject(),
+      () => false,
+      'low-end',
+    );
+
+    expect(calls).toContainEqual({
+      type: 'styleQuality',
+      profile: 'low-end',
+    });
+  });
 });
 
 function createRuntimeMock(calls: unknown[]): WebRuntime {
@@ -179,6 +202,9 @@ function createRuntimeMock(calls: unknown[]): WebRuntime {
     setRenderStyle: (entityId: string, style: RuntimeRenderStyle | undefined) => {
       calls.push({ type: 'setRenderStyle', entityId, style });
     },
+    setStyleQualityProfile: (profile: RuntimeStyleQualityProfile) => {
+      calls.push({ type: 'styleQuality', profile });
+    },
     pick: () => null,
     attachTransformGizmo: () => undefined,
     detachTransformGizmo: () => undefined,
@@ -187,5 +213,28 @@ function createRuntimeMock(calls: unknown[]): WebRuntime {
     render: () => undefined,
     resize: () => undefined,
     dispose: () => undefined,
+  };
+}
+
+function createEmptyProject(): ProjectData {
+  return {
+    assets: {
+      schemaVersion: 1,
+      assets: {},
+    },
+    level: {
+      schemaVersion: 1,
+      id: 'level_01',
+      name: 'Gate Demo',
+      entities: [],
+      events: [],
+      timelines: [],
+      cameraShots: [],
+    },
+    prefabs: {},
+    palettes: {},
+    events: {},
+    timelines: {},
+    cameraShots: {},
   };
 }

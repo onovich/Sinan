@@ -59,6 +59,25 @@ describe('ThreeStyleDecorators', () => {
     expect(geometryDispose).toHaveBeenCalledTimes(1);
     expect(materialDispose).toHaveBeenCalledTimes(1);
   });
+
+  it('disables outline and highlight helpers in low-end quality mode', () => {
+    const helperRoot = new THREE.Group();
+    const decorators = new ThreeStyleDecorators(helperRoot);
+    decorators.syncEntity('switch_a', createBox(), {
+      profile: 'palette-toon',
+      outline: 'always',
+    });
+
+    expect(helperRoot.children).toHaveLength(1);
+
+    decorators.setQualityProfile('low-end');
+
+    expect(helperRoot.children).toHaveLength(0);
+
+    decorators.setQualityProfile('standard');
+
+    expect(helperRoot.children).toHaveLength(1);
+  });
 });
 
 function createBox(): THREE.Object3D {

@@ -77,8 +77,6 @@ export class ThreeMaterialRegistry {
       styledMeshCount += 1;
     });
 
-    void this.qualityProfile;
-
     return {
       profile: resolved.profile,
       styledMeshCount,
@@ -126,12 +124,20 @@ export class ThreeMaterialRegistry {
     return {
       profile: 'palette-toon',
       fallbackUsed: false,
-      createMaterial: () =>
-        new THREE.MeshToonMaterial({
-          color,
-        }),
+      createMaterial: () => createPaletteMaterial(color, this.qualityProfile),
     };
   }
+}
+
+function createPaletteMaterial(
+  color: THREE.ColorRepresentation,
+  qualityProfile: RuntimeStyleQualityProfile,
+): THREE.Material {
+  if (qualityProfile === 'low-end') {
+    return new THREE.MeshBasicMaterial({ color });
+  }
+
+  return new THREE.MeshToonMaterial({ color });
 }
 
 function isStylableMesh(object: THREE.Object3D): object is StyledMesh {

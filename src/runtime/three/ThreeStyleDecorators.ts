@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import type { RuntimeRenderStyle } from '../RuntimeTypes';
+import type { RuntimeRenderStyle, RuntimeStyleQualityProfile } from '../RuntimeTypes';
 import { disposeObjectResources } from './ThreeObjectResources';
 
 const outlineColor = '#10232b';
@@ -14,9 +14,25 @@ interface EntityStyleEntry {
 export class ThreeStyleDecorators {
   private readonly entries = new Map<string, EntityStyleEntry>();
   private readonly helperByEntityId = new Map<string, THREE.BoxHelper>();
+  private qualityProfile: RuntimeStyleQualityProfile = 'standard';
   private selectedEntityId: string | undefined;
 
   constructor(private readonly helperRoot: THREE.Object3D) {}
+
+  setQualityProfile(profile: RuntimeStyleQualityProfile): void {
+    this.qualityProfile = profile;
+
+    if (profile === 'low-end') {
+      for (const entityId of this.helperByEntityId.keys()) {
+        this.disposeHelper(entityId);
+      }
+      return;
+    }
+
+    for (const [entityId, entry] of this.entries) {
+      this.syncHelper(entityId, entry);
+    }
+  }
 
   setSelectedEntity(entityId: string | undefined): void {
     this.selectedEntityId = entityId;
@@ -58,6 +74,11 @@ export class ThreeStyleDecorators {
   }
 
   private syncHelper(entityId: string, entry: EntityStyleEntry): void {
+    if (this.qualityProfile === 'low-end') {
+      this.disposeHelper(entityId);
+      return;
+    }
+
     const color = this.getHelperColor(entityId, entry.style);
 
     if (!color) {

@@ -7,6 +7,7 @@ import type {
   RuntimeDebugAabb,
   RuntimeRenderEnvironmentStyle,
   RuntimeRenderStyle,
+  RuntimeStyleQualityProfile,
   RuntimeTransform,
   TransformGizmoMode,
 } from '../runtime/RuntimeTypes';
@@ -495,7 +496,9 @@ export async function loadProjectIntoRuntime(
   runtime: WebRuntime,
   project: ProjectData,
   isDisposed: () => boolean,
+  styleQualityProfile: RuntimeStyleQualityProfile = readRuntimeStyleQualityProfile(),
 ): Promise<void> {
+  runtime.setStyleQualityProfile?.(styleQualityProfile);
   runtime.setStyleResources?.(toRuntimeStyleResources(project));
   runtime.setRenderEnvironment?.(toRuntimeRenderEnvironment(project.level.environment));
 
@@ -524,6 +527,16 @@ export async function loadProjectIntoRuntime(
       toRuntimeRenderStyle(getRenderableRenderStyle(project, entity)),
     );
   }
+}
+
+function readRuntimeStyleQualityProfile(): RuntimeStyleQualityProfile {
+  if (typeof window === 'undefined') {
+    return 'standard';
+  }
+
+  return new URLSearchParams(window.location.search).get('styleQuality') === 'low-end'
+    ? 'low-end'
+    : 'standard';
 }
 
 function toRuntimeStyleResources(project: ProjectData): {

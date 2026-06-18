@@ -165,6 +165,8 @@ export class ThreeRuntime implements WebRuntime {
     this.camera = camera;
     this.editorCamera = editorCamera;
     this.styleDecorators = new ThreeStyleDecorators(styleHelperRoot);
+    this.styleDecorators.setQualityProfile(this.styleQualityProfile);
+    this.materialRegistry.setQualityProfile(this.styleQualityProfile);
     this.transformControls = transformControls;
     this.transformControlsHelper = transformControlsHelper;
     this.applyRenderEnvironment();
@@ -449,6 +451,10 @@ export class ThreeRuntime implements WebRuntime {
   setStyleQualityProfile(profile: RuntimeStyleQualityProfile): void {
     this.styleQualityProfile = profile;
     this.materialRegistry.setQualityProfile(profile);
+    this.styleDecorators?.setQualityProfile(profile);
+    for (const entityId of this.objectByEntityId.keys()) {
+      this.applyEntityRenderStyle(entityId);
+    }
   }
 
   setSelectedEntity(entityId: string | undefined): void {

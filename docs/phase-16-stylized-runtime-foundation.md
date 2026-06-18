@@ -130,6 +130,17 @@ Round 16.9 applies the first renderer-neutral level environment controls to the 
 - `level.environment.colorGrade` maps exposure and saturation to lightweight renderer/CSS controls without an EffectComposer path.
 - Editor helper roots are kept fog-readable so the grid, transform gizmo, and style helpers remain authoring aids.
 
+## Low-End Style Profile
+
+Round 16.10 keeps the style quality switch renderer-neutral through `RuntimeStyleQualityProfile`.
+The editor can request low-end mode with `?styleQuality=low-end`, and tests can pass the same profile directly through `loadProjectIntoRuntime`.
+
+Current low-end behavior:
+
+- `palette-toon` keeps palette colors but uses a lighter Three material.
+- outline/highlight helper boxes are disabled.
+- fog, background, camera, picking, and existing interaction paths remain available.
+
 ## Tests And Validation Strategy
 
 Targeted tests by layer:

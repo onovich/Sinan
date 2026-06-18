@@ -90,6 +90,38 @@ describe('ThreeMaterialRegistry', () => {
     expect(mesh.userData.sinanRenderStyleProfile).toBe('palette-toon');
   });
 
+  it('uses a lighter palette material in low-end quality mode', () => {
+    const root = new THREE.Group();
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshStandardMaterial({ color: 0x76b28b }),
+    );
+    root.add(mesh);
+
+    const registry = new ThreeMaterialRegistry({
+      qualityProfile: 'low-end',
+      resources: {
+        palettes: {
+          world_01: {
+            id: 'world_01',
+            tones: {
+              accent: '#5aa7d6',
+            },
+          },
+        },
+      },
+    });
+
+    registry.applyStyle(root, {
+      profile: 'palette-toon',
+      palette: 'world_01',
+      tone: 'accent',
+    });
+
+    const material = expectMeshBasicMaterial(mesh.material);
+    expect(material.color.getHexString()).toBe('5aa7d6');
+  });
+
   it('restores original materials and disposes replaced material resources', () => {
     const root = new THREE.Group();
     const original = new THREE.MeshStandardMaterial({ color: 0x76b28b });
@@ -153,6 +185,18 @@ function expectMeshToonMaterial(
 
   if (!(material instanceof THREE.MeshToonMaterial)) {
     throw new Error('Expected a MeshToonMaterial.');
+  }
+
+  return material;
+}
+
+function expectMeshBasicMaterial(
+  material: THREE.Material | THREE.Material[],
+): THREE.MeshBasicMaterial {
+  expect(material).toBeInstanceOf(THREE.MeshBasicMaterial);
+
+  if (!(material instanceof THREE.MeshBasicMaterial)) {
+    throw new Error('Expected a MeshBasicMaterial.');
   }
 
   return material;
