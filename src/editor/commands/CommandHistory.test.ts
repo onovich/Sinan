@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 import type { EventData } from '../../schemas/event.schema';
 import type { CameraShotData } from '../../schemas/cameraShot.schema';
 import type { ComponentMapData } from '../../schemas/entity.schema';
+import type { LevelData } from '../../schemas/level.schema';
 import type { TimelineData, TimelineTrackData } from '../../schemas/timeline.schema';
 import type { TransformData } from '../../schemas/transform.schema';
 import { CommandHistory } from './CommandHistory';
+import { ReorderLevelEntityCommand } from './ReorderLevelEntityCommand';
 import { TransformEntityCommand } from './TransformEntityCommand';
 import { AddCameraShotCommand, UpdateCameraShotCommand } from './UpdateCameraShotCommand';
 import { UpdateEntityComponentCommand } from './UpdateEntityComponentCommand';
@@ -38,6 +40,7 @@ describe('CommandHistory', () => {
     const applied: TransformData[] = [];
     const history = new CommandHistory();
     const context = {
+      updateLevel: () => undefined,
       updateEntityTransform: (_entityId: string, transform: TransformData) => {
         applied.push(transform);
       },
@@ -61,6 +64,7 @@ describe('CommandHistory', () => {
     const eventBefore = createEvent('Switch opens gate');
     const eventAfter = createEvent('Switch opens gate safely');
     const context = {
+      updateLevel: () => undefined,
       updateEntityTransform: () => undefined,
       updateEntityComponents: () => undefined,
       updateEvent: (_eventId: string, event: EventData) => {
@@ -88,6 +92,7 @@ describe('CommandHistory', () => {
     const shotBefore = createCameraShot(55);
     const shotAfter = createCameraShot(45);
     const context = {
+      updateLevel: () => undefined,
       updateEntityTransform: () => undefined,
       updateEntityComponents: () => undefined,
       updateEvent: () => undefined,
@@ -117,6 +122,7 @@ describe('CommandHistory', () => {
     const actionTrack = createActionTrack('track_action_a', 0.2);
     const updatedTrack = createActionTrack('track_action_a', 1.4);
     const context = {
+      updateLevel: () => undefined,
       updateEntityTransform: () => undefined,
       updateEntityComponents: () => undefined,
       updateEvent: () => undefined,
@@ -179,6 +185,7 @@ describe('CommandHistory', () => {
       keys: movedKeyTrack.keys.slice(0, 2),
     };
     const context = {
+      updateLevel: () => undefined,
       updateEntityTransform: () => undefined,
       updateEntityComponents: () => undefined,
       updateEvent: () => undefined,
@@ -246,6 +253,7 @@ describe('CommandHistory', () => {
       Switch: { initialState: false },
     };
     const context = {
+      updateLevel: () => undefined,
       updateEntityTransform: () => undefined,
       updateEntityComponents: (_entityId: string, components: ComponentMapData) => {
         applied.push(components);
@@ -269,6 +277,38 @@ describe('CommandHistory', () => {
     history.redo(context);
 
     expect(applied).toEqual([componentsAfter, componentsBefore, componentsAfter]);
+  });
+
+  it('executes, undoes, and redoes level entity reorder commands without changing transforms', () => {
+    const applied: LevelData[] = [];
+    const history = new CommandHistory();
+    const level = createLevel(['room_blockout_01', 'switch_a', 'gate_a']);
+    const after: LevelData = {
+      ...level,
+      entities: [level.entities[1], level.entities[0], level.entities[2]],
+    };
+    const context = {
+      updateLevel: (nextLevel: LevelData) => {
+        applied.push(nextLevel);
+      },
+      updateEntityTransform: () => undefined,
+      updateEntityComponents: () => undefined,
+      updateEvent: () => undefined,
+      updateTimeline: () => undefined,
+      upsertCameraShot: () => undefined,
+      removeCameraShot: () => undefined,
+    };
+
+    history.execute(new ReorderLevelEntityCommand('switch_a', level, after), context);
+    history.undo(context);
+    history.redo(context);
+
+    expect(applied.map((item) => item.entities.map((entity) => entity.id))).toEqual([
+      ['switch_a', 'room_blockout_01', 'gate_a'],
+      ['room_blockout_01', 'switch_a', 'gate_a'],
+      ['switch_a', 'room_blockout_01', 'gate_a'],
+    ]);
+    expect(applied[0].entities[0].transform).toEqual(level.entities[1].transform);
   });
 });
 
@@ -310,6 +350,27 @@ function createTimeline(tracks: TimelineTrackData[]): TimelineData {
     name: 'Open Gate Timeline',
     duration: 4.5,
     tracks,
+  };
+}
+
+function createLevel(entityIds: string[]): LevelData {
+  return {
+    schemaVersion: 1,
+    id: 'level_01',
+    name: 'Level 01',
+    entities: entityIds.map((id, index) => ({
+      id,
+      name: id,
+      transform: {
+        position: [index, index + 1, index + 2],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
+      },
+      components: {},
+    })),
+    events: [],
+    timelines: [],
+    cameraShots: [],
   };
 }
 

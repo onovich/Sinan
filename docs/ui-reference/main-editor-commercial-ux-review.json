@@ -1,0 +1,735 @@
+{
+  "title": "Sinan Scene Director",
+  "url": "http://127.0.0.1:5174/",
+  "scroll": {
+    "docW": 1440,
+    "docH": 960,
+    "vw": 1440,
+    "vh": 960,
+    "bodyOverflow": "hidden"
+  },
+  "counts": {
+    "buttons": 42,
+    "inputs": 15,
+    "selects": 3,
+    "textareas": 0,
+    "statusPills": 6,
+    "tabs": 4,
+    "hierarchyButtons": 5,
+    "assetItems": 5,
+    "timelineClips": 6,
+    "resizeHandles": 12,
+    "canvases": 1
+  },
+  "rects": {
+    "toolbar": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 40
+    },
+    "workbench": {
+      "x": 0,
+      "y": 40,
+      "w": 1440,
+      "h": 700
+    },
+    "left": {
+      "x": 0,
+      "y": 40,
+      "w": 240,
+      "h": 700
+    },
+    "viewport": {
+      "x": 241,
+      "y": 40,
+      "w": 898,
+      "h": 700
+    },
+    "canvas": {
+      "x": 241,
+      "y": 40,
+      "w": 898,
+      "h": 700
+    },
+    "right": {
+      "x": 1140,
+      "y": 40,
+      "w": 300,
+      "h": 700
+    },
+    "timeline": {
+      "x": 0,
+      "y": 740,
+      "w": 1440,
+      "h": 220
+    },
+    "timelinePanel": {
+      "x": 0,
+      "y": 742,
+      "w": 1440,
+      "h": 218
+    },
+    "trackEditor": {
+      "x": 0,
+      "y": 906,
+      "w": 1440,
+      "h": 54
+    }
+  },
+  "cursors": {
+    "timelineClip": "grab",
+    "clipLeftHandle": "ew-resize",
+    "clipRightHandle": "ew-resize",
+    "transformInput": "text",
+    "hierarchyRow": "default",
+    "viewport": "auto"
+  },
+  "samples": {
+    "toolbarButtons": [
+      {
+        "tag": "button",
+        "cls": "mode-button mode-edit",
+        "text": "Edit",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "mode-button mode-play",
+        "text": "Play",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "mode-button mode-preview",
+        "text": "Preview",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "Select",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "Move",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "Rotate",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "Scale",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "Undo",
+        "role": null,
+        "aria": null,
+        "disabled": true,
+        "draggable": null,
+        "cursor": "not-allowed"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "Redo",
+        "role": null,
+        "aria": null,
+        "disabled": true,
+        "draggable": null,
+        "cursor": "not-allowed"
+      },
+      {
+        "tag": "button",
+        "cls": "is-active",
+        "text": "Trigger Bounds",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "Save",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      }
+    ],
+    "hierarchy": [
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "room_blockout_01room_blockout_01room_blockout",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "player_spawn_01player_spawn_01player_spawn",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "is-selected",
+        "text": "switch_aswitch_aswitch_wall",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "gate_agate_adoor_wood",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "trigger_gate_entrytrigger_gate_entrytrigger_box",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      }
+    ],
+    "assets": [
+      {
+        "tag": "li",
+        "cls": "",
+        "text": "audio.switch_click/audio/switch_click.wavaudio",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "auto"
+      },
+      {
+        "tag": "li",
+        "cls": "",
+        "text": "model.door_wood/models/props/door_wood.glbmodel",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "auto"
+      },
+      {
+        "tag": "li",
+        "cls": "",
+        "text": "model.player_spawn/models/markers/player_spawn.glbmodel",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "auto"
+      },
+      {
+        "tag": "li",
+        "cls": "",
+        "text": "model.room_blockout/models/room_blockout.glbmodel",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "auto"
+      },
+      {
+        "tag": "li",
+        "cls": "",
+        "text": "model.switch_wall/models/props/switch_wall.glbmodel",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "auto"
+      }
+    ],
+    "tabs": [
+      {
+        "tag": "button",
+        "cls": "right-rail-tab is-active",
+        "text": "Inspector",
+        "role": "tab",
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "right-rail-tab",
+        "text": "Event",
+        "role": "tab",
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "right-rail-tab",
+        "text": "Camera",
+        "role": "tab",
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "right-rail-tab",
+        "text": "Debug",
+        "role": "tab",
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      }
+    ],
+    "timelineClips": [
+      {
+        "tag": "button",
+        "cls": "timeline-clip",
+        "text": "track_camera_gate_reveal",
+        "role": null,
+        "aria": "track_camera_gate_reveal camera.shot 0s",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "grab"
+      },
+      {
+        "tag": "button",
+        "cls": "timeline-clip",
+        "text": "gate_a / Open",
+        "role": null,
+        "aria": "track_gate_open_anim animation.play 0.4s",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "grab"
+      },
+      {
+        "tag": "button",
+        "cls": "timeline-clip",
+        "text": "audio.switch_click",
+        "role": null,
+        "aria": "track_sound_switch sound @ 0.2s",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "grab"
+      },
+      {
+        "tag": "button",
+        "cls": "timeline-clip",
+        "text": "Door.openAmount",
+        "role": null,
+        "aria": "track_gate_open_amount property 0.4s",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "grab"
+      },
+      {
+        "tag": "button",
+        "cls": "timeline-clip",
+        "text": "Gate open.",
+        "role": null,
+        "aria": "track_subtitle_gate_open subtitle @ 1.2s",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "grab"
+      },
+      {
+        "tag": "button",
+        "cls": "timeline-clip",
+        "text": "flag.set",
+        "role": null,
+        "aria": "track_set_flag action @ 3.8s",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "grab"
+      }
+    ],
+    "timelineButtons": [
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "Add Track",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "Save Timeline",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "Play",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "Stop",
+        "role": null,
+        "aria": null,
+        "disabled": true,
+        "draggable": null,
+        "cursor": "not-allowed"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "Start",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "End",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "button",
+        "cls": "timeline-clip",
+        "text": "track_camera_gate_reveal",
+        "role": null,
+        "aria": "track_camera_gate_reveal camera.shot 0s",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "grab"
+      },
+      {
+        "tag": "button",
+        "cls": "timeline-clip",
+        "text": "gate_a / Open",
+        "role": null,
+        "aria": "track_gate_open_anim animation.play 0.4s",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "grab"
+      },
+      {
+        "tag": "button",
+        "cls": "timeline-clip",
+        "text": "audio.switch_click",
+        "role": null,
+        "aria": "track_sound_switch sound @ 0.2s",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "grab"
+      },
+      {
+        "tag": "button",
+        "cls": "timeline-clip",
+        "text": "Door.openAmount",
+        "role": null,
+        "aria": "track_gate_open_amount property 0.4s",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "grab"
+      },
+      {
+        "tag": "button",
+        "cls": "timeline-clip",
+        "text": "Gate open.",
+        "role": null,
+        "aria": "track_subtitle_gate_open subtitle @ 1.2s",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "grab"
+      },
+      {
+        "tag": "button",
+        "cls": "timeline-clip",
+        "text": "flag.set",
+        "role": null,
+        "aria": "track_set_flag action @ 3.8s",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "grab"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "Apply Track",
+        "role": null,
+        "aria": null,
+        "disabled": true,
+        "draggable": null,
+        "cursor": "not-allowed"
+      },
+      {
+        "tag": "button",
+        "cls": "",
+        "text": "Remove Track",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      }
+    ],
+    "inputs": [
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "role": null,
+        "aria": "Position X",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "text"
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "role": null,
+        "aria": "Position Y",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "text"
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "role": null,
+        "aria": "Position Z",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "text"
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "role": null,
+        "aria": "Rotation X",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "text"
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "role": null,
+        "aria": "Rotation Y",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "text"
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "role": null,
+        "aria": "Rotation Z",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "text"
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "role": null,
+        "aria": "Rotation W",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "text"
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "role": null,
+        "aria": "Scale X",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "text"
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "role": null,
+        "aria": "Scale Y",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "text"
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "role": null,
+        "aria": "Scale Z",
+        "disabled": false,
+        "draggable": null,
+        "cursor": "text"
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "text"
+      },
+      {
+        "tag": "select",
+        "cls": "",
+        "text": "Open Gate Timeline (tl_open_gate)",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "select",
+        "cls": "",
+        "text": "actionanimation.playcamera.shotpropertysubtitlesound",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "text"
+      },
+      {
+        "tag": "input",
+        "cls": "",
+        "text": "",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "text"
+      },
+      {
+        "tag": "select",
+        "cls": "",
+        "text": "cam_gate_reveal",
+        "role": null,
+        "aria": null,
+        "disabled": false,
+        "draggable": null,
+        "cursor": "default"
+      }
+    ]
+  },
+  "visibleText": "SINAN DIRECTOR\nMODE\nEDIT\nPLAY\nPREVIEW\nTOOL\nSELECT\nMOVE\nROTATE\nSCALE\nHISTORY\nUNDO\nREDO\nPROJECT\nTRIGGER BOUNDS\nSAVE\nClean\nTL\nEV\nCAM\nHIERARCHY\n5 entities\nroom_blockout_01\nroom_blockout\nplayer_spawn_01\nplayer_spawn\nswitch_a\nswitch_wall\ngate_a\ndoor_wood\ntrigger_gate_entry\ntrigger_box\nASSETS\n5 assets\naudio.switch_click\n/audio/switch_click.wav\nAUDIO\nmodel.door_wood\n/models/props/door_wood.glb\nMODEL\nmodel.player_spawn\n/models/markers/player_spawn.glb\nMODEL\nmodel.room_blockout\n/models/room_blockout.glb\nMODEL\nmodel.switch_wall\n/models/props/switch_wall.glb\nMODEL\nTHREE RUNTIME\nruntime ready / 5 entities / helpers on\nSELECTED: SWITCH_A [3.2, 1, 4.6]\nMode: EDIT / SELECT | timeline: tl_open_gate @ 0.00s\nINSPECTOR\nEVENT\nCAMERA\nDEBUG\nINSPECTOR\n2 components\nswitch_a\nswitch_wall\nENTITY\nswitch_a\nPREFAB\nswitch_wall\nPOSITION\n3.2, 1, 4.6\nROTATION\n0, 0, 0, 1\nSCALE\n1.4, 1.4, 1.4\nTRANSFORM\nPOSITION\nX\nY\nZ\nROTATION\nX\nY\nZ\nW\nSCALE\nX\nY\nZ\nApply Transform\nPOSITION\nX -\nX +\nZ -\nZ +\nACTIONS\nInteract\nCOMPONENTS\nSwitch\nSTRUCTURED\nInitially on\nApply Component\nInteractable\nSTRUCTURED\nPROMPT\nApply Component\nTIMELINE\nReady to scrub\nTIMELINE\nOpen Gate Timeline (tl_open_gate)\n4.50s\n6 tracks\nClean\nADD\naction\nanimation.play\ncamera.shot\nproperty\nsubtitle\nsound\nAdd Track\nSave Timeline\nPlay\nStop\nStart\nEnd\n0.00s\n0s\n1s\n2s\n3s\n4s\n5s\ncamera.shot\ntrack_camera_gate_reveal\nanimation.play\ngate_a / Open\nsound\naudio.switch_click\nproperty\nDoor.openAmount\nsubtitle\nGate open.\naction\nflag.set\nTRACK\ntrack_camera_gate_reveal\nSTART\nDURATION\nSHOT\ncam_gate_reveal\nApply Track\nRemove Track"
+}

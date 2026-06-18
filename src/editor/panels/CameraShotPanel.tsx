@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 
 import { getPreviewStatusPill, getSaveStatusPill, type EditorSaveStatus } from '../editorStatus';
 import {
@@ -6,6 +6,7 @@ import {
   type CameraShotData,
   type CameraShotKeyData,
 } from '../../schemas/cameraShot.schema';
+import { NumericScrubInput } from '../components/NumericScrubInput';
 
 export type CameraShotSaveStatus = EditorSaveStatus;
 
@@ -47,6 +48,11 @@ export function CameraShotPanel({
     sourceSignature: string;
     key: CameraShotKeyData;
   }>();
+  const [keyStripDragState, setKeyStripDragState] = useState<{
+    index: number;
+    time: number;
+  }>();
+  const cleanupKeyStripDragRef = useRef<(() => void) | undefined>(undefined);
 
   const keyframedShot = selectedShot?.type === 'keyframed' ? selectedShot : undefined;
   const keyIndex =
@@ -64,6 +70,14 @@ export function CameraShotPanel({
       : currentKey;
   const draftShot =
     keyframedShot && draftKey ? replaceKey(keyframedShot, keyIndex, draftKey) : undefined;
+  const visibleKeys =
+    keyframedShot?.keys.map((key, index) =>
+      draftKeyState?.shotId === keyframedShot.id &&
+      draftKeyState.index === index &&
+      draftKeyState.sourceSignature === JSON.stringify(key)
+        ? draftKeyState.key
+        : key,
+    ) ?? [];
   const validationResult = draftShot ? CameraShotSchema.safeParse(draftShot) : undefined;
   const validationMessages =
     validationResult && !validationResult.success
@@ -82,6 +96,13 @@ export function CameraShotPanel({
     issueCount: validationMessages.length,
   });
   const previewStatusPill = getPreviewStatusPill(previewStatus);
+
+  useEffect(
+    () => () => {
+      cleanupKeyStripDragRef.current?.();
+    },
+    [],
+  );
 
   const updateDraftKey = (patch: Partial<CameraShotKeyData>) => {
     if (!keyframedShot || !draftKey) {
@@ -102,6 +123,20 @@ export function CameraShotPanel({
   const applyDraft = () => {
     if (validationResult?.success) {
       onApplyShot(validationResult.data);
+      setDraftKeyState(undefined);
+    }
+  };
+
+  const commitDraftKey = (key: CameraShotKeyData) => {
+    if (!keyframedShot) {
+      return;
+    }
+
+    const nextShot = replaceKey(keyframedShot, keyIndex, key);
+    const result = CameraShotSchema.safeParse(nextShot);
+
+    if (result.success) {
+      onApplyShot(result.data);
       setDraftKeyState(undefined);
     }
   };
@@ -169,6 +204,75 @@ export function CameraShotPanel({
 
     onApplyShot(nextShot);
     setDraftKeyState(undefined);
+  };
+
+  const previewDraftKey = (key: CameraShotKeyData) => {
+    if (!keyframedShot) {
+      return;
+    }
+
+    onPreviewShot(replaceKey(keyframedShot, keyIndex, key), key.time);
+  };
+
+  const startKeyStripDrag = (event: ReactMouseEvent<HTMLButtonElement>, markerIndex: number) => {
+    if (!keyframedShot || event.button !== 0) {
+      return;
+    }
+
+    const strip = event.currentTarget.closest('.camera-key-strip');
+    const sourceKey = visibleKeys[markerIndex] ?? keyframedShot.keys[markerIndex];
+    const sourceSignature = JSON.stringify(keyframedShot.keys[markerIndex]);
+
+    if (!strip || !sourceKey) {
+      return;
+    }
+
+    event.preventDefault();
+    cleanupKeyStripDragRef.current?.();
+    setKeyIndexState({ shotId: keyframedShot.id, index: markerIndex });
+    const stripRect = strip.getBoundingClientRect();
+
+    const updateDrag = (clientX: number): CameraShotKeyData => {
+      const time = getStripTime(clientX, stripRect, keyframedShot.duration);
+      const nextKey = { ...sourceKey, time };
+
+      setDraftKeyState({
+        shotId: keyframedShot.id,
+        index: markerIndex,
+        sourceSignature,
+        key: nextKey,
+      });
+      setKeyStripDragState({ index: markerIndex, time });
+      onPreviewShot(replaceKey(keyframedShot, markerIndex, nextKey), time);
+
+      return nextKey;
+    };
+
+    updateDrag(event.clientX);
+
+    const handleMouseMove = (nativeEvent: MouseEvent) => {
+      updateDrag(nativeEvent.clientX);
+    };
+    const handleMouseUp = (nativeEvent: MouseEvent) => {
+      const nextKey = updateDrag(nativeEvent.clientX);
+      cleanupKeyStripDragRef.current?.();
+      cleanupKeyStripDragRef.current = undefined;
+      setKeyStripDragState(undefined);
+
+      const result = CameraShotSchema.safeParse(replaceKey(keyframedShot, markerIndex, nextKey));
+
+      if (result.success) {
+        onApplyShot(result.data);
+        setDraftKeyState(undefined);
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove, true);
+    window.addEventListener('mouseup', handleMouseUp, true);
+    cleanupKeyStripDragRef.current = () => {
+      window.removeEventListener('mousemove', handleMouseMove, true);
+      window.removeEventListener('mouseup', handleMouseUp, true);
+    };
   };
 
   return (
@@ -240,6 +344,27 @@ export function CameraShotPanel({
             </select>
           </label>
 
+          <div className="camera-key-strip" data-testid="camera-key-strip">
+            <div className="camera-key-strip-track" aria-hidden="true" />
+            {visibleKeys.map((key, index) => (
+              <button
+                key={`${keyframedShot.id}-${index}-${key.time}`}
+                type="button"
+                className={`camera-key-marker${index === keyIndex ? ' is-selected' : ''}${
+                  keyStripDragState?.index === index ? ' is-dragging' : ''
+                }`}
+                style={{ left: `${(key.time / keyframedShot.duration) * 100}%` }}
+                data-testid={`camera-key-marker-${index}`}
+                aria-label={`Camera key ${index + 1} at ${key.time.toFixed(2)} seconds`}
+                onClick={() => {
+                  setKeyIndexState({ shotId: keyframedShot.id, index });
+                  onPreviewShot(keyframedShot, key.time);
+                }}
+                onMouseDown={(event) => startKeyStripDrag(event, index)}
+              />
+            ))}
+          </div>
+
           <div className="key-command-row" aria-label="Camera keyframe commands">
             <button type="button" onClick={addKey}>
               Add Key
@@ -260,45 +385,64 @@ export function CameraShotPanel({
           </div>
 
           <div className="camera-grid">
-            <label className="field-stack" htmlFor="camera-key-time">
-              <span>Time</span>
-              <input
-                id="camera-key-time"
-                type="number"
-                step="0.1"
-                value={draftKey.time}
-                onChange={(event) => updateDraftKey({ time: Number(event.target.value) })}
-              />
-            </label>
-            <label className="field-stack" htmlFor="camera-key-fov">
-              <span>FOV</span>
-              <input
-                id="camera-key-fov"
-                type="number"
-                step="1"
-                value={draftKey.fov}
-                onChange={(event) => updateDraftKey({ fov: Number(event.target.value) })}
-              />
-            </label>
+            <NumericScrubInput
+              id="camera-key-time"
+              label="Time"
+              value={draftKey.time}
+              min={0}
+              max={keyframedShot.duration}
+              step={0.1}
+              onChange={(value) => {
+                const nextKey = { ...draftKey, time: value };
+                updateDraftKey({ time: value });
+                previewDraftKey(nextKey);
+              }}
+              onCommit={(value) => commitDraftKey({ ...draftKey, time: value })}
+              onCancel={(value) => updateDraftKey({ time: value })}
+            />
+            <NumericScrubInput
+              id="camera-key-fov"
+              label="FOV"
+              value={draftKey.fov}
+              min={1}
+              step={1}
+              onChange={(value) => {
+                const nextKey = { ...draftKey, fov: value };
+                updateDraftKey({ fov: value });
+                previewDraftKey(nextKey);
+              }}
+              onCommit={(value) => commitDraftKey({ ...draftKey, fov: value })}
+              onCancel={(value) => updateDraftKey({ fov: value })}
+            />
           </div>
 
           <fieldset className="camera-fieldset">
             <legend>Position</legend>
             {(['X', 'Y', 'Z'] as const).map((axis, axisIndex) => (
-              <label key={axis} className="field-stack" htmlFor={`camera-position-${axis}`}>
-                <span>{axis}</span>
-                <input
-                  id={`camera-position-${axis}`}
-                  type="number"
-                  step="0.1"
-                  value={draftKey.position[axisIndex]}
-                  onChange={(event) => {
-                    const position: [number, number, number] = [...draftKey.position];
-                    position[axisIndex] = Number(event.target.value);
-                    updateDraftKey({ position });
-                  }}
-                />
-              </label>
+              <NumericScrubInput
+                key={axis}
+                id={`camera-position-${axis}`}
+                label={axis}
+                value={draftKey.position[axisIndex]}
+                step={0.1}
+                onChange={(value) => {
+                  const position: [number, number, number] = [...draftKey.position];
+                  position[axisIndex] = value;
+                  const nextKey = { ...draftKey, position };
+                  updateDraftKey({ position });
+                  previewDraftKey(nextKey);
+                }}
+                onCommit={(value) => {
+                  const position: [number, number, number] = [...draftKey.position];
+                  position[axisIndex] = value;
+                  commitDraftKey({ ...draftKey, position });
+                }}
+                onCancel={(value) => {
+                  const position: [number, number, number] = [...draftKey.position];
+                  position[axisIndex] = value;
+                  updateDraftKey({ position });
+                }}
+              />
             ))}
           </fieldset>
 
@@ -385,4 +529,11 @@ function swapKeyTimes(
 
 function clampTime(time: number, duration: number): number {
   return Math.min(Math.max(time, 0), duration);
+}
+
+function getStripTime(clientX: number, rect: DOMRect, duration: number): number {
+  const ratio = rect.width <= 0 ? 0 : (clientX - rect.left) / rect.width;
+  const unclampedTime = clampTime(ratio * duration, duration);
+
+  return Math.round(unclampedTime / 0.05) * 0.05;
 }

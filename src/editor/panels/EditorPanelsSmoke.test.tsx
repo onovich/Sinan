@@ -64,7 +64,11 @@ describe('editor panel smoke', () => {
           selectedEntityId="switch_a"
           onSelectEntity={() => undefined}
         />
-        <AssetPanel assets={assets} />
+        <AssetPanel
+          assets={assets}
+          selectedAssetId="model.switch_wall"
+          onSelectAsset={() => undefined}
+        />
         <InspectorPanel entity={level.entities[0]} />
         <EventDebugPanel
           debugState={{

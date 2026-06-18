@@ -5,9 +5,15 @@ import type { ProjectData } from '../data/DataRepository';
 import { saveJson } from '../data/saveJsonClient';
 import { DirectorCameraSystem } from '../director/DirectorCameraSystem';
 import { DirectorSystem, type DirectorSystemContext } from '../director/DirectorSystem';
+import { ActionSystem } from '../events/ActionSystem';
 import { EventSystem } from '../events/EventSystem';
 import { TriggerSystem } from '../events/TriggerSystem';
-import { createEventRuntimeState, type DirectorCommand, type FlagValue } from '../events/types';
+import {
+  createEventRuntimeState,
+  type DirectorCommand,
+  type EventRuntimeState,
+  type FlagValue,
+} from '../events/types';
 import type { RuntimeTransform } from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
 import { CameraShotSchema, type CameraShotData } from '../schemas/cameraShot.schema';
@@ -22,6 +28,7 @@ import {
 import type { TransformData } from '../schemas/transform.schema';
 import type { EditorCommandContext } from './commands/Command';
 import { CommandHistory } from './commands/CommandHistory';
+import { ReorderLevelEntityCommand } from './commands/ReorderLevelEntityCommand';
 import { TransformEntityCommand } from './commands/TransformEntityCommand';
 import { AddCameraShotCommand, UpdateCameraShotCommand } from './commands/UpdateCameraShotCommand';
 import { UpdateEntityComponentCommand } from './commands/UpdateEntityComponentCommand';
@@ -58,7 +65,16 @@ import {
   type EditorMode,
 } from './store/editorStore';
 
+type RightRailTab = 'inspector' | 'event' | 'camera' | 'debug';
+
+const designReviewEntityId = 'switch_a';
+const designReviewTimelineId = 'tl_open_gate';
+const designReviewTrackId = 'track_camera_gate_reveal';
+const designReviewCameraShotId = 'cam_gate_reveal';
+const designReviewTimelineTime = 2.25;
+
 export function EditorApp() {
+  const designReviewMode = isDesignReviewModeEnabled();
   const [editorState, dispatch] = useReducer(editorReducer, undefined, createInitialEditorState);
   const [project, setProject] = useState<ProjectData | null>(null);
   const [projectError, setProjectError] = useState<string | null>(null);
@@ -77,37 +93,50 @@ export function EditorApp() {
   const [showTriggerDebug, setShowTriggerDebug] = useState(true);
   const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
   const [dirtyState, setDirtyState] = useState<DirtyState>(() => createCleanDirtyState());
-  const projectRef = useRef<ProjectData | null>(null);
-  const commandHistoryRef = useRef(new CommandHistory());
-  const eventRuntimeStateRef = useRef(
+  const [rightRailTab, setRightRailTab] = useState<RightRailTab>('inspector');
+  const [selectedAssetId, setSelectedAssetId] = useState<string | undefined>(undefined);
+  const [debugCopyStatus, setDebugCopyStatus] = useState<string | undefined>(undefined);
+  const [transformPreview, setTransformPreview] = useState<{
+    entityId: string;
+    transform: TransformData;
+  }>();
+  const [eventRuntimePreviewState, setEventRuntimePreviewState] = useState<EventRuntimeState>(() =>
     createEventRuntimeState({
       flags: { power_enabled: true },
       inventory: new Set(['gate_key']),
     }),
   );
+  const projectRef = useRef<ProjectData | null>(null);
+  const commandHistoryRef = useRef(new CommandHistory());
+  const eventRuntimeStateRef = useRef<EventRuntimeState>(eventRuntimePreviewState);
   const directorCommandsRef = useRef<DirectorCommand[]>([]);
   const runtimeRef = useRef<WebRuntime | null>(null);
   const timelinePlaybackRef = useRef<TimelinePlaybackSession | null>(null);
   const subtitleTimerRef = useRef<number | undefined>(undefined);
   const audioTimerRef = useRef<number | undefined>(undefined);
   const transformAnimationFrameRef = useRef<Record<string, number | undefined>>({});
-  const [eventDebugState, setEventDebugState] = useState<EventDebugState>({
-    firedEventIds: [],
-    flags: { power_enabled: true },
-    doorStates: {},
-    directorCommands: [],
-  });
+  const [eventDebugState, setEventDebugState] = useState<EventDebugState>(() =>
+    createEventDebugState([], eventRuntimePreviewState, []),
+  );
   const selectedEntity = project?.level.entities.find(
     (entity) => entity.id === editorState.selectedEntityId,
   );
+  const visibleSelectedEntity =
+    selectedEntity && transformPreview?.entityId === selectedEntity.id
+      ? { ...selectedEntity, transform: transformPreview.transform }
+      : selectedEntity;
   const selectedEvent = getSelectedEvent(project, editorState.selectedEventId);
   const events = getSortedEvents(project);
   const selectedTimeline = getSelectedTimeline(project, editorState.selectedTimelineId);
   const timelines = getSortedTimelines(project);
   const selectedCameraShot = getSelectedCameraShot(project, editorState.selectedCameraShotId);
   const cameraShots = getSortedCameraShots(project);
-  const visibleDirtyState =
+  const computedDirtyState =
     project && savedSnapshots ? computeDirtyState(project, savedSnapshots) : dirtyState;
+  const visibleDirtyState =
+    designReviewMode && project
+      ? createDesignReviewDirtyState(computedDirtyState, project)
+      : computedDirtyState;
   const levelStatusPill = getSaveStatusPill({
     saveStatus,
     isDirty: visibleDirtyState.level,
@@ -122,13 +151,28 @@ export function EditorApp() {
   const selectedTimelineSaveError = selectedTimeline
     ? saveErrors.timelines[selectedTimeline.id]
     : undefined;
+  const timelineStatusPill = getSaveStatusPill({
+    saveStatus: timelineSaveStatus,
+    isDirty: selectedTimelineIsDirty,
+  });
   const selectedCameraShotIsDirty = selectedCameraShot
     ? visibleDirtyState.cameraShotIds.has(selectedCameraShot.id)
     : false;
   const selectedCameraShotSaveError = selectedCameraShot
     ? saveErrors.cameraShots[selectedCameraShot.id]
     : undefined;
+  const eventStatusPill = getSaveStatusPill({
+    saveStatus: eventSaveStatus,
+    isDirty: selectedEventIsDirty,
+  });
+  const cameraStatusPill = getSaveStatusPill({
+    saveStatus: cameraShotSaveStatus,
+    isDirty: selectedCameraShotIsDirty,
+  });
   const commandContext: EditorCommandContext = {
+    updateLevel: (level) => {
+      setProject((current) => updateProjectLevel(current, level));
+    },
     updateEntityTransform: (entityId, transform) => {
       setProject((current) => updateProjectEntityTransform(current, entityId, transform));
     },
@@ -151,12 +195,14 @@ export function EditorApp() {
 
   useEffect(() => {
     let cancelled = false;
+    const loadInDesignReviewMode = isDesignReviewModeEnabled();
     const repository = createDemoDataRepository();
 
     repository
       .loadProjectLevel('level_01')
       .then((loadedProject) => {
         if (!cancelled) {
+          projectRef.current = loadedProject;
           setProject(loadedProject);
           setProjectError(null);
           setSavedSnapshots(createSavedDataSnapshot(loadedProject));
@@ -166,6 +212,86 @@ export function EditorApp() {
           setEventSaveStatus('idle');
           setTimelineSaveStatus('idle');
           setCameraShotSaveStatus('idle');
+          const initialTimeline =
+            (loadInDesignReviewMode
+              ? loadedProject.timelines[designReviewTimelineId]
+              : undefined) ?? Object.values(loadedProject.timelines)[0];
+          const initialTrack =
+            (loadInDesignReviewMode
+              ? initialTimeline?.tracks.find((track) => track.id === designReviewTrackId)
+              : undefined) ?? initialTimeline?.tracks[0];
+          dispatch({
+            type: 'setMode',
+            mode: 'edit',
+          });
+          dispatch({
+            type: 'setActiveTool',
+            activeTool: loadInDesignReviewMode ? 'move' : 'select',
+          });
+          dispatch({
+            type: 'selectEntity',
+            entityId:
+              (loadInDesignReviewMode
+                ? loadedProject.level.entities.find((entity) => entity.id === designReviewEntityId)
+                    ?.id
+                : undefined) ?? loadedProject.level.entities[0]?.id,
+          });
+          dispatch({
+            type: 'selectEvent',
+            eventId: Object.keys(loadedProject.events)[0],
+          });
+          dispatch({ type: 'selectTimeline', timelineId: initialTimeline?.id });
+          dispatch({ type: 'selectTimelineTrack', trackId: initialTrack?.id });
+          dispatch({
+            type: 'setTimelineTime',
+            timelineTime: loadInDesignReviewMode ? designReviewTimelineTime : 0,
+          });
+          dispatch({
+            type: 'selectCameraShot',
+            cameraShotId:
+              (loadInDesignReviewMode
+                ? loadedProject.cameraShots[designReviewCameraShotId]?.id
+                : undefined) ?? Object.keys(loadedProject.cameraShots)[0],
+          });
+          setRightRailTab('inspector');
+          setShowTriggerDebug(true);
+          setSelectedAssetId(Object.keys(loadedProject.assets.assets).sort()[0]);
+          if (loadInDesignReviewMode && initialTimeline) {
+            const previewContext: DirectorSystemContext = {
+              state: createEventRuntimeState({
+                flags: { ...eventRuntimeStateRef.current.flags },
+                inventory: eventRuntimeStateRef.current.inventory,
+              }),
+              runtime: runtimeRef.current ?? undefined,
+              directorCommands: [],
+              previewMode: true,
+            };
+            const director = new DirectorSystem(
+              loadedProject.timelines,
+              new EventSystem(Object.values(loadedProject.events)),
+              loadedProject.cameraShots,
+            );
+            director.scrub(initialTimeline.id, designReviewTimelineTime, previewContext);
+            let subtitleCommand: Extract<DirectorCommand, { type: 'subtitle.show' }> | undefined;
+
+            for (const command of previewContext.directorCommands) {
+              if (command.type === 'subtitle.show') {
+                subtitleCommand = command;
+              }
+            }
+
+            setSubtitleHud(
+              subtitleCommand
+                ? {
+                    text: subtitleCommand.text,
+                    speaker: subtitleCommand.speaker,
+                  }
+                : null,
+            );
+            setTimelinePreviewStatus(
+              formatTimelinePreviewStatus(initialTimeline.id, designReviewTimelineTime, director),
+            );
+          }
         }
       })
       .catch((error: unknown) => {
@@ -190,8 +316,8 @@ export function EditorApp() {
     return () => {
       const session = timelinePlaybackRef.current;
 
-      if (session?.timerId !== undefined) {
-        clearInterval(session.timerId);
+      if (session?.frameId !== undefined) {
+        cancelAnimationFrame(session.frameId);
       }
       if (subtitleTimerRef.current !== undefined) {
         clearTimeout(subtitleTimerRef.current);
@@ -208,6 +334,7 @@ export function EditorApp() {
   }, []);
 
   const commitTransform = (entityId: string, transform: TransformData) => {
+    setTransformPreview(undefined);
     const current = projectRef.current;
     const entity = current?.level.entities.find((item) => item.id === entityId);
 
@@ -250,6 +377,31 @@ export function EditorApp() {
       new UpdateEntityComponentCommand(entityId, entity.components, nextComponents, componentType),
       commandContext,
     );
+    markLevelDirty(setDirtyState);
+    setSaveStatus('idle');
+    clearLevelSaveError(setSaveErrors);
+    refreshHistoryState(commandHistoryRef.current, setHistoryState);
+  };
+
+  const reorderEntity = (entityId: string, beforeEntityId: string | undefined) => {
+    const current = projectRef.current;
+
+    if (!current) {
+      return;
+    }
+
+    const nextLevel = reorderLevelEntities(current.level, entityId, beforeEntityId);
+
+    if (serializeEditorData(nextLevel) === serializeEditorData(current.level)) {
+      return;
+    }
+
+    commandHistoryRef.current.execute(
+      new ReorderLevelEntityCommand(entityId, current.level, nextLevel),
+      commandContext,
+    );
+    dispatch({ type: 'selectEntity', entityId });
+    setTransformPreview(undefined);
     markLevelDirty(setDirtyState);
     setSaveStatus('idle');
     clearLevelSaveError(setSaveErrors);
@@ -382,6 +534,31 @@ export function EditorApp() {
       selectedEntity?.id,
       selectedCameraShot?.id,
     );
+
+    commandHistoryRef.current.execute(new AddTimelineTrackCommand(timeline, track), commandContext);
+    dispatch({ type: 'selectTimeline', timelineId });
+    dispatch({ type: 'selectTimelineTrack', trackId: track.id });
+    markTimelineDirty(setDirtyState, timelineId);
+    setTimelineSaveStatus('idle');
+    clearTimelineSaveError(setSaveErrors, timelineId);
+    refreshHistoryState(commandHistoryRef.current, setHistoryState);
+  };
+
+  const addSoundTrackFromAsset = (timelineId: string, soundAssetId: string, time: number) => {
+    const current = projectRef.current;
+    const timeline = current?.timelines[timelineId];
+    const asset = current?.assets.assets[soundAssetId];
+
+    if (!timeline || asset?.type !== 'audio') {
+      return;
+    }
+
+    const track: TimelineTrackData = {
+      id: createTimelineTrackId(timeline, 'sound'),
+      type: 'sound',
+      time: clampNumber(time, 0, timeline.duration),
+      soundId: soundAssetId,
+    };
 
     commandHistoryRef.current.execute(new AddTimelineTrackCommand(timeline, track), commandContext);
     dispatch({ type: 'selectTimeline', timelineId });
@@ -574,6 +751,12 @@ export function EditorApp() {
   };
 
   const previewCameraShot = (shot: CameraShotData, time: number) => {
+    const runtime = runtimeRef.current;
+
+    if (runtime) {
+      new DirectorCameraSystem(runtime).applyShot(shot, time);
+    }
+
     setCameraPreviewStatus(`${shot.id} @ ${Number(time.toFixed(2))}s`);
   };
 
@@ -625,7 +808,8 @@ export function EditorApp() {
       director,
       context: createTimelinePreviewContext(),
       timelineId,
-      timerId: undefined,
+      frameId: undefined,
+      lastFrameTime: undefined,
     };
 
     director.playTimeline(timelineId, { startTime });
@@ -645,9 +829,9 @@ export function EditorApp() {
       return;
     }
 
-    if (session.timerId !== undefined) {
-      clearInterval(session.timerId);
-      session.timerId = undefined;
+    if (session.frameId !== undefined) {
+      cancelAnimationFrame(session.frameId);
+      session.frameId = undefined;
     }
 
     session.director.pauseTimeline(session.timelineId);
@@ -705,57 +889,155 @@ export function EditorApp() {
     scrubTimeline(timelineId, safeTime);
   };
 
-  const createTimelinePreviewContext = (): DirectorSystemContext => ({
-    state: createEventRuntimeState({
-      flags: { ...eventRuntimeStateRef.current.flags },
-      inventory: eventRuntimeStateRef.current.inventory,
-    }),
-    runtime: runtimeRef.current ?? undefined,
-    directorCommands: [],
-    previewMode: true,
-  });
+  const clearDebugState = () => {
+    directorCommandsRef.current.length = 0;
+    setDebugCopyStatus(undefined);
+    setEventDebugState((current) => ({
+      ...current,
+      firedEventIds: [],
+      directorCommands: [],
+    }));
+  };
+
+  const setRuntimeFlag = (flag: string, value: FlagValue) => {
+    const normalizedFlag = flag.trim();
+
+    if (!normalizedFlag) {
+      return;
+    }
+
+    eventRuntimeStateRef.current.flags = {
+      ...eventRuntimeStateRef.current.flags,
+      [normalizedFlag]: value,
+    };
+    setEventRuntimePreviewState(cloneEventRuntimeState(eventRuntimeStateRef.current));
+    setDebugCopyStatus(undefined);
+    setEventDebugState((current) =>
+      createEventDebugState(
+        current.firedEventIds,
+        eventRuntimeStateRef.current,
+        directorCommandsRef.current,
+      ),
+    );
+  };
+
+  const toggleRuntimeFlag = (flag: string) => {
+    const currentValue = eventRuntimeStateRef.current.flags[flag];
+    setRuntimeFlag(flag, typeof currentValue === 'boolean' ? !currentValue : true);
+  };
+
+  const fireSelectedEvent = () => {
+    if (!selectedEvent) {
+      return;
+    }
+
+    const context = {
+      state: eventRuntimeStateRef.current,
+      runtime: runtimeRef.current ?? undefined,
+      directorCommands: directorCommandsRef.current,
+    };
+
+    new ActionSystem().dispatchAll(selectedEvent.actions, context);
+    const debugCommands = [...directorCommandsRef.current];
+    consumeRuntimeEffectCommands(directorCommandsRef.current);
+    setEventRuntimePreviewState(cloneEventRuntimeState(eventRuntimeStateRef.current));
+    setDebugCopyStatus(undefined);
+    setEventDebugState(
+      createEventDebugState([selectedEvent.id], eventRuntimeStateRef.current, debugCommands),
+    );
+  };
+
+  const replaySelectedTimeline = () => {
+    if (!selectedTimeline) {
+      return;
+    }
+
+    playTimeline(selectedTimeline.id);
+  };
+
+  const copyDebugSnapshot = () => {
+    const snapshot = {
+      selectedEventId: selectedEvent?.id,
+      selectedTimelineId: selectedTimeline?.id,
+      firedEventIds: eventDebugState.firedEventIds,
+      flags: eventDebugState.flags,
+      doors: eventDebugState.doorStates,
+      directorCommands: eventDebugState.directorCommands.map((command) => command.type),
+    };
+    const text = JSON.stringify(snapshot, null, 2);
+
+    if (!navigator.clipboard) {
+      setDebugCopyStatus('Clipboard unavailable');
+      return;
+    }
+
+    void navigator.clipboard
+      .writeText(text)
+      .then(() => setDebugCopyStatus('Snapshot copied'))
+      .catch(() => setDebugCopyStatus('Clipboard unavailable'));
+  };
+
+  function createTimelinePreviewContext(): DirectorSystemContext {
+    return {
+      state: createEventRuntimeState({
+        flags: { ...eventRuntimeStateRef.current.flags },
+        inventory: eventRuntimeStateRef.current.inventory,
+      }),
+      runtime: runtimeRef.current ?? undefined,
+      directorCommands: [],
+      previewMode: true,
+    };
+  }
 
   const cancelTimelinePlaybackFrame = () => {
     const session = timelinePlaybackRef.current;
 
-    if (session?.timerId !== undefined) {
-      clearInterval(session.timerId);
-      session.timerId = undefined;
+    if (session?.frameId !== undefined) {
+      cancelAnimationFrame(session.frameId);
+      session.frameId = undefined;
     }
   };
 
   const scheduleTimelinePlaybackFrame = (session: TimelinePlaybackSession) => {
-    session.timerId = window.setInterval(() => {
+    if (session.frameId !== undefined) {
+      cancelAnimationFrame(session.frameId);
+    }
+
+    session.lastFrameTime = undefined;
+    const frame = (now: number) => {
       if (timelinePlaybackRef.current !== session) {
         return;
       }
 
-      session.director.update(0.1, session.context);
+      const previousTime = session.lastFrameTime ?? now;
+      const deltaSeconds = clampNumber((now - previousTime) / 1000, 0, 0.05);
+      session.lastFrameTime = now;
+
+      session.director.update(deltaSeconds, session.context);
       consumeRuntimeEffectCommands(session.context.directorCommands);
       const state = session.director.getTimelineState(session.timelineId);
 
       if (!state) {
-        if (session.timerId !== undefined) {
-          clearInterval(session.timerId);
-          session.timerId = undefined;
-        }
+        session.frameId = undefined;
         timelinePlaybackRef.current = null;
         setTimelinePlaybackStatus('stopped');
         return;
       }
 
-      dispatch({ type: 'setTimelineTime', timelineTime: roundTimelineTime(state.time) });
+      dispatch({ type: 'setTimelineTime', timelineTime: state.time });
       setTimelinePlaybackStatus(state.status);
       setTimelinePreviewStatus(`${session.timelineId} @ ${state.time.toFixed(2)}s`);
 
       if (state.status !== 'playing') {
-        if (session.timerId !== undefined) {
-          clearInterval(session.timerId);
-          session.timerId = undefined;
-        }
+        session.frameId = undefined;
         timelinePlaybackRef.current = null;
+        return;
       }
-    }, 100);
+
+      session.frameId = requestAnimationFrame(frame);
+    };
+
+    session.frameId = requestAnimationFrame(frame);
   };
 
   const translateSelectedEntity = (delta: readonly [number, number, number]) => {
@@ -795,15 +1077,17 @@ export function EditorApp() {
     ).interact(selectedEntity.id, context);
     const debugCommands = [...directorCommandsRef.current];
     consumeRuntimeEffectCommands(directorCommandsRef.current);
+    setEventRuntimePreviewState(cloneEventRuntimeState(eventRuntimeStateRef.current));
 
     setEventDebugState(
       createEventDebugState(firedEventIds, eventRuntimeStateRef.current, debugCommands),
     );
   };
 
-  const consumeRuntimeEffectCommands = (
-    commands: DirectorCommand[],
-  ): { subtitles: number; sounds: number } => {
+  function consumeRuntimeEffectCommands(commands: DirectorCommand[]): {
+    subtitles: number;
+    sounds: number;
+  } {
     let subtitles = 0;
     let sounds = 0;
 
@@ -849,7 +1133,7 @@ export function EditorApp() {
     }
 
     return { subtitles, sounds };
-  };
+  }
 
   const showSubtitle = (command: Extract<DirectorCommand, { type: 'subtitle.show' }>) => {
     if (subtitleTimerRef.current !== undefined) {
@@ -866,14 +1150,14 @@ export function EditorApp() {
     }, command.duration * 1000);
   };
 
-  const clearSubtitle = () => {
+  function clearSubtitle() {
     if (subtitleTimerRef.current !== undefined) {
       clearTimeout(subtitleTimerRef.current);
       subtitleTimerRef.current = undefined;
     }
 
     setSubtitleHud(null);
-  };
+  }
 
   const playSound = (soundId: string) => {
     const asset = projectRef.current?.assets.assets[soundId];
@@ -936,10 +1220,11 @@ export function EditorApp() {
       cancelAnimationFrame(currentFrameId);
     }
 
-    const startedAt = performance.now();
+    let startedAt: number | undefined;
     const durationMs = Math.max(1, command.duration * 1000);
 
     const sample = (now: number) => {
+      startedAt ??= now;
       const alpha = clampNumber((now - startedAt) / durationMs, 0, 1);
       const easedAlpha = sampleEase(alpha, command.ease);
       runtime.setTransform(command.entityId, interpolateTransform(from, command.to, easedAlpha));
@@ -958,7 +1243,7 @@ export function EditorApp() {
     <div className="editor-shell" data-mode={editorState.mode} data-testid="editor-shell">
       <header className="editor-topbar">
         <div className="topbar-brand">
-          <h1>Sinan Scene Director</h1>
+          <h1>Sinan Director</h1>
           <span>Scene editing workspace</span>
         </div>
         <div className="topbar-controls">
@@ -1030,6 +1315,30 @@ export function EditorApp() {
               >
                 {levelStatusPill.text}
               </span>
+              <span
+                className={`domain-status ${timelineStatusPill.className}`}
+                role="status"
+                aria-label={`Timeline save state: ${timelineStatusPill.text}`}
+                title={`Timeline: ${timelineStatusPill.text}`}
+              >
+                TL
+              </span>
+              <span
+                className={`domain-status ${eventStatusPill.className}`}
+                role="status"
+                aria-label={`Event save state: ${eventStatusPill.text}`}
+                title={`Event: ${eventStatusPill.text}`}
+              >
+                EV
+              </span>
+              <span
+                className={`domain-status ${cameraStatusPill.className}`}
+                role="status"
+                aria-label={`Camera save state: ${cameraStatusPill.text}`}
+                title={`Camera: ${cameraStatusPill.text}`}
+              >
+                CAM
+              </span>
               {saveErrors.level ? (
                 <span className="save-error" role="alert" title={saveErrors.level}>
                   {saveErrors.level}
@@ -1045,9 +1354,18 @@ export function EditorApp() {
           <HierarchyPanel
             level={project?.level ?? null}
             selectedEntityId={editorState.selectedEntityId}
-            onSelectEntity={(entityId) => dispatch({ type: 'selectEntity', entityId })}
+            onSelectEntity={(entityId) => {
+              dispatch({ type: 'selectEntity', entityId });
+              setTransformPreview(undefined);
+              setRightRailTab('inspector');
+            }}
+            onReorderEntity={reorderEntity}
           />
-          <AssetPanel assets={project?.assets ?? null} />
+          <AssetPanel
+            assets={project?.assets ?? null}
+            selectedAssetId={selectedAssetId}
+            onSelectAsset={setSelectedAssetId}
+          />
           {projectError ? <p className="panel-error">{projectError}</p> : null}
         </aside>
 
@@ -1058,12 +1376,35 @@ export function EditorApp() {
             showTriggerDebug={editorState.mode === 'edit' && showTriggerDebug}
             selectedEntityId={editorState.selectedEntityId}
             activeTool={editorState.activeTool}
-            onSelectEntity={(entityId) => dispatch({ type: 'selectEntity', entityId })}
+            onSelectEntity={(entityId) => {
+              dispatch({ type: 'selectEntity', entityId });
+              setTransformPreview(undefined);
+              setRightRailTab('inspector');
+            }}
+            onTransformPreview={(entityId, transform) => {
+              setTransformPreview({ entityId, transform });
+            }}
             onTransformCommit={commitTransform}
             onRuntimeReady={(runtime) => {
               runtimeRef.current = runtime;
             }}
           />
+          <div className="viewport-overlay" aria-label="Viewport selection summary">
+            <div className="selection-tag">
+              {visibleSelectedEntity
+                ? `Selected: ${visibleSelectedEntity.id} [${formatOverlayPosition(
+                    visibleSelectedEntity.transform.position,
+                  )}]`
+                : 'No entity selected'}
+            </div>
+            <div className="telemetry-line">
+              {`Mode: ${formatMode(editorState.mode).toUpperCase()} / ${formatTool(
+                editorState.activeTool,
+              ).toUpperCase()} | timeline: ${
+                selectedTimeline ? selectedTimeline.id : 'none'
+              } @ ${editorState.timelineTime.toFixed(2)}s`}
+            </div>
+          </div>
           {subtitleHud ? (
             <div className="runtime-subtitle" role="status" data-testid="runtime-subtitle">
               {subtitleHud.speaker ? <span>{subtitleHud.speaker}</span> : null}
@@ -1082,48 +1423,108 @@ export function EditorApp() {
           ) : null}
         </section>
 
-        <aside className="editor-panel editor-panel-right" aria-labelledby="inspector-heading">
-          <InspectorPanel
-            entity={selectedEntity}
-            onApplyTransform={commitTransform}
-            onApplyComponent={commitEntityComponent}
-            onTranslateSelected={translateSelectedEntity}
-            onInteractSelected={selectedEntity ? interactSelectedEntity : undefined}
-          />
-          <EventInspector
-            events={events}
-            selectedEvent={selectedEvent}
-            saveStatus={eventSaveStatus}
-            isDirty={selectedEventIsDirty}
-            saveError={selectedEventSaveError}
-            entityIds={getEntityIds(project)}
-            timelineIds={timelines.map((timeline) => timeline.id)}
-            cameraShotIds={cameraShots.map((shot) => shot.id)}
-            soundAssetIds={getSoundAssetIds(project)}
-            onSelectEvent={(eventId) => dispatch({ type: 'selectEvent', eventId })}
-            onApplyEvent={applyEvent}
-            onSaveEvent={saveEvent}
-          />
-          <CameraShotPanel
-            shots={cameraShots}
-            selectedShot={selectedCameraShot}
-            selectedEntityId={selectedEntity?.id}
-            saveStatus={cameraShotSaveStatus}
-            isDirty={selectedCameraShotIsDirty}
-            saveError={selectedCameraShotSaveError}
-            previewStatus={cameraPreviewStatus}
-            onSelectShot={(cameraShotId) => dispatch({ type: 'selectCameraShot', cameraShotId })}
-            onCreateShot={createCameraShot}
-            onApplyShot={applyCameraShot}
-            onSaveShot={saveCameraShot}
-            onSetKeyFromView={setCameraKeyFromView}
-            onPreviewShot={previewCameraShot}
-          />
-          <EventDebugPanel debugState={eventDebugState} />
+        <aside className="editor-panel editor-panel-right" aria-label="Editor details">
+          <div className="right-rail-tabs" role="tablist" aria-label="Editor detail panels">
+            <RightRailTabButton
+              tab="inspector"
+              label="Inspector"
+              activeTab={rightRailTab}
+              tone={visibleDirtyState.level ? 'warning' : undefined}
+              onSelect={setRightRailTab}
+            />
+            <RightRailTabButton
+              tab="event"
+              label="Event"
+              activeTab={rightRailTab}
+              tone={selectedEventSaveError ? 'error' : selectedEventIsDirty ? 'warning' : undefined}
+              onSelect={setRightRailTab}
+            />
+            <RightRailTabButton
+              tab="camera"
+              label="Camera"
+              activeTab={rightRailTab}
+              tone={
+                selectedCameraShotSaveError
+                  ? 'error'
+                  : selectedCameraShotIsDirty
+                    ? 'warning'
+                    : undefined
+              }
+              onSelect={setRightRailTab}
+            />
+            <RightRailTabButton
+              tab="debug"
+              label="Debug"
+              activeTab={rightRailTab}
+              onSelect={setRightRailTab}
+            />
+          </div>
+
+          <div className="right-rail-panel" role="tabpanel">
+            {rightRailTab === 'inspector' ? (
+              <InspectorPanel
+                entity={visibleSelectedEntity}
+                onApplyTransform={commitTransform}
+                onApplyComponent={commitEntityComponent}
+                onTranslateSelected={translateSelectedEntity}
+                onInteractSelected={selectedEntity ? interactSelectedEntity : undefined}
+              />
+            ) : null}
+            {rightRailTab === 'event' ? (
+              <EventInspector
+                events={events}
+                selectedEvent={selectedEvent}
+                saveStatus={eventSaveStatus}
+                isDirty={selectedEventIsDirty}
+                saveError={selectedEventSaveError}
+                entityIds={getEntityIds(project)}
+                timelineIds={timelines.map((timeline) => timeline.id)}
+                cameraShotIds={cameraShots.map((shot) => shot.id)}
+                soundAssetIds={getSoundAssetIds(project)}
+                runtimeState={eventRuntimePreviewState}
+                onSelectEvent={(eventId) => dispatch({ type: 'selectEvent', eventId })}
+                onApplyEvent={applyEvent}
+                onSaveEvent={saveEvent}
+              />
+            ) : null}
+            {rightRailTab === 'camera' ? (
+              <CameraShotPanel
+                shots={cameraShots}
+                selectedShot={selectedCameraShot}
+                selectedEntityId={selectedEntity?.id}
+                saveStatus={cameraShotSaveStatus}
+                isDirty={selectedCameraShotIsDirty}
+                saveError={selectedCameraShotSaveError}
+                previewStatus={cameraPreviewStatus}
+                onSelectShot={(cameraShotId) =>
+                  dispatch({ type: 'selectCameraShot', cameraShotId })
+                }
+                onCreateShot={createCameraShot}
+                onApplyShot={applyCameraShot}
+                onSaveShot={saveCameraShot}
+                onSetKeyFromView={setCameraKeyFromView}
+                onPreviewShot={previewCameraShot}
+              />
+            ) : null}
+            {rightRailTab === 'debug' ? (
+              <EventDebugPanel
+                debugState={eventDebugState}
+                selectedEventId={selectedEvent?.id}
+                selectedTimelineId={selectedTimeline?.id}
+                copyStatus={debugCopyStatus}
+                onClearDebug={clearDebugState}
+                onSetFlag={setRuntimeFlag}
+                onToggleFlag={toggleRuntimeFlag}
+                onFireSelectedEvent={fireSelectedEvent}
+                onReplayTimeline={replaySelectedTimeline}
+                onCopySnapshot={copyDebugSnapshot}
+              />
+            ) : null}
+          </div>
         </aside>
       </main>
 
-      <footer className="timeline-shell" aria-label={editorPanelLayout[3].title}>
+      <footer className="sequencer" aria-label={editorPanelLayout[3].title}>
         <TimelinePanel
           timelines={timelines}
           selectedTimeline={selectedTimeline}
@@ -1146,6 +1547,7 @@ export function EditorApp() {
           onStopTimeline={stopTimeline}
           onSeekTimeline={seekTimeline}
           onAddTrack={addTimelineTrack}
+          onAddSoundTrackFromAsset={addSoundTrackFromAsset}
           onApplyTrack={applyTimelineTrack}
           onApplyTrackItem={applyTimelineTrackItem}
           onRemoveTrack={removeTimelineTrack}
@@ -1153,6 +1555,31 @@ export function EditorApp() {
         />
       </footer>
     </div>
+  );
+}
+
+interface RightRailTabButtonProps {
+  tab: RightRailTab;
+  label: string;
+  activeTab: RightRailTab;
+  tone?: 'warning' | 'error';
+  onSelect: (tab: RightRailTab) => void;
+}
+
+function RightRailTabButton({ tab, label, activeTab, tone, onSelect }: RightRailTabButtonProps) {
+  const isActive = tab === activeTab;
+  const toneClassName = tone ? ` has-${tone}` : '';
+
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={isActive}
+      className={`right-rail-tab${isActive ? ' is-active' : ''}${toneClassName}`}
+      onClick={() => onSelect(tab)}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -1218,7 +1645,8 @@ interface TimelinePlaybackSession {
   director: DirectorSystem;
   context: DirectorSystemContext;
   timelineId: string;
-  timerId: number | undefined;
+  frameId: number | undefined;
+  lastFrameTime: number | undefined;
 }
 
 function formatMode(mode: EditorMode): string {
@@ -1227,6 +1655,10 @@ function formatMode(mode: EditorMode): string {
 
 function formatTool(tool: ActiveTool): string {
   return tool[0].toUpperCase() + tool.slice(1);
+}
+
+function formatOverlayPosition(position: readonly number[]): string {
+  return position.map((value) => Number(value.toFixed(2))).join(', ');
 }
 
 function formatAudioStatus(status: AudioHudStatus): string {
@@ -1254,12 +1686,31 @@ function createCleanDirtyState(): DirtyState {
   };
 }
 
+function createDesignReviewDirtyState(dirtyState: DirtyState, project: ProjectData): DirtyState {
+  if (!project.timelines[designReviewTimelineId]) {
+    return dirtyState;
+  }
+
+  return {
+    ...dirtyState,
+    timelineIds: addDirtyId(dirtyState.timelineIds, designReviewTimelineId),
+  };
+}
+
 function createCleanSaveErrorState(): SaveErrorState {
   return {
     events: {},
     timelines: {},
     cameraShots: {},
   };
+}
+
+function isDesignReviewModeEnabled(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return new URLSearchParams(window.location.search).get('designReview') === '1';
 }
 
 function createSavedDataSnapshot(project: ProjectData): SavedDataSnapshot {
@@ -1459,6 +1910,10 @@ function getCommandDirtyTarget(commandId: string | undefined): DirtyTarget | und
     return { kind: 'level' };
   }
 
+  if (parts[0] === 'level') {
+    return { kind: 'level' };
+  }
+
   if (parts[0] === 'event' && parts[1]) {
     return { kind: 'event', id: parts[1] };
   }
@@ -1613,6 +2068,40 @@ function getEntityIds(project: ProjectData | null): string[] {
   return project.level.entities.map((entity) => entity.id);
 }
 
+function reorderLevelEntities(
+  level: LevelData,
+  entityId: string,
+  beforeEntityId: string | undefined,
+): LevelData {
+  if (entityId === beforeEntityId) {
+    return level;
+  }
+
+  const sourceIndex = level.entities.findIndex((entity) => entity.id === entityId);
+
+  if (sourceIndex < 0) {
+    return level;
+  }
+
+  const entities = [...level.entities];
+  const [entity] = entities.splice(sourceIndex, 1);
+  const insertIndex =
+    beforeEntityId === undefined
+      ? entities.length
+      : entities.findIndex((item) => item.id === beforeEntityId);
+
+  if (insertIndex < 0 || !entity) {
+    return level;
+  }
+
+  entities.splice(insertIndex, 0, entity);
+
+  return {
+    ...level,
+    entities,
+  };
+}
+
 function getSelectedCameraShot(
   project: ProjectData | null,
   selectedCameraShotId: string | undefined,
@@ -1664,6 +2153,17 @@ function updateProjectEntityTransform(
         entity.id === entityId ? { ...entity, transform } : entity,
       ),
     },
+  };
+}
+
+function updateProjectLevel(project: ProjectData | null, level: LevelData): ProjectData | null {
+  if (!project) {
+    return project;
+  }
+
+  return {
+    ...project,
+    level,
   };
 }
 
@@ -2020,6 +2520,19 @@ function createEventDebugState(
       ]),
     ),
     directorCommands: [...directorCommands],
+  };
+}
+
+function cloneEventRuntimeState(state: EventRuntimeState): EventRuntimeState {
+  return {
+    flags: { ...state.flags },
+    inventory: new Set(state.inventory),
+    questStates: { ...state.questStates },
+    entityStates: { ...state.entityStates },
+    entityEnabled: { ...state.entityEnabled },
+    entityTransforms: { ...state.entityTransforms },
+    entityVisibility: { ...state.entityVisibility },
+    doorStates: { ...state.doorStates },
   };
 }
 

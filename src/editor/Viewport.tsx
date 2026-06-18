@@ -22,6 +22,32 @@ type ViewportStatus =
   | 'Loading level data'
   | 'Level loaded'
   | 'Load failed';
+type ViewportNavigationMode = 'idle' | 'pan' | 'orbit';
+
+interface EditorCameraRuntime extends WebRuntime {
+  handleEditorCameraWheel?: (input: {
+    deltaX: number;
+    deltaY: number;
+    shiftKey: boolean;
+    ctrlKey: boolean;
+  }) => void;
+  startEditorCameraDrag?: (mode: 'pan' | 'orbit', clientX: number, clientY: number) => void;
+  updateEditorCameraDrag?: (clientX: number, clientY: number) => void;
+  endEditorCameraDrag?: () => void;
+  frameEntity?: (entityId: string) => void;
+  frameAll?: () => void;
+  resetEditorCamera?: () => void;
+}
+
+interface ViewportPointerInteraction {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  mode: 'select' | 'pan' | 'orbit';
+  dragged: boolean;
+}
+
+const viewportDragThresholdPx = 4;
 
 export interface ViewportProps {
   project: ProjectData | null;
@@ -30,6 +56,7 @@ export interface ViewportProps {
   selectedEntityId: string | undefined;
   activeTool: ActiveTool;
   onSelectEntity: (entityId: string | undefined) => void;
+  onTransformPreview?: (entityId: string, transform: TransformData) => void;
   onTransformCommit: (entityId: string, transform: TransformData) => void;
   onRuntimeReady?: (runtime: WebRuntime | null) => void;
 }
@@ -41,6 +68,7 @@ export function Viewport({
   selectedEntityId,
   activeTool,
   onSelectEntity,
+  onTransformPreview,
   onTransformCommit,
   onRuntimeReady,
 }: ViewportProps) {
@@ -49,15 +77,23 @@ export function Viewport({
   const runtimeRef = useRef<WebRuntime | null>(null);
   const selectionToolRef = useRef<SelectionTool | null>(null);
   const selectEntityRef = useRef(onSelectEntity);
+  const transformPreviewRef = useRef(onTransformPreview);
   const transformCommitRef = useRef(onTransformCommit);
   const runtimeReadyRef = useRef(onRuntimeReady);
   const showTriggerDebugRef = useRef(showTriggerDebug);
+  const selectedEntityIdRef = useRef(selectedEntityId);
+  const pointerInteractionRef = useRef<ViewportPointerInteraction | undefined>(undefined);
   const [status, setStatus] = useState<ViewportStatus>('Waiting for level data');
   const [runtimeVersion, setRuntimeVersion] = useState(0);
+  const [navigationMode, setNavigationMode] = useState<ViewportNavigationMode>('idle');
 
   useEffect(() => {
     selectEntityRef.current = onSelectEntity;
   }, [onSelectEntity]);
+
+  useEffect(() => {
+    transformPreviewRef.current = onTransformPreview;
+  }, [onTransformPreview]);
 
   useEffect(() => {
     transformCommitRef.current = onTransformCommit;
@@ -70,6 +106,10 @@ export function Viewport({
   useEffect(() => {
     showTriggerDebugRef.current = showTriggerDebug;
   }, [showTriggerDebug]);
+
+  useEffect(() => {
+    selectedEntityIdRef.current = selectedEntityId;
+  }, [selectedEntityId]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -203,6 +243,9 @@ export function Viewport({
 
     runtime.setTransformGizmoMode(mode);
     runtime.attachTransformGizmo(selectedEntityId, {
+      onChange: (event) => {
+        transformPreviewRef.current?.(event.entityId, toTransformData(event.transform));
+      },
       onCommit: (event) => {
         transformCommitRef.current(event.entityId, toTransformData(event.transform));
       },
@@ -214,23 +257,162 @@ export function Viewport({
   }, [activeTool, selectedEntityId, project]);
 
   return (
-    <div ref={hostRef} className="viewport-placeholder" data-testid="viewport-placeholder">
+    <div
+      ref={hostRef}
+      className="viewport-placeholder"
+      data-testid="viewport-placeholder"
+      data-tool={activeTool}
+      data-nav-mode={navigationMode}
+      data-selection-enabled={selectionEnabled ? 'true' : 'false'}
+    >
       <canvas
         ref={canvasRef}
         className="runtime-canvas"
         aria-label="Runtime viewport"
+        tabIndex={0}
+        onContextMenu={(event) => event.preventDefault()}
+        onWheel={(event) => {
+          getEditorCameraRuntime(runtimeRef.current)?.handleEditorCameraWheel?.({
+            deltaX: event.deltaX,
+            deltaY: event.deltaY,
+            shiftKey: event.shiftKey,
+            ctrlKey: event.ctrlKey,
+          });
+        }}
+        onKeyDown={(event) => {
+          const runtime = getEditorCameraRuntime(runtimeRef.current);
+
+          if (event.key === 'f' || event.key === 'F') {
+            const entityId = selectedEntityIdRef.current;
+
+            if (entityId) {
+              runtime?.frameEntity?.(entityId);
+            }
+            event.preventDefault();
+          } else if (event.key === 'Home') {
+            runtime?.frameAll?.();
+            event.preventDefault();
+          } else if (event.key === '0') {
+            runtime?.resetEditorCamera?.();
+            event.preventDefault();
+          }
+        }}
         onPointerDown={(event) => {
-          if (selectionEnabled) {
+          event.currentTarget.focus();
+          const runtime = getEditorCameraRuntime(runtimeRef.current);
+          const mode =
+            event.button === 2 ? 'pan' : event.button === 1 || event.altKey ? 'orbit' : undefined;
+
+          if (mode && runtime?.startEditorCameraDrag) {
+            event.preventDefault();
+            pointerInteractionRef.current = {
+              pointerId: event.pointerId,
+              startX: event.clientX,
+              startY: event.clientY,
+              mode,
+              dragged: true,
+            };
+            event.currentTarget.setPointerCapture(event.pointerId);
+            runtime.startEditorCameraDrag(mode, event.clientX, event.clientY);
+            setNavigationMode(mode);
+            return;
+          }
+
+          if (selectionEnabled && event.button === 0) {
+            pointerInteractionRef.current = {
+              pointerId: event.pointerId,
+              startX: event.clientX,
+              startY: event.clientY,
+              mode: 'select',
+              dragged: false,
+            };
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }
+        }}
+        onPointerMove={(event) => {
+          const interaction = pointerInteractionRef.current;
+
+          if (!interaction || interaction.pointerId !== event.pointerId) {
+            return;
+          }
+
+          const deltaX = event.clientX - interaction.startX;
+          const deltaY = event.clientY - interaction.startY;
+
+          if (Math.hypot(deltaX, deltaY) > viewportDragThresholdPx) {
+            interaction.dragged = true;
+          }
+
+          if (interaction.mode === 'pan' || interaction.mode === 'orbit') {
+            getEditorCameraRuntime(runtimeRef.current)?.updateEditorCameraDrag?.(
+              event.clientX,
+              event.clientY,
+            );
+          }
+        }}
+        onPointerUp={(event) => {
+          const interaction = pointerInteractionRef.current;
+
+          if (!interaction || interaction.pointerId !== event.pointerId) {
+            return;
+          }
+
+          pointerInteractionRef.current = undefined;
+
+          if (interaction.mode === 'pan' || interaction.mode === 'orbit') {
+            getEditorCameraRuntime(runtimeRef.current)?.endEditorCameraDrag?.();
+            setNavigationMode('idle');
+            return;
+          }
+
+          if (!interaction.dragged && selectionEnabled) {
             selectionToolRef.current?.handlePointerDown(event);
+          }
+        }}
+        onPointerCancel={() => {
+          const interaction = pointerInteractionRef.current;
+
+          pointerInteractionRef.current = undefined;
+
+          if (interaction?.mode === 'pan' || interaction?.mode === 'orbit') {
+            getEditorCameraRuntime(runtimeRef.current)?.endEditorCameraDrag?.();
+            setNavigationMode('idle');
           }
         }}
       />
       <div className="viewport-status">
-        <strong>Editor Viewport</strong>
-        <span>{status}</span>
+        <strong>Three Runtime</strong>
+        <span>{formatViewportTelemetry(status, project, showTriggerDebug)}</span>
       </div>
     </div>
   );
+}
+
+function formatViewportTelemetry(
+  status: ViewportStatus,
+  project: ProjectData | null,
+  showTriggerDebug: boolean,
+): string {
+  if (!project) {
+    return status;
+  }
+
+  return `${formatRuntimeStatus(status)} / ${project.level.entities.length} entities / helpers ${
+    showTriggerDebug ? 'on' : 'off'
+  }`;
+}
+
+function formatRuntimeStatus(status: ViewportStatus): string {
+  switch (status) {
+    case 'Waiting for level data':
+      return 'waiting';
+    case 'Loading level data':
+      return 'loading';
+    case 'Level loaded':
+      return 'runtime ready';
+    case 'Load failed':
+      return 'load failed';
+  }
 }
 
 function syncTriggerDebug(
@@ -288,6 +470,10 @@ function getTransformGizmoMode(activeTool: ActiveTool): TransformGizmoMode | und
   }
 
   return undefined;
+}
+
+function getEditorCameraRuntime(runtime: WebRuntime | null): EditorCameraRuntime | undefined {
+  return runtime ?? undefined;
 }
 
 function toTransformData(transform: RuntimeTransform): TransformData {

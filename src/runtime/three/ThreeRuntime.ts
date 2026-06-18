@@ -21,6 +21,11 @@ import {
   ThreeAssetLoader,
   type ThreeLoadedModelAsset,
 } from './ThreeAssetLoader';
+import {
+  EditorCameraController,
+  type EditorCameraDragMode,
+  type EditorCameraWheelInput,
+} from './EditorCameraController';
 import { disposeObjectResources } from './ThreeObjectResources';
 import { pickThreeObject } from './ThreePicking';
 
@@ -44,6 +49,7 @@ export class ThreeRuntime implements WebRuntime {
   private scene: THREE.Scene | undefined;
   private objectRoot: THREE.Group | undefined;
   private camera: THREE.PerspectiveCamera | undefined;
+  private editorCamera: EditorCameraController | undefined;
   private transformControls: TransformControls | undefined;
   private transformControlsHelper: THREE.Object3D | undefined;
   private transformGizmoEntityId: string | undefined;
@@ -89,6 +95,7 @@ export class ThreeRuntime implements WebRuntime {
     const camera = new THREE.PerspectiveCamera(64, this.width / this.height, 0.1, 1000);
     camera.position.set(4, 2.6, 0.35);
     camera.lookAt(4, 0.1, 6.2);
+    const editorCamera = new EditorCameraController(camera);
 
     const grid = new THREE.GridHelper(18, 18, 0x668091, 0x263842);
     scene.add(grid);
@@ -129,6 +136,7 @@ export class ThreeRuntime implements WebRuntime {
     this.scene = scene;
     this.objectRoot = objectRoot;
     this.camera = camera;
+    this.editorCamera = editorCamera;
     this.transformControls = transformControls;
     this.transformControlsHelper = transformControlsHelper;
   }
@@ -175,6 +183,10 @@ export class ThreeRuntime implements WebRuntime {
   }
 
   destroyObject(entityId: string): void {
+    if (this.transformGizmoEntityId === entityId) {
+      this.detachTransformGizmo();
+    }
+
     this.disposeDebugAabb(entityId);
     this.disposeEntityAnimations(entityId);
 
@@ -334,6 +346,7 @@ export class ThreeRuntime implements WebRuntime {
 
     if (pose.lookAt) {
       this.camera.lookAt(...pose.lookAt);
+      this.editorCamera?.syncTarget(pose.lookAt);
     } else if (pose.rotation) {
       this.camera.quaternion.set(...pose.rotation);
     }
@@ -423,6 +436,38 @@ export class ThreeRuntime implements WebRuntime {
     this.transformControls?.setMode(mode);
   }
 
+  handleEditorCameraWheel(input: EditorCameraWheelInput): void {
+    this.editorCamera?.handleWheel(input);
+  }
+
+  startEditorCameraDrag(mode: EditorCameraDragMode, clientX: number, clientY: number): void {
+    this.editorCamera?.startDrag(mode, clientX, clientY);
+  }
+
+  updateEditorCameraDrag(clientX: number, clientY: number): void {
+    this.editorCamera?.updateDrag(clientX, clientY);
+  }
+
+  endEditorCameraDrag(): void {
+    this.editorCamera?.endDrag();
+  }
+
+  frameEntity(entityId: string): void {
+    const object = this.objectByEntityId.get(entityId);
+
+    if (object) {
+      this.editorCamera?.frameObject(object);
+    }
+  }
+
+  frameAll(): void {
+    this.editorCamera?.frameObjects(this.objectByEntityId.values());
+  }
+
+  resetEditorCamera(): void {
+    this.editorCamera?.reset();
+  }
+
   update(deltaSeconds: number): void {
     for (const binding of this.animationBindingByEntityId.values()) {
       binding.mixer.update(deltaSeconds);
@@ -482,6 +527,7 @@ export class ThreeRuntime implements WebRuntime {
     this.scene = undefined;
     this.objectRoot = undefined;
     this.camera = undefined;
+    this.editorCamera = undefined;
     this.transformControls = undefined;
     this.transformControlsHelper = undefined;
     this.transformGizmoEntityId = undefined;

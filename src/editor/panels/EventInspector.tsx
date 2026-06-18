@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 
 import type { ActionData } from '../../schemas/action.schema';
 import {
@@ -8,6 +8,8 @@ import {
 } from '../../schemas/condition.schema';
 import { EventSchema, type EventData } from '../../schemas/event.schema';
 import type { TransformData } from '../../schemas/transform.schema';
+import { ConditionSystem } from '../../events/ConditionSystem';
+import type { EventRuntimeState } from '../../events/types';
 import { getSaveStatusPill, type EditorSaveStatus } from '../editorStatus';
 
 export type EventSaveStatus = EditorSaveStatus;
@@ -22,6 +24,7 @@ export interface EventInspectorProps {
   timelineIds: readonly string[];
   cameraShotIds: readonly string[];
   soundAssetIds: readonly string[];
+  runtimeState?: EventRuntimeState;
   onSelectEvent: (eventId: string) => void;
   onApplyEvent: (event: EventData) => void;
   onSaveEvent: (event: EventData) => void;
@@ -55,6 +58,14 @@ interface EventDraftState {
   event: EventData;
 }
 
+type DropPosition = 'after' | 'before';
+
+interface ActionDragState {
+  index: number;
+  overIndex?: number;
+  position: DropPosition;
+}
+
 export function EventInspector({
   events,
   selectedEvent,
@@ -65,6 +76,7 @@ export function EventInspector({
   timelineIds,
   cameraShotIds,
   soundAssetIds,
+  runtimeState,
   onSelectEvent,
   onApplyEvent,
   onSaveEvent,
@@ -72,6 +84,9 @@ export function EventInspector({
   const [draftState, setDraftState] = useState<EventDraftState>();
   const [newActionType, setNewActionType] = useState<ActionData['type']>('flag.set');
   const [newConditionType, setNewConditionType] = useState<TypedConditionType>('flag.equals');
+  const [actionDragState, setActionDragState] = useState<ActionDragState>();
+  const actionDragRef = useRef<ActionDragState | undefined>(undefined);
+  const cleanupActionDragRef = useRef<(() => void) | undefined>(undefined);
   const selectedEventSignature = selectedEvent ? JSON.stringify(selectedEvent) : '';
   const draftEvent =
     selectedEvent &&
@@ -96,6 +111,102 @@ export function EventInspector({
 
   const updateDraftEvent = (event: EventData) => {
     setDraftState({ eventId: event.id, sourceSignature: selectedEventSignature, event });
+  };
+
+  const setActionDrag = (state: ActionDragState | undefined) => {
+    actionDragRef.current = state;
+    setActionDragState(state);
+  };
+
+  useEffect(
+    () => () => {
+      cleanupActionDragRef.current?.();
+    },
+    [],
+  );
+
+  const getUpdatedActionDrag = (
+    drag: ActionDragState | undefined,
+    clientX: number,
+    clientY: number,
+  ): ActionDragState | undefined => {
+    if (!drag) {
+      return undefined;
+    }
+
+    const target = getActionDropTarget(clientX, clientY);
+
+    if (!target) {
+      return drag;
+    }
+
+    return {
+      ...drag,
+      overIndex: target.index,
+      position: getDropPositionFromRect(target.element.getBoundingClientRect(), clientY),
+    };
+  };
+
+  const updateActionMouseDrag = (event: MouseEvent) => {
+    const drag = actionDragRef.current;
+    const nextDrag = getUpdatedActionDrag(drag, event.clientX, event.clientY);
+
+    if (!nextDrag) {
+      return;
+    }
+
+    setActionDrag(nextDrag);
+  };
+
+  const finishActionMouseDrag = (event: MouseEvent, eventDraft: EventData | undefined) => {
+    const finalDrag = getUpdatedActionDrag(actionDragRef.current, event.clientX, event.clientY);
+    cleanupActionDragRef.current?.();
+    cleanupActionDragRef.current = undefined;
+    setActionDrag(undefined);
+
+    if (
+      !eventDraft ||
+      finalDrag?.overIndex === undefined ||
+      finalDrag.index === finalDrag.overIndex
+    ) {
+      return;
+    }
+
+    updateDraftEvent({
+      ...eventDraft,
+      actions: reorderArrayByDrop(
+        eventDraft.actions,
+        finalDrag.index,
+        finalDrag.overIndex,
+        finalDrag.position,
+      ),
+    });
+  };
+
+  const startActionMouseDrag = (
+    event: ReactMouseEvent<HTMLElement>,
+    eventDraft: EventData | undefined,
+    index: number,
+  ) => {
+    if (event.button !== 0 || !eventDraft) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    cleanupActionDragRef.current?.();
+    setActionDrag({ index, overIndex: index, position: 'before' });
+
+    const handleMouseMove = (nativeEvent: MouseEvent) => updateActionMouseDrag(nativeEvent);
+    const handleMouseUp = (nativeEvent: MouseEvent) =>
+      finishActionMouseDrag(nativeEvent, eventDraft);
+
+    window.addEventListener('mousemove', handleMouseMove, true);
+    window.addEventListener('mouseup', handleMouseUp, true);
+    cleanupActionDragRef.current = () => {
+      window.removeEventListener('mousemove', handleMouseMove, true);
+      window.removeEventListener('mouseup', handleMouseUp, true);
+    };
   };
 
   const applyEvent = () => {
@@ -199,6 +310,7 @@ export function EventInspector({
             event={draftEvent}
             entityIds={entityIds}
             newConditionType={newConditionType}
+            runtimeState={runtimeState}
             onNewConditionTypeChange={setNewConditionType}
             onUpdate={updateDraftEvent}
           />
@@ -248,7 +360,17 @@ export function EventInspector({
 
             <ol className="event-list">
               {draftEvent.actions.map((action, index) => (
-                <li key={`${action.type}-${index}`}>
+                <li
+                  key={`${action.type}-${index}`}
+                  className={getActionCardClassName(action, actionDragState, index)}
+                  data-testid={`event-action-card-${index}`}
+                  data-action-index={index}
+                >
+                  <span
+                    className="action-drag-handle"
+                    aria-hidden="true"
+                    onMouseDown={(event) => startActionMouseDrag(event, draftEvent, index)}
+                  />
                   <ActionEditor
                     action={action}
                     index={index}
@@ -298,6 +420,7 @@ interface ConditionEditorProps {
   event: EventData;
   entityIds: readonly string[];
   newConditionType: TypedConditionType;
+  runtimeState?: EventRuntimeState;
   onNewConditionTypeChange: (type: TypedConditionType) => void;
   onUpdate: (event: EventData) => void;
 }
@@ -306,6 +429,7 @@ function ConditionEditor({
   event,
   entityIds,
   newConditionType,
+  runtimeState,
   onNewConditionTypeChange,
   onUpdate,
 }: ConditionEditorProps) {
@@ -313,12 +437,18 @@ function ConditionEditor({
   const groupKind = getConditionGroupKind(condition);
   const conditions =
     condition && groupKind ? getConditionGroupItems(condition, groupKind) : undefined;
+  const preview = getConditionRuntimePreview(condition, runtimeState);
 
   return (
     <section className="event-conditions" aria-labelledby="event-conditions-heading">
       <div className="panel-title-row">
         <h3 id="event-conditions-heading">Condition</h3>
-        <span>{condition ? formatConditionSummary(condition) : 'None'}</span>
+        <span
+          className={`condition-preview ${preview.className}`}
+          data-testid="event-condition-preview"
+        >
+          {preview.text}
+        </span>
       </div>
 
       <div className="event-command-row">
@@ -1323,6 +1453,75 @@ function moveArrayItem<T>(items: readonly T[], fromIndex: number, toIndex: numbe
   return nextItems;
 }
 
+function reorderArrayByDrop<T>(
+  items: readonly T[],
+  fromIndex: number,
+  targetIndex: number,
+  position: DropPosition,
+): T[] {
+  const nextItems = [...items];
+  const [item] = nextItems.splice(fromIndex, 1);
+
+  if (item === undefined) {
+    return [...items];
+  }
+
+  let insertIndex = position === 'before' ? targetIndex : targetIndex + 1;
+
+  if (fromIndex < insertIndex) {
+    insertIndex -= 1;
+  }
+
+  nextItems.splice(Math.max(0, Math.min(insertIndex, nextItems.length)), 0, item);
+
+  return nextItems;
+}
+
+function getDropPositionFromRect(rect: DOMRect, clientY: number): DropPosition {
+  return clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+}
+
+function getActionDropTarget(
+  clientX: number,
+  clientY: number,
+): { element: HTMLElement; index: number } | undefined {
+  const element = document.elementFromPoint(clientX, clientY);
+  const actionCard = element?.closest('[data-action-index]');
+
+  if (!(actionCard instanceof HTMLElement)) {
+    return undefined;
+  }
+
+  const index = Number(actionCard.dataset.actionIndex);
+
+  if (!Number.isInteger(index)) {
+    return undefined;
+  }
+
+  return { element: actionCard, index };
+}
+
+function getActionCardClassName(
+  action: ActionData,
+  dragState: ActionDragState | undefined,
+  index: number,
+): string {
+  const classes = [
+    'event-action-card',
+    `is-${action.type.split('.')[0].replace(/[^a-z0-9_-]/gi, '-')}`,
+  ];
+
+  if (dragState?.index === index) {
+    classes.push('is-dragging');
+  }
+
+  if (dragState?.overIndex === index) {
+    classes.push(`drop-${dragState.position}`);
+  }
+
+  return classes.join(' ');
+}
+
 function formatConditionSummary(condition: ConditionData): string {
   if ('all' in condition) {
     return `All (${condition.all.length})`;
@@ -1337,6 +1536,28 @@ function formatConditionSummary(condition: ConditionData): string {
   }
 
   return condition.type;
+}
+
+function getConditionRuntimePreview(
+  condition: ConditionData | undefined,
+  runtimeState: EventRuntimeState | undefined,
+): { className: string; text: string } {
+  if (!condition) {
+    return { className: 'is-neutral', text: 'Always' };
+  }
+
+  const summary = formatConditionSummary(condition);
+
+  if (!runtimeState) {
+    return { className: 'is-neutral', text: summary };
+  }
+
+  const passes = new ConditionSystem().evaluate(condition, runtimeState);
+
+  return {
+    className: passes ? 'is-passing' : 'is-blocked',
+    text: `${summary} / ${passes ? 'Runtime pass' : 'Runtime blocked'}`,
+  };
 }
 
 function parseEditableValue(value: string): boolean | string | number {

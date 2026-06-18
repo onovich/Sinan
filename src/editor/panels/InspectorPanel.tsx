@@ -7,6 +7,7 @@ import {
 } from '../../schemas/component.schema';
 import type { ComponentPayloadData, EntityData } from '../../schemas/entity.schema';
 import { TransformSchema, type TransformData } from '../../schemas/transform.schema';
+import { NumericScrubInput } from '../components/NumericScrubInput';
 
 export interface InspectorPanelProps {
   entity: EntityData | undefined;
@@ -31,6 +32,12 @@ export function InspectorPanel({
     entityId: string;
     issues: string[];
   } | null>(null);
+  const [draftTransformState, setDraftTransformState] = useState<{
+    entityId: string;
+    sourceSignature: string;
+    transform: TransformData;
+  }>();
+  const entityTransformSignature = entity ? JSON.stringify(entity.transform) : '';
 
   if (!entity) {
     return (
@@ -45,6 +52,32 @@ export function InspectorPanel({
   }
 
   const validationIssues = validationState?.entityId === entity.id ? validationState.issues : [];
+  const draftTransform =
+    draftTransformState?.entityId === entity.id &&
+    draftTransformState.sourceSignature === entityTransformSignature
+      ? draftTransformState.transform
+      : entity.transform;
+  const updateDraftTransform = (transform: TransformData) => {
+    setDraftTransformState({
+      entityId: entity.id,
+      sourceSignature: entityTransformSignature,
+      transform,
+    });
+  };
+  const commitDraftTransform = (transform: TransformData) => {
+    const result = TransformSchema.safeParse(transform);
+
+    if (!result.success) {
+      setValidationState({
+        entityId: entity.id,
+        issues: formatZodIssues(result.error.issues),
+      });
+      return;
+    }
+
+    setValidationState(null);
+    onApplyTransform?.(entity.id, result.data);
+  };
 
   return (
     <section aria-labelledby="inspector-heading">
@@ -81,30 +114,59 @@ export function InspectorPanel({
         </div>
       </dl>
       <form
-        key={`transform-form-${entity.id}-${JSON.stringify(entity.transform)}`}
         className="structured-form"
         aria-label="Transform editor"
         onSubmit={(event) => {
           event.preventDefault();
-          const transform = readTransformForm(new FormData(event.currentTarget));
-          const result = TransformSchema.safeParse(transform);
-
-          if (!result.success) {
-            setValidationState({
-              entityId: entity.id,
-              issues: formatZodIssues(result.error.issues),
-            });
-            return;
-          }
-
-          setValidationState(null);
-          onApplyTransform?.(entity.id, result.data);
+          commitDraftTransform(readTransformForm(new FormData(event.currentTarget)));
         }}
       >
         <h3>Transform</h3>
-        <VectorField name="position" label="Position" values={entity.transform.position} />
-        <VectorField name="rotation" label="Rotation" values={entity.transform.rotation} />
-        <VectorField name="scale" label="Scale" values={entity.transform.scale} />
+        <VectorField
+          name="position"
+          label="Position"
+          values={draftTransform.position}
+          onValueChange={(axis, value) => {
+            const position: [number, number, number] = [...draftTransform.position];
+            position[axis] = value;
+            updateDraftTransform({ ...draftTransform, position });
+          }}
+          onCommitValue={(axis, value) => {
+            const position: [number, number, number] = [...draftTransform.position];
+            position[axis] = value;
+            commitDraftTransform({ ...draftTransform, position });
+          }}
+        />
+        <VectorField
+          name="rotation"
+          label="Rotation"
+          values={draftTransform.rotation}
+          onValueChange={(axis, value) => {
+            const rotation: [number, number, number, number] = [...draftTransform.rotation];
+            rotation[axis] = value;
+            updateDraftTransform({ ...draftTransform, rotation });
+          }}
+          onCommitValue={(axis, value) => {
+            const rotation: [number, number, number, number] = [...draftTransform.rotation];
+            rotation[axis] = value;
+            commitDraftTransform({ ...draftTransform, rotation });
+          }}
+        />
+        <VectorField
+          name="scale"
+          label="Scale"
+          values={draftTransform.scale}
+          onValueChange={(axis, value) => {
+            const scale: [number, number, number] = [...draftTransform.scale];
+            scale[axis] = value;
+            updateDraftTransform({ ...draftTransform, scale });
+          }}
+          onCommitValue={(axis, value) => {
+            const scale: [number, number, number] = [...draftTransform.scale];
+            scale[axis] = value;
+            commitDraftTransform({ ...draftTransform, scale });
+          }}
+        />
         <button type="submit" disabled={!onApplyTransform}>
           Apply Transform
         </button>
@@ -337,24 +399,39 @@ interface VectorFieldProps {
   name: string;
   label: string;
   values: readonly number[];
+  onValueChange?: (axis: number, value: number) => void;
+  onCommitValue?: (axis: number, value: number) => void;
 }
 
-function VectorField({ name, label, values }: VectorFieldProps) {
+function VectorField({ name, label, values, onValueChange, onCommitValue }: VectorFieldProps) {
   return (
     <fieldset className="vector-field">
       <legend>{label}</legend>
-      {values.map((value, index) => (
-        <label key={`${name}-${index}`}>
-          {formatAxis(index)}
-          <input
-            aria-label={`${label} ${formatAxis(index)}`}
+      {values.map((value, index) =>
+        onValueChange ? (
+          <NumericScrubInput
+            key={`${name}-${index}`}
+            id={`${name}-${index}`}
             name={`${name}.${index}`}
-            type="number"
-            step="0.01"
-            defaultValue={formatNumberInput(value)}
+            label={formatAxis(index)}
+            value={value}
+            step={0.01}
+            onChange={(nextValue) => onValueChange(index, nextValue)}
+            onCommit={(nextValue) => onCommitValue?.(index, nextValue)}
           />
-        </label>
-      ))}
+        ) : (
+          <label key={`${name}-${index}`}>
+            {formatAxis(index)}
+            <input
+              aria-label={`${label} ${formatAxis(index)}`}
+              name={`${name}.${index}`}
+              type="number"
+              step="0.01"
+              defaultValue={formatNumberInput(value)}
+            />
+          </label>
+        ),
+      )}
     </fieldset>
   );
 }

@@ -2,6 +2,20 @@
 
 Use this checklist before calling a Sinan Scene Director checkout demo-ready.
 
+## Phase 14 Finalization Result
+
+Status: PASS on 2026-06-18.
+
+Evidence is recorded in `docs/phase-14-release-candidate-finalization.md`.
+
+Summary:
+
+- `npm ci` passed from the current lockfile.
+- `npm audit --audit-level=moderate` passed; one low severity `esbuild` advisory remains below the release threshold.
+- `Validate.cmd` passed.
+- `Smoke.cmd` passed with 13 Playwright tests after starting the persistent wrapper dev server for the final health check.
+- A browser demo gate confirmed runtime ready state, `switch_a` Inspector selection, `tl_open_gate` scrub feedback, subtitle feedback, and no console errors.
+
 ## Fresh Checkout
 
 - [ ] Clone the repository.

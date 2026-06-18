@@ -13,6 +13,7 @@ Use these files as the source package:
 - `docs/editor-ui-ux-variant-style-guide.md` - tokens, layout rules, visual vocabulary.
 - `docs/editor-ui-ux-interaction-audit.md` - interaction matrix and production mapping.
 - `docs/phase-11-editor-ui-ux.md` - current editor shell expectations and smoke coverage.
+- `docs/editor-ui-production-review-notes.md` - current production page acceptance notes and requested revision list.
 
 ## Implementation Rule
 

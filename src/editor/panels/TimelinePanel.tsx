@@ -1,4 +1,11 @@
-import { useState } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type DragEvent,
+  type PointerEvent,
+} from 'react';
 
 import { getPreviewStatusPill, getSaveStatusPill, type EditorSaveStatus } from '../editorStatus';
 import { ActionSchema, type ActionData } from '../../schemas/action.schema';
@@ -7,6 +14,7 @@ import {
   type TimelineData,
   type TimelineTrackData,
 } from '../../schemas/timeline.schema';
+import { NumericScrubInput } from '../components/NumericScrubInput';
 
 export type TimelineSaveStatus = EditorSaveStatus;
 export type TimelineTrackKind = TimelineTrackData['type'];
@@ -14,6 +22,42 @@ export type TimelineItemOperation = 'add' | 'update' | 'remove';
 
 type PropertyTimelineTrack = Extract<TimelineTrackData, { type: 'property' }>;
 type PropertyTimelineKey = PropertyTimelineTrack['keys'][number];
+type TimelineDragMode = 'scrub' | 'move' | 'resize-left' | 'resize-right';
+
+interface TimelinePointerDrag {
+  pointerId: number;
+  mode: TimelineDragMode;
+  startX: number;
+  startTime: number;
+  startScrollLeft: number;
+  timelineId: string;
+  duration: number;
+  track?: TimelineTrackData;
+}
+
+interface TimelineDragPreview {
+  timelineId: string;
+  trackId: string;
+  mode: Exclude<TimelineDragMode, 'scrub'>;
+  originalTrack: TimelineTrackData;
+  previewTrack: TimelineTrackData;
+  startX: number;
+}
+
+interface TimelineAutoScrollState {
+  shell: HTMLElement;
+  content: HTMLElement;
+  direction: -1 | 1;
+  clientX: number;
+  snap: boolean;
+  frameId?: number;
+}
+
+const timelineLabelColumnWidth = 120;
+const timelineDragThresholdPx = 3;
+const timelineSnapSeconds = 0.05;
+const timelineAutoScrollEdgePx = 48;
+const timelineAutoScrollStepPx = 18;
 
 export interface TimelinePanelProps {
   timelines: readonly TimelineData[];
@@ -37,6 +81,7 @@ export interface TimelinePanelProps {
   onStopTimeline: () => void;
   onSeekTimeline: (timelineId: string, time: number) => void;
   onAddTrack: (timelineId: string, trackType: TimelineTrackKind) => void;
+  onAddSoundTrackFromAsset?: (timelineId: string, soundAssetId: string, time: number) => void;
   onApplyTrack: (timelineId: string, track: TimelineTrackData) => void;
   onApplyTrackItem: (
     timelineId: string,
@@ -79,6 +124,7 @@ export function TimelinePanel({
   onStopTimeline,
   onSeekTimeline,
   onAddTrack,
+  onAddSoundTrackFromAsset,
   onApplyTrack,
   onApplyTrackItem,
   onRemoveTrack,
@@ -99,15 +145,33 @@ export function TimelinePanel({
     sourceSignature: string;
     key: PropertyTimelineKey;
   }>();
+  const [snapTooltipState, setSnapTooltipState] = useState<{
+    time: number;
+    x: number;
+    mode: 'free' | 'snap';
+  }>();
   const [actionPayloadState, setActionPayloadState] = useState({
     timelineId: '',
     trackId: '',
     sourceSignature: '',
     json: '',
   });
+  const [dragPreviewState, setDragPreviewState] = useState<TimelineDragPreview | undefined>();
+  const [timelineScale, setTimelineScale] = useState(1);
+  const [assetDropActive, setAssetDropActive] = useState(false);
+  const timelineDragRef = useRef<TimelinePointerDrag | undefined>(undefined);
+  const timelineShellRef = useRef<HTMLDivElement | null>(null);
+  const timelineAutoScrollRef = useRef<TimelineAutoScrollState | undefined>(undefined);
+  const pendingDragPreviewRef = useRef<TimelineDragPreview | undefined>(undefined);
+  const dragPreviewFrameRef = useRef<number | undefined>(undefined);
+  const renderedTracks =
+    selectedTimeline && dragPreviewState?.timelineId === selectedTimeline.id
+      ? selectedTimeline.tracks.map((track) =>
+          track.id === dragPreviewState.trackId ? dragPreviewState.previewTrack : track,
+        )
+      : (selectedTimeline?.tracks ?? []);
   const selectedTrack =
-    selectedTimeline?.tracks.find((track) => track.id === selectedTrackId) ??
-    selectedTimeline?.tracks[0];
+    renderedTracks.find((track) => track.id === selectedTrackId) ?? renderedTracks[0];
   const selectedTrackSignature = selectedTrack ? JSON.stringify(selectedTrack) : '';
   const draftTrack =
     selectedTimeline &&
@@ -118,14 +182,424 @@ export function TimelinePanel({
       ? draftTrackState.track
       : selectedTrack;
   const timelineTime = clampTime(currentTime, selectedTimeline?.duration ?? 0);
-  const playheadPercent = selectedTimeline
-    ? `${(timelineTime / selectedTimeline.duration) * 100}%`
-    : '0%';
+  const playheadPercent =
+    selectedTimeline && selectedTimeline.duration > 0
+      ? `${(timelineTime / selectedTimeline.duration) * 100}%`
+      : '0%';
+  const selectedTrackBinding = draftTrack ? formatTrackBinding(draftTrack) : 'No track selected';
+  const selectedTrackImplementation = draftTrack
+    ? formatTrackImplementation(draftTrack)
+    : 'TimelinePanel';
   const scrubSelectedTimeline = (time: number) => {
     if (selectedTimeline) {
       onScrubTimeline(selectedTimeline.id, time);
     }
   };
+  const getPointerTimelineTime = (clientX: number, element: HTMLElement): number => {
+    if (!selectedTimeline) {
+      return 0;
+    }
+
+    const rect = element.getBoundingClientRect();
+    const usableWidth = Math.max(1, rect.width - timelineLabelColumnWidth);
+    const x = clientX - rect.left - timelineLabelColumnWidth;
+
+    return clampTime((x / usableWidth) * selectedTimeline.duration, selectedTimeline.duration);
+  };
+  const handleTimelineAssetDragOver = (event: DragEvent<HTMLDivElement>) => {
+    if (!selectedTimeline || !onAddSoundTrackFromAsset || !hasDraggedAsset(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    setAssetDropActive(true);
+  };
+  const handleTimelineAssetDrop = (event: DragEvent<HTMLDivElement>) => {
+    if (!selectedTimeline || !onAddSoundTrackFromAsset) {
+      return;
+    }
+
+    const assetId = getDraggedAssetId(event);
+
+    if (!assetId) {
+      return;
+    }
+
+    const timelineContent = event.currentTarget.querySelector('.timeline-content');
+    const time =
+      timelineContent instanceof HTMLElement
+        ? getPointerTimelineTime(event.clientX, timelineContent)
+        : timelineTime;
+
+    event.preventDefault();
+    setAssetDropActive(false);
+    onAddSoundTrackFromAsset(selectedTimeline.id, assetId, snapTimelineTime(time));
+  };
+  const handleTimelineWheel = (event: WheelEvent) => {
+    if (!event.ctrlKey) {
+      return;
+    }
+
+    event.preventDefault();
+    const shell = event.currentTarget;
+
+    if (!(shell instanceof HTMLElement)) {
+      return;
+    }
+
+    const rect = shell.getBoundingClientRect();
+    const cursorOffset = event.clientX - rect.left;
+
+    setTimelineScale((current) => {
+      const nextScale = clampNumber(current + (event.deltaY < 0 ? 0.12 : -0.12), 0.72, 2.4);
+      const oldWidth = 900 * current;
+      const nextWidth = 900 * nextScale;
+      const timeUnderCursor = (shell.scrollLeft + cursorOffset) / Math.max(1, oldWidth);
+
+      window.requestAnimationFrame(() => {
+        shell.scrollLeft = Math.max(0, timeUnderCursor * nextWidth - cursorOffset);
+      });
+
+      return nextScale;
+    });
+  };
+  const startTimelineScrub = (event: PointerEvent<HTMLDivElement>) => {
+    if (!selectedTimeline || event.button !== 0 || isTimelineClipTarget(event.target)) {
+      return;
+    }
+
+    const time = getPointerTimelineTime(event.clientX, event.currentTarget);
+    timelineDragRef.current = {
+      pointerId: event.pointerId,
+      mode: 'scrub',
+      startX: event.clientX,
+      startTime: time,
+      startScrollLeft: getTimelineShellScrollLeft(event.currentTarget),
+      timelineId: selectedTimeline.id,
+      duration: selectedTimeline.duration,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    scrubSelectedTimeline(time);
+  };
+  const startPlayheadDrag = (event: PointerEvent<HTMLDivElement>) => {
+    if (!selectedTimeline || event.button !== 0) {
+      return;
+    }
+
+    const timelineContent = event.currentTarget.closest('.timeline-content');
+
+    if (!(timelineContent instanceof HTMLElement)) {
+      return;
+    }
+
+    const time = getPointerTimelineTime(event.clientX, timelineContent);
+    timelineDragRef.current = {
+      pointerId: event.pointerId,
+      mode: 'scrub',
+      startX: event.clientX,
+      startTime: time,
+      startScrollLeft: getTimelineShellScrollLeft(timelineContent),
+      timelineId: selectedTimeline.id,
+      duration: selectedTimeline.duration,
+    };
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    scrubSelectedTimeline(time);
+  };
+  const startClipDrag = (
+    event: PointerEvent<HTMLElement>,
+    track: TimelineTrackData,
+    mode: Exclude<TimelineDragMode, 'scrub'>,
+  ) => {
+    if (!selectedTimeline || event.button !== 0) {
+      return;
+    }
+
+    if ((mode === 'resize-left' || mode === 'resize-right') && !isTrackResizable(track)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    timelineDragRef.current = {
+      pointerId: event.pointerId,
+      mode,
+      startX: event.clientX,
+      startTime: getTrackStartTime(track),
+      startScrollLeft: getTimelineShellScrollLeft(event.currentTarget),
+      timelineId: selectedTimeline.id,
+      duration: selectedTimeline.duration,
+      track,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    queueTimelineDragPreview({
+      timelineId: selectedTimeline.id,
+      trackId: track.id,
+      mode,
+      originalTrack: track,
+      previewTrack: track,
+      startX: event.clientX,
+    });
+    onSelectTrack(track.id);
+  };
+  const updateTimelinePointerDrag = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = timelineDragRef.current;
+
+    if (!drag || drag.pointerId !== event.pointerId || !selectedTimeline) {
+      return;
+    }
+
+    if (drag.mode === 'scrub') {
+      scrubSelectedTimeline(getPointerTimelineTime(event.clientX, event.currentTarget));
+      return;
+    }
+
+    if (drag.track) {
+      const snap = !event.altKey;
+
+      updateTimelineDragPreview(event.currentTarget, event.clientX, snap);
+      updateTimelineAutoScroll(event.currentTarget, event.clientX, snap);
+    }
+  };
+  const finishTimelinePointerDrag = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = timelineDragRef.current;
+
+    if (!drag || drag.pointerId !== event.pointerId || !selectedTimeline) {
+      return;
+    }
+
+    if (drag.mode === 'scrub') {
+      timelineDragRef.current = undefined;
+      scrubSelectedTimeline(getPointerTimelineTime(event.clientX, event.currentTarget));
+      return;
+    }
+
+    timelineDragRef.current = undefined;
+    setSnapTooltipState(undefined);
+    stopTimelineAutoScroll();
+    clearTimelineDragPreview();
+
+    if (!drag.track || Math.abs(event.clientX - drag.startX) < timelineDragThresholdPx) {
+      return;
+    }
+
+    const nextTrack = getPreviewTrackForDrag(drag, event.clientX, event.currentTarget, {
+      snap: !event.altKey,
+    });
+
+    if (JSON.stringify(nextTrack) !== JSON.stringify(drag.track)) {
+      onApplyTrack(selectedTimeline.id, nextTrack);
+    }
+  };
+  function queueTimelineDragPreview(preview: TimelineDragPreview): void {
+    pendingDragPreviewRef.current = preview;
+
+    if (dragPreviewFrameRef.current !== undefined) {
+      return;
+    }
+
+    dragPreviewFrameRef.current = window.requestAnimationFrame(() => {
+      dragPreviewFrameRef.current = undefined;
+      setDragPreviewState(pendingDragPreviewRef.current);
+    });
+  }
+
+  function clearTimelineDragPreview(): void {
+    pendingDragPreviewRef.current = undefined;
+    setSnapTooltipState(undefined);
+
+    if (dragPreviewFrameRef.current !== undefined) {
+      window.cancelAnimationFrame(dragPreviewFrameRef.current);
+      dragPreviewFrameRef.current = undefined;
+    }
+
+    setDragPreviewState(undefined);
+  }
+
+  function cancelTimelineDrag(): void {
+    timelineDragRef.current = undefined;
+    setSnapTooltipState(undefined);
+    stopTimelineAutoScroll();
+    clearTimelineDragPreview();
+  }
+
+  function updateTimelineDragPreview(element: HTMLElement, clientX: number, snap: boolean): void {
+    const drag = timelineDragRef.current;
+
+    if (!drag?.track || drag.mode === 'scrub' || !selectedTimeline) {
+      return;
+    }
+
+    const previewTrack = getPreviewTrackForDrag(drag, clientX, element, { snap });
+
+    queueTimelineDragPreview({
+      timelineId: drag.timelineId,
+      trackId: drag.track.id,
+      mode: drag.mode,
+      originalTrack: drag.track,
+      previewTrack,
+      startX: drag.startX,
+    });
+    setSnapTooltipState({
+      time: getTrackStartTime(previewTrack),
+      x: clientX - element.getBoundingClientRect().left,
+      mode: snap ? 'snap' : 'free',
+    });
+  }
+
+  function getPreviewTrackForDrag(
+    drag: TimelinePointerDrag,
+    clientX: number,
+    element: HTMLElement,
+    options: { snap: boolean },
+  ): TimelineTrackData {
+    const track = drag.track;
+
+    if (!track) {
+      throw new Error('Expected a Timeline track while previewing drag.');
+    }
+
+    const scrollDeltaX = getTimelineShellScrollLeft(element) - drag.startScrollLeft;
+    const deltaSeconds = getTimelineDeltaSeconds(
+      clientX - drag.startX + scrollDeltaX,
+      element,
+      drag.duration,
+    );
+
+    const nextTrack =
+      drag.mode === 'move'
+        ? moveTrackByDelta(track, deltaSeconds, drag.duration)
+        : resizeTrackByDelta(
+            track,
+            deltaSeconds,
+            drag.duration,
+            drag.mode === 'resize-left' ? 'left' : 'right',
+          );
+
+    return options.snap ? snapTimelineTrack(nextTrack) : nextTrack;
+  }
+
+  function updateTimelineAutoScroll(element: HTMLElement, clientX: number, snap: boolean): void {
+    const shell = getTimelineShell(element);
+
+    if (!shell) {
+      stopTimelineAutoScroll();
+      return;
+    }
+
+    const rect = shell.getBoundingClientRect();
+    let direction: -1 | 1 | undefined;
+
+    if (clientX < rect.left + timelineAutoScrollEdgePx) {
+      direction = -1;
+    } else if (clientX > rect.right - timelineAutoScrollEdgePx) {
+      direction = 1;
+    }
+
+    if (direction === undefined) {
+      stopTimelineAutoScroll();
+      return;
+    }
+
+    const active = timelineAutoScrollRef.current;
+
+    timelineAutoScrollRef.current = {
+      shell,
+      content: element,
+      direction,
+      clientX,
+      snap,
+      frameId: active?.frameId,
+    };
+
+    if (active?.frameId === undefined) {
+      scheduleTimelineAutoScroll();
+    }
+  }
+
+  function scheduleTimelineAutoScroll(): void {
+    const state = timelineAutoScrollRef.current;
+
+    if (!state) {
+      return;
+    }
+
+    state.frameId = window.requestAnimationFrame(() => {
+      const active = timelineAutoScrollRef.current;
+
+      if (!active) {
+        return;
+      }
+
+      active.frameId = undefined;
+
+      if (!timelineDragRef.current || timelineDragRef.current.mode === 'scrub') {
+        stopTimelineAutoScroll();
+        return;
+      }
+
+      const previousScrollLeft = active.shell.scrollLeft;
+      active.shell.scrollLeft += active.direction * timelineAutoScrollStepPx;
+
+      if (active.shell.scrollLeft !== previousScrollLeft) {
+        updateTimelineDragPreview(active.content, active.clientX, active.snap);
+      }
+
+      scheduleTimelineAutoScroll();
+    });
+  }
+
+  function stopTimelineAutoScroll(): void {
+    const active = timelineAutoScrollRef.current;
+
+    if (!active) {
+      return;
+    }
+
+    if (active.frameId !== undefined) {
+      window.cancelAnimationFrame(active.frameId);
+    }
+
+    timelineAutoScrollRef.current = undefined;
+  }
+
+  useEffect(() => {
+    const shell = timelineShellRef.current;
+
+    shell?.addEventListener('wheel', handleTimelineWheel, { passive: false });
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && timelineDragRef.current?.mode !== 'scrub') {
+        timelineDragRef.current = undefined;
+        pendingDragPreviewRef.current = undefined;
+        stopTimelineAutoScroll();
+        setSnapTooltipState(undefined);
+
+        if (dragPreviewFrameRef.current !== undefined) {
+          window.cancelAnimationFrame(dragPreviewFrameRef.current);
+          dragPreviewFrameRef.current = undefined;
+        }
+
+        setDragPreviewState(undefined);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      shell?.removeEventListener('wheel', handleTimelineWheel);
+      window.removeEventListener('keydown', handleKeyDown);
+
+      if (dragPreviewFrameRef.current !== undefined) {
+        window.cancelAnimationFrame(dragPreviewFrameRef.current);
+      }
+
+      stopTimelineAutoScroll();
+    };
+  }, [selectedTimeline?.id]);
+
   const draftTimeline =
     selectedTimeline && draftTrack ? replaceTrack(selectedTimeline, draftTrack) : undefined;
   const validationResult = draftTimeline ? TimelineSchema.safeParse(draftTimeline) : undefined;
@@ -375,14 +849,46 @@ export function TimelinePanel({
       data-testid="timeline-panel"
       aria-labelledby="timeline-heading"
     >
-      <div className="timeline-header">
-        <strong id="timeline-heading">Timeline</strong>
+      <div className="sequencer-controls">
+        <strong id="timeline-heading" className="timeline-title">
+          Timeline
+        </strong>
+        <div className="timecode" data-testid="timeline-timecode">
+          {formatTimelineTimecode(timelineTime)}
+        </div>
+        {selectedTimeline ? (
+          <div className="timeline-playback-row segmented" aria-label="Timeline playback controls">
+            <button type="button" onClick={() => onSeekTimeline(selectedTimeline.id, 0)}>
+              Start
+            </button>
+            {playbackStatus === 'playing' ? (
+              <button type="button" className="is-active" onClick={onPauseTimeline}>
+                Pause
+              </button>
+            ) : playbackStatus === 'paused' ? (
+              <button type="button" className="is-active" onClick={onResumeTimeline}>
+                Resume
+              </button>
+            ) : (
+              <button type="button" onClick={() => onPlayTimeline(selectedTimeline.id)}>
+                Play
+              </button>
+            )}
+            <button type="button" onClick={onStopTimeline} disabled={playbackStatus === 'stopped'}>
+              Stop
+            </button>
+            <button
+              type="button"
+              onClick={() => onSeekTimeline(selectedTimeline.id, selectedTimeline.duration)}
+            >
+              End
+            </button>
+          </div>
+        ) : null}
         <span className={previewStatusPill.className} role="status">
           {previewStatusPill.text}
         </span>
-      </div>
 
-      <div className="timeline-controls">
         <label className="field-inline" htmlFor="timeline-select">
           <span>Timeline</span>
           <select
@@ -445,35 +951,7 @@ export function TimelinePanel({
 
       {selectedTimeline ? (
         <>
-          <div className="timeline-playback-row" aria-label="Timeline playback controls">
-            {playbackStatus === 'playing' ? (
-              <button type="button" onClick={onPauseTimeline}>
-                Pause
-              </button>
-            ) : playbackStatus === 'paused' ? (
-              <button type="button" onClick={onResumeTimeline}>
-                Resume
-              </button>
-            ) : (
-              <button type="button" onClick={() => onPlayTimeline(selectedTimeline.id)}>
-                Play
-              </button>
-            )}
-            <button type="button" onClick={onStopTimeline} disabled={playbackStatus === 'stopped'}>
-              Stop
-            </button>
-            <button type="button" onClick={() => onSeekTimeline(selectedTimeline.id, 0)}>
-              Start
-            </button>
-            <button
-              type="button"
-              onClick={() => onSeekTimeline(selectedTimeline.id, selectedTimeline.duration)}
-            >
-              End
-            </button>
-          </div>
-
-          <label className="timeline-scrubber" htmlFor="timeline-scrub">
+          <label className="timeline-scrubber timeline-scrubber-hidden" htmlFor="timeline-scrub">
             <span>{timelineTime.toFixed(2)}s</span>
             <input
               id="timeline-scrub"
@@ -487,241 +965,356 @@ export function TimelinePanel({
             />
           </label>
 
-          <div className="timeline-ruler" data-testid="timeline-ruler">
-            {buildTicks(selectedTimeline.duration).map((time) => (
-              <span key={time}>{time}s</span>
-            ))}
+          <div
+            ref={timelineShellRef}
+            className={`timeline-shell${assetDropActive ? ' is-asset-drop-target' : ''}`}
+            data-testid="timeline-lanes"
+            onDragOver={handleTimelineAssetDragOver}
+            onDragLeave={() => setAssetDropActive(false)}
+            onDrop={handleTimelineAssetDrop}
+          >
             <div
-              className="timeline-playhead"
-              data-testid="timeline-playhead"
-              style={{ left: playheadPercent }}
-            />
-          </div>
-
-          <ol className="timeline-track-list" aria-label="Timeline tracks">
-            {selectedTimeline.tracks.map((track) => (
-              <li
-                key={track.id}
-                className={track.id === selectedTrack?.id ? 'is-selected' : undefined}
-              >
-                <button type="button" onClick={() => onSelectTrack(track.id)}>
-                  <strong>{track.type}</strong>
-                  <span>{track.id}</span>
-                  <small>{formatTrackTiming(track)}</small>
-                </button>
-              </li>
-            ))}
-          </ol>
-
-          {draftTrack ? (
-            <section className="timeline-track-editor" aria-labelledby="timeline-track-heading">
-              <div className="panel-title-row">
-                <h3 id="timeline-track-heading">Track</h3>
-                <span>{draftTrack.id}</span>
+              className="timeline-content"
+              style={{ minWidth: `${900 * timelineScale}px` }}
+              onPointerDown={startTimelineScrub}
+              onPointerMove={updateTimelinePointerDrag}
+              onPointerUp={finishTimelinePointerDrag}
+              onPointerCancel={() => {
+                cancelTimelineDrag();
+              }}
+            >
+              <div className="timeline-playfield">
+                <div
+                  className="timeline-playhead"
+                  data-testid="timeline-playhead"
+                  style={{ left: playheadPercent }}
+                  aria-hidden="true"
+                />
+                <div
+                  className="timeline-playhead-handle"
+                  data-testid="timeline-playhead-handle"
+                  role="slider"
+                  aria-label="Timeline playhead"
+                  aria-valuemin={0}
+                  aria-valuemax={selectedTimeline.duration}
+                  aria-valuenow={timelineTime}
+                  tabIndex={0}
+                  style={{ left: playheadPercent }}
+                  onPointerDown={startPlayheadDrag}
+                />
               </div>
 
-              {renderTrackFields({
-                track: draftTrack,
-                entityIds,
-                cameraShotIds,
-                soundAssetIds,
-                onUpdate: updateDraftTrack,
-              })}
-
-              {validationMessages.length > 0 ? (
-                <ul className="validation-list" role="alert">
-                  {validationMessages.map((message) => (
-                    <li key={message}>{message}</li>
-                  ))}
-                </ul>
-              ) : null}
-
-              <div className="timeline-command-row">
-                <button type="button" onClick={applyDraftTrack} disabled={!canApply}>
-                  Apply Track
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onRemoveTrack(selectedTimeline.id, draftTrack.id)}
-                >
-                  Remove Track
-                </button>
+              <div className="timeline-ruler" data-testid="timeline-ruler">
+                {buildTicks(selectedTimeline.duration).map((time) => (
+                  <span
+                    key={time}
+                    className="ruler-label"
+                    style={getRulerLabelStyle(time, selectedTimeline.duration)}
+                  >
+                    {time}s
+                  </span>
+                ))}
               </div>
 
-              {draftTrack.type === 'action' ? (
-                <section className="timeline-item-editor" aria-labelledby="timeline-action-heading">
-                  <div className="panel-title-row">
-                    <h3 id="timeline-action-heading">Action Marker</h3>
-                    <span>{draftTrack.action.type}</span>
-                  </div>
-                  <label className="field-stack" htmlFor="timeline-action-json">
-                    <span>Payload JSON</span>
-                    <textarea
-                      id="timeline-action-json"
-                      value={actionPayloadJson}
-                      rows={5}
-                      spellCheck={false}
-                      onChange={(event) =>
-                        setActionPayloadState({
-                          timelineId: selectedTimeline.id,
-                          trackId: draftTrack.id,
-                          sourceSignature: selectedTrackSignature,
-                          json: event.target.value,
-                        })
-                      }
-                    />
-                  </label>
-
-                  {actionValidationMessages.length > 0 ? (
-                    <ul className="validation-list" role="alert">
-                      {actionValidationMessages.map((message) => (
-                        <li key={message}>{message}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-
-                  <div className="timeline-command-row">
-                    {parsedFlagSetAction && typeof parsedFlagSetAction.value === 'boolean' ? (
+              <ol className="timeline-track-list" aria-label="Timeline tracks">
+                {renderedTracks.map((track) => (
+                  <li
+                    key={track.id}
+                    data-track-kind={track.type}
+                    className={track.id === selectedTrack?.id ? 'is-selected' : undefined}
+                  >
+                    <span className="timeline-track-label">{track.type}</span>
+                    <div className="timeline-track-content">
                       <button
                         type="button"
-                        onClick={() =>
+                        className={`timeline-clip${isTrackResizable(track) ? ' is-resizable' : ''}`}
+                        style={getTrackClipStyle(track, selectedTimeline.duration)}
+                        aria-label={`${track.id} ${track.type} ${formatTrackTiming(track)}`}
+                        onClick={() => onSelectTrack(track.id)}
+                        onPointerDown={(event) => startClipDrag(event, track, 'move')}
+                      >
+                        {isTrackResizable(track) ? (
+                          <span
+                            className="clip-resize-handle is-left"
+                            aria-hidden="true"
+                            onPointerDown={(event) => startClipDrag(event, track, 'resize-left')}
+                          />
+                        ) : null}
+                        <span className="clip-title">{formatTrackClipTitle(track)}</span>
+                        {isTrackResizable(track) ? (
+                          <span
+                            className="clip-resize-handle is-right"
+                            aria-hidden="true"
+                            onPointerDown={(event) => startClipDrag(event, track, 'resize-right')}
+                          />
+                        ) : null}
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              {snapTooltipState ? (
+                <div
+                  className="timeline-snap-tooltip"
+                  data-testid="timeline-snap-tooltip"
+                  style={{ left: snapTooltipState.x }}
+                >
+                  {snapTooltipState.mode === 'snap' ? 'Snap' : 'Free'}{' '}
+                  {snapTooltipState.time.toFixed(2)}s
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="track-details" data-testid="timeline-selected-track">
+            <div className="track-detail-cell">
+              <div className="detail-kicker">
+                {draftTrack?.type === 'action' ? 'Action Marker' : 'Selected Track'}
+              </div>
+              <div className="detail-title">{draftTrack?.type ?? 'track'}</div>
+            </div>
+            <div className="track-detail-cell">
+              <div className="detail-kicker">Binding</div>
+              <div className="detail-title">{selectedTrackBinding}</div>
+            </div>
+            <div className="track-detail-cell">
+              <div className="detail-kicker">Implementation</div>
+              <div className="detail-title">{selectedTrackImplementation}</div>
+            </div>
+          </div>
+
+          {draftTrack ? (
+            <details className="timeline-edit-drawer" open={draftTrack.type === 'property'}>
+              <summary>
+                <span>Track Editor</span>
+                <strong>{draftTrack.id}</strong>
+              </summary>
+              <section className="timeline-track-editor" aria-labelledby="timeline-track-heading">
+                <div className="panel-title-row">
+                  <h3 id="timeline-track-heading">Track</h3>
+                  <span>{draftTrack.id}</span>
+                </div>
+
+                {renderTrackFields({
+                  track: draftTrack,
+                  entityIds,
+                  cameraShotIds,
+                  soundAssetIds,
+                  onUpdate: updateDraftTrack,
+                  onCommit: (track) => {
+                    onApplyTrack(selectedTimeline.id, track);
+                    setDraftTrackState(undefined);
+                  },
+                })}
+
+                {validationMessages.length > 0 ? (
+                  <ul className="validation-list" role="alert">
+                    {validationMessages.map((message) => (
+                      <li key={message}>{message}</li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                <div className="timeline-command-row">
+                  <button type="button" onClick={applyDraftTrack} disabled={!canApply}>
+                    Apply Track
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveTrack(selectedTimeline.id, draftTrack.id)}
+                  >
+                    Remove Track
+                  </button>
+                </div>
+
+                {draftTrack.type === 'action' ? (
+                  <section
+                    className="timeline-item-editor"
+                    aria-labelledby="timeline-action-heading"
+                  >
+                    <div className="panel-title-row">
+                      <h3 id="timeline-action-heading">Action Marker</h3>
+                      <span>{draftTrack.action.type}</span>
+                    </div>
+                    <label className="field-stack" htmlFor="timeline-action-json">
+                      <span>Payload JSON</span>
+                      <textarea
+                        id="timeline-action-json"
+                        value={actionPayloadJson}
+                        rows={5}
+                        spellCheck={false}
+                        onChange={(event) =>
                           setActionPayloadState({
                             timelineId: selectedTimeline.id,
                             trackId: draftTrack.id,
                             sourceSignature: selectedTrackSignature,
-                            json: JSON.stringify(
-                              {
-                                ...parsedFlagSetAction,
-                                value: !parsedFlagSetAction.value,
-                              },
-                              null,
-                              2,
-                            ),
+                            json: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    {actionValidationMessages.length > 0 ? (
+                      <ul className="validation-list" role="alert">
+                        {actionValidationMessages.map((message) => (
+                          <li key={message}>{message}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+
+                    <div className="timeline-command-row">
+                      {parsedFlagSetAction && typeof parsedFlagSetAction.value === 'boolean' ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setActionPayloadState({
+                              timelineId: selectedTimeline.id,
+                              trackId: draftTrack.id,
+                              sourceSignature: selectedTrackSignature,
+                              json: JSON.stringify(
+                                {
+                                  ...parsedFlagSetAction,
+                                  value: !parsedFlagSetAction.value,
+                                },
+                                null,
+                                2,
+                              ),
+                            })
+                          }
+                        >
+                          Toggle Flag Value
+                        </button>
+                      ) : null}
+                      <button type="button" onClick={applyActionPayload} disabled={!canApplyAction}>
+                        Apply Action
+                      </button>
+                    </div>
+                  </section>
+                ) : null}
+
+                {propertyTrack && draftKey ? (
+                  <section className="timeline-item-editor" aria-labelledby="timeline-key-heading">
+                    <div className="panel-title-row">
+                      <h3 id="timeline-key-heading">Keyframe</h3>
+                      <span>{keyIndex + 1}</span>
+                    </div>
+
+                    <label className="field-stack" htmlFor="timeline-key-select">
+                      <span>Key</span>
+                      <select
+                        id="timeline-key-select"
+                        value={keyIndex}
+                        onChange={(event) =>
+                          setKeyIndexState({
+                            timelineId: selectedTimeline.id,
+                            trackId: propertyTrack.id,
+                            index: Number(event.target.value),
                           })
                         }
                       >
-                        Toggle Flag Value
-                      </button>
-                    ) : null}
-                    <button type="button" onClick={applyActionPayload} disabled={!canApplyAction}>
-                      Apply Action
-                    </button>
-                  </div>
-                </section>
-              ) : null}
+                        {propertyTrack.keys.map((key, index) => (
+                          <option key={`${propertyTrack.id}-${index}`} value={index}>
+                            {index + 1} @ {key.time}s
+                          </option>
+                        ))}
+                      </select>
+                    </label>
 
-              {propertyTrack && draftKey ? (
-                <section className="timeline-item-editor" aria-labelledby="timeline-key-heading">
-                  <div className="panel-title-row">
-                    <h3 id="timeline-key-heading">Keyframe</h3>
-                    <span>{keyIndex + 1}</span>
-                  </div>
-
-                  <label className="field-stack" htmlFor="timeline-key-select">
-                    <span>Key</span>
-                    <select
-                      id="timeline-key-select"
-                      value={keyIndex}
-                      onChange={(event) =>
-                        setKeyIndexState({
-                          timelineId: selectedTimeline.id,
-                          trackId: propertyTrack.id,
-                          index: Number(event.target.value),
-                        })
-                      }
-                    >
-                      {propertyTrack.keys.map((key, index) => (
-                        <option key={`${propertyTrack.id}-${index}`} value={index}>
-                          {index + 1} @ {key.time}s
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <div className="timeline-track-fields">
-                    <label className="field-stack" htmlFor="timeline-key-time">
-                      <span>Time</span>
-                      <input
+                    <div className="timeline-track-fields">
+                      <NumericScrubInput
                         id="timeline-key-time"
-                        type="number"
-                        min="0"
-                        step="0.05"
+                        label="Time"
                         value={draftKey.time}
-                        onChange={(event) =>
-                          updateDraftKey({ ...draftKey, time: Number(event.target.value) })
-                        }
-                      />
-                    </label>
-                    <label className="field-stack" htmlFor="timeline-key-value">
-                      <span>Value</span>
-                      <input
-                        id="timeline-key-value"
-                        type="text"
-                        value={formatPropertyValue(draftKey.value)}
-                        onChange={(event) =>
-                          updateDraftKey({
+                        min={0}
+                        step={0.05}
+                        onChange={(value) => updateDraftKey({ ...draftKey, time: value })}
+                        onCommit={(value) => {
+                          const nextTrack = replacePropertyKey(propertyTrack, keyIndex, {
                             ...draftKey,
-                            value: parsePropertyValue(event.target.value),
-                          })
-                        }
-                      />
-                    </label>
-                    <label className="field-stack" htmlFor="timeline-key-ease">
-                      <span>Ease</span>
-                      <input
-                        id="timeline-key-ease"
-                        type="text"
-                        value={draftKey.ease ?? ''}
-                        onChange={(event) =>
-                          updateDraftKey({
-                            ...draftKey,
-                            ease: event.target.value || undefined,
-                          })
-                        }
-                      />
-                    </label>
-                  </div>
+                            time: value,
+                          });
 
-                  {keyValidationMessages.length > 0 ? (
-                    <ul className="validation-list" role="alert">
-                      {keyValidationMessages.map((message) => (
-                        <li key={message}>{message}</li>
-                      ))}
-                    </ul>
-                  ) : null}
+                          onApplyTrackItem(
+                            selectedTimeline.id,
+                            nextTrack,
+                            'update',
+                            `${propertyTrack.id} key`,
+                          );
+                          setDraftKeyState(undefined);
+                        }}
+                        onCancel={(value) => updateDraftKey({ ...draftKey, time: value })}
+                      />
+                      <label className="field-stack" htmlFor="timeline-key-value">
+                        <span>Value</span>
+                        <input
+                          id="timeline-key-value"
+                          type="text"
+                          value={formatPropertyValue(draftKey.value)}
+                          onChange={(event) =>
+                            updateDraftKey({
+                              ...draftKey,
+                              value: parsePropertyValue(event.target.value),
+                            })
+                          }
+                        />
+                      </label>
+                      <label className="field-stack" htmlFor="timeline-key-ease">
+                        <span>Ease</span>
+                        <input
+                          id="timeline-key-ease"
+                          type="text"
+                          value={draftKey.ease ?? ''}
+                          onChange={(event) =>
+                            updateDraftKey({
+                              ...draftKey,
+                              ease: event.target.value || undefined,
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
 
-                  <div className="key-command-row">
-                    <button type="button" onClick={addPropertyKey}>
-                      Add Key
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => movePropertyKey(-1)}
-                      disabled={keyIndex === 0}
-                    >
-                      Move Up
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => movePropertyKey(1)}
-                      disabled={keyIndex >= propertyTrack.keys.length - 1}
-                    >
-                      Move Down
-                    </button>
-                    <button type="button" onClick={applyPropertyKey} disabled={!canApplyKey}>
-                      Apply Keyframe
-                    </button>
-                    <button
-                      type="button"
-                      onClick={removePropertyKey}
-                      disabled={propertyTrack.keys.length <= 1}
-                    >
-                      Remove Key
-                    </button>
-                  </div>
-                </section>
-              ) : null}
-            </section>
+                    {keyValidationMessages.length > 0 ? (
+                      <ul className="validation-list" role="alert">
+                        {keyValidationMessages.map((message) => (
+                          <li key={message}>{message}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+
+                    <div className="key-command-row">
+                      <button type="button" onClick={addPropertyKey}>
+                        Add Key
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => movePropertyKey(-1)}
+                        disabled={keyIndex === 0}
+                      >
+                        Move Up
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => movePropertyKey(1)}
+                        disabled={keyIndex >= propertyTrack.keys.length - 1}
+                      >
+                        Move Down
+                      </button>
+                      <button type="button" onClick={applyPropertyKey} disabled={!canApplyKey}>
+                        Apply Keyframe
+                      </button>
+                      <button
+                        type="button"
+                        onClick={removePropertyKey}
+                        disabled={propertyTrack.keys.length <= 1}
+                      >
+                        Remove Key
+                      </button>
+                    </div>
+                  </section>
+                ) : null}
+              </section>
+            </details>
           ) : null}
         </>
       ) : null}
@@ -735,6 +1328,7 @@ interface TrackFieldProps {
   cameraShotIds: readonly string[];
   soundAssetIds: readonly string[];
   onUpdate: (track: TimelineTrackData) => void;
+  onCommit: (track: TimelineTrackData) => void;
 }
 
 function renderTrackFields({
@@ -743,33 +1337,32 @@ function renderTrackFields({
   cameraShotIds,
   soundAssetIds,
   onUpdate,
+  onCommit,
 }: TrackFieldProps) {
   return (
     <div className="timeline-track-fields">
-      <label className="field-stack" htmlFor="timeline-track-time">
-        <span>{getTimeLabel(track)}</span>
-        <input
-          id="timeline-track-time"
-          type="number"
-          min="0"
-          step="0.05"
-          value={getTrackTime(track)}
-          onChange={(event) => onUpdate(updateTrackTime(track, Number(event.target.value)))}
-        />
-      </label>
+      <NumericScrubInput
+        id="timeline-track-time"
+        label={getTimeLabel(track)}
+        value={getTrackTime(track)}
+        min={0}
+        step={0.05}
+        onChange={(value) => onUpdate(updateTrackTime(track, value))}
+        onCommit={(value) => onCommit(updateTrackTime(track, value))}
+        onCancel={(value) => onUpdate(updateTrackTime(track, value))}
+      />
 
       {hasDuration(track) ? (
-        <label className="field-stack" htmlFor="timeline-track-duration">
-          <span>Duration</span>
-          <input
-            id="timeline-track-duration"
-            type="number"
-            min="0.05"
-            step="0.05"
-            value={track.duration}
-            onChange={(event) => onUpdate({ ...track, duration: Number(event.target.value) })}
-          />
-        </label>
+        <NumericScrubInput
+          id="timeline-track-duration"
+          label="Duration"
+          value={track.duration}
+          min={0.05}
+          step={0.05}
+          onChange={(value) => onUpdate({ ...track, duration: value })}
+          onCommit={(value) => onCommit({ ...track, duration: value })}
+          onCancel={(value) => onUpdate({ ...track, duration: value })}
+        />
       ) : null}
 
       {track.type === 'animation.play' ? (
@@ -968,10 +1561,229 @@ function parsePropertyValue(value: string): PropertyTimelineKey['value'] {
   return value;
 }
 
+function isTimelineClipTarget(target: EventTarget): boolean {
+  return target instanceof Element && Boolean(target.closest('.timeline-clip'));
+}
+
+function getTimelineShell(element: Element): HTMLElement | undefined {
+  const shell = element.closest('.timeline-shell');
+
+  return shell instanceof HTMLElement ? shell : undefined;
+}
+
+function getTimelineShellScrollLeft(element: Element): number {
+  return getTimelineShell(element)?.scrollLeft ?? 0;
+}
+
+function getTimelineDeltaSeconds(deltaX: number, element: HTMLElement, duration: number): number {
+  const rect = element.getBoundingClientRect();
+  const usableWidth = Math.max(1, rect.width - timelineLabelColumnWidth);
+
+  return (deltaX / usableWidth) * duration;
+}
+
+function moveTrackByDelta(
+  track: TimelineTrackData,
+  deltaSeconds: number,
+  timelineDuration: number,
+): TimelineTrackData {
+  switch (track.type) {
+    case 'action':
+    case 'sound':
+    case 'subtitle':
+      return { ...track, time: clampTime(track.time + deltaSeconds, timelineDuration) };
+    case 'animation.play':
+    case 'camera.shot':
+    case 'wait': {
+      const duration = getTrackDuration(track);
+      const start = clampNumber(
+        track.start + deltaSeconds,
+        0,
+        Math.max(0, timelineDuration - duration),
+      );
+
+      return { ...track, start: roundTimelineTime(start) };
+    }
+    case 'property': {
+      const times = track.keys.map((key) => key.time);
+      const minTime = Math.min(...times);
+      const maxTime = Math.max(...times);
+      const safeDelta = clampNumber(deltaSeconds, -minTime, timelineDuration - maxTime);
+
+      return {
+        ...track,
+        keys: track.keys.map((key) => ({
+          ...key,
+          time: roundTimelineTime(key.time + safeDelta),
+        })),
+      };
+    }
+  }
+}
+
+function resizeTrackByDelta(
+  track: TimelineTrackData,
+  deltaSeconds: number,
+  timelineDuration: number,
+  edge: 'left' | 'right',
+): TimelineTrackData {
+  if (track.type === 'property') {
+    return resizePropertyTrackByDelta(track, deltaSeconds, timelineDuration, edge);
+  }
+
+  if (!hasDuration(track)) {
+    return track;
+  }
+
+  if (track.type === 'subtitle') {
+    if (edge === 'left') {
+      const end = track.time + track.duration;
+      const time = clampNumber(track.time + deltaSeconds, 0, end - 0.05);
+
+      return {
+        ...track,
+        time: roundTimelineTime(time),
+        duration: roundTimelineTime(Math.max(0.05, end - time)),
+      };
+    }
+
+    const duration = clampNumber(
+      track.duration + deltaSeconds,
+      0.05,
+      timelineDuration - track.time,
+    );
+
+    return {
+      ...track,
+      duration: roundTimelineTime(duration),
+    };
+  }
+
+  if (edge === 'left') {
+    const end = track.start + track.duration;
+    const start = clampNumber(track.start + deltaSeconds, 0, end - 0.05);
+
+    return {
+      ...track,
+      start: roundTimelineTime(start),
+      duration: roundTimelineTime(Math.max(0.05, end - start)),
+    };
+  }
+
+  const duration = clampNumber(track.duration + deltaSeconds, 0.05, timelineDuration - track.start);
+
+  return {
+    ...track,
+    duration: roundTimelineTime(duration),
+  };
+}
+
+function resizePropertyTrackByDelta(
+  track: PropertyTimelineTrack,
+  deltaSeconds: number,
+  timelineDuration: number,
+  edge: 'left' | 'right',
+): PropertyTimelineTrack {
+  const sortedKeys = sortPropertyKeys(track.keys);
+  const first = sortedKeys[0];
+  const last = sortedKeys[sortedKeys.length - 1];
+
+  if (!first || !last || first === last) {
+    return track;
+  }
+
+  const targetTime =
+    edge === 'left'
+      ? clampNumber(first.time + deltaSeconds, 0, last.time - 0.05)
+      : clampNumber(last.time + deltaSeconds, first.time + 0.05, timelineDuration);
+  const keyToUpdate = edge === 'left' ? first : last;
+
+  return {
+    ...track,
+    keys: track.keys.map((key) =>
+      key === keyToUpdate ? { ...key, time: roundTimelineTime(targetTime) } : key,
+    ),
+  };
+}
+
+function snapTimelineTrack(track: TimelineTrackData): TimelineTrackData {
+  switch (track.type) {
+    case 'action':
+    case 'sound':
+      return { ...track, time: snapTimelineTime(track.time) };
+    case 'subtitle':
+      return {
+        ...track,
+        time: snapTimelineTime(track.time),
+        duration: Math.max(timelineSnapSeconds, snapTimelineTime(track.duration)),
+      };
+    case 'animation.play':
+      return { ...track, start: snapTimelineTime(track.start) };
+    case 'camera.shot':
+    case 'wait':
+      return {
+        ...track,
+        start: snapTimelineTime(track.start),
+        duration: Math.max(timelineSnapSeconds, snapTimelineTime(track.duration)),
+      };
+    case 'property':
+      return {
+        ...track,
+        keys: track.keys.map((key) => ({ ...key, time: snapTimelineTime(key.time) })),
+      };
+  }
+}
+
+function snapTimelineTime(time: number): number {
+  return Number((Math.round(time / timelineSnapSeconds) * timelineSnapSeconds).toFixed(2));
+}
+
+function hasDraggedAsset(event: DragEvent<HTMLElement>): boolean {
+  return Array.from(event.dataTransfer.types).includes('application/x-sinan-asset-id');
+}
+
+function getDraggedAssetId(event: DragEvent<HTMLElement>): string | undefined {
+  const assetId = event.dataTransfer.getData('application/x-sinan-asset-id');
+  const assetType = event.dataTransfer.getData('application/x-sinan-asset-type');
+
+  return assetId && assetType === 'audio' ? assetId : undefined;
+}
+
+function isTrackResizable(track: TimelineTrackData): boolean {
+  return hasDuration(track) || track.type === 'property';
+}
+
+function roundTimelineTime(time: number): number {
+  return Number(time.toFixed(2));
+}
+
 function buildTicks(duration: number): number[] {
   const last = Math.max(1, Math.ceil(duration));
 
   return Array.from({ length: last + 1 }, (_, index) => index);
+}
+
+function getRulerLabelStyle(time: number, duration: number): CSSProperties {
+  const left = duration > 0 ? (clampTime(time, duration) / duration) * 100 : 0;
+
+  return {
+    left: `${left}%`,
+  };
+}
+
+function formatTimelineTimecode(time: number): string {
+  const centiseconds = Math.max(0, Math.round(time * 100));
+  const minutes = Math.floor(centiseconds / 6000);
+  const seconds = Math.floor((centiseconds % 6000) / 100);
+  const hundredths = centiseconds % 100;
+
+  return `${formatPaddedTime(minutes)}:${formatPaddedTime(seconds)}.${formatPaddedTime(
+    hundredths,
+  )}`;
+}
+
+function formatPaddedTime(value: number): string {
+  return value.toString().padStart(2, '0');
 }
 
 function formatTrackTiming(track: TimelineTrackData): string {
@@ -987,6 +1799,116 @@ function formatTrackTiming(track: TimelineTrackData): string {
     case 'property':
       return `${Math.min(...track.keys.map((key) => key.time))}s`;
   }
+}
+
+function formatTrackBinding(track: TimelineTrackData): string {
+  switch (track.type) {
+    case 'action':
+      return `${track.action.type} @ ${track.time}s`;
+    case 'animation.play':
+      return `${track.entityId} / ${track.clip} / fade ${track.fadeIn ?? 0}s`;
+    case 'camera.shot':
+      return `${track.shotId} / blend ${track.blendIn ?? 0}s - ${track.blendOut ?? 0}s`;
+    case 'property':
+      return `${track.target} / ${track.property} / ${formatPropertyKeyRange(track)}`;
+    case 'sound':
+      return `${track.soundId} @ ${track.time}s`;
+    case 'subtitle':
+      return `${track.text} / ${track.time}s`;
+    case 'wait':
+      return `${track.start}s / ${track.duration}s`;
+  }
+}
+
+function formatTrackImplementation(track: TimelineTrackData): string {
+  switch (track.type) {
+    case 'action':
+      return 'TimelinePanel -> ActionTrackPlayer -> ActionSystem';
+    case 'animation.play':
+      return 'TimelinePanel -> AnimationTrackPlayer';
+    case 'camera.shot':
+      return 'TimelinePanel -> DirectorCameraSystem';
+    case 'property':
+      return 'TimelinePanel -> PropertyTrackPlayer';
+    case 'sound':
+      return 'TimelinePanel -> AudioTrackPlayer';
+    case 'subtitle':
+      return 'TimelinePanel -> SubtitleTrackPlayer';
+    case 'wait':
+      return 'TimelinePanel -> TimelineScheduler';
+  }
+}
+
+function formatPropertyKeyRange(track: PropertyTimelineTrack): string {
+  const sortedKeys = sortPropertyKeys(track.keys);
+  const first = sortedKeys[0];
+  const last = sortedKeys[sortedKeys.length - 1];
+
+  if (!first || !last) {
+    return 'no keys';
+  }
+
+  return `${formatPropertyValue(first.value)} -> ${formatPropertyValue(last.value)}`;
+}
+
+function formatTrackClipTitle(track: TimelineTrackData): string {
+  switch (track.type) {
+    case 'action':
+      return track.action.type;
+    case 'animation.play':
+      return `${track.entityId} / ${track.clip}`;
+    case 'camera.shot':
+      return track.id;
+    case 'property':
+      return track.property;
+    case 'sound':
+      return track.soundId;
+    case 'subtitle':
+      return track.text;
+    case 'wait':
+      return track.id;
+  }
+}
+
+function getTrackClipStyle(track: TimelineTrackData, timelineDuration: number): CSSProperties {
+  const start = clampTime(getTrackStartTime(track), timelineDuration);
+  const duration = Math.max(0.08, getTrackDuration(track));
+  const left = timelineDuration > 0 ? (start / timelineDuration) * 100 : 0;
+  const width = timelineDuration > 0 ? (duration / timelineDuration) * 100 : 6;
+
+  return {
+    '--clip-left': `${Math.min(96, Math.max(0, left))}%`,
+    '--clip-width': `${Math.min(100, Math.max(6, width))}%`,
+  } as CSSProperties;
+}
+
+function getTrackStartTime(track: TimelineTrackData): number {
+  switch (track.type) {
+    case 'action':
+    case 'sound':
+    case 'subtitle':
+      return track.time;
+    case 'animation.play':
+    case 'camera.shot':
+    case 'wait':
+      return track.start;
+    case 'property':
+      return Math.min(...track.keys.map((key) => key.time));
+  }
+}
+
+function getTrackDuration(track: TimelineTrackData): number {
+  if (hasDuration(track)) {
+    return track.duration;
+  }
+
+  if (track.type === 'property') {
+    const times = track.keys.map((key) => key.time);
+
+    return Math.max(0.18, Math.max(...times) - Math.min(...times));
+  }
+
+  return 0.22;
 }
 
 function getTimeLabel(track: TimelineTrackData): string {
@@ -1043,4 +1965,8 @@ function hasDuration(
 
 function clampTime(time: number, duration: number): number {
   return Math.min(Math.max(time, 0), duration);
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
