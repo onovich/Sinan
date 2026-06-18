@@ -28,9 +28,25 @@ const fixtures: Record<string, unknown> = {
       scale: [1, 1, 1],
     },
     components: {
+      Renderable: {
+        model: 'model.switch_wall',
+        renderStyle: {
+          profile: 'palette-toon',
+          palette: 'world_01',
+          tone: 'accent',
+        },
+      },
       Switch: {
         initialState: false,
       },
+    },
+  },
+  'data/palettes/world_01.json': {
+    schemaVersion: 1,
+    id: 'world_01',
+    tones: {
+      base: '#76b28b',
+      accent: '#5aa7d6',
     },
   },
   'data/prefabs/door_wood.json': {
@@ -141,6 +157,7 @@ describe('DataRepository', () => {
 
     expect(project.assets.assets['model.door_wood']?.type).toBe('model');
     expect(Object.keys(project.prefabs).sort()).toEqual(['door_wood', 'switch_wall']);
+    expect(Object.keys(project.palettes)).toEqual(['world_01']);
     expect(Object.keys(project.events)).toEqual(['ev_switch_a_open_gate']);
     expect(Object.keys(project.timelines)).toEqual(['tl_open_gate']);
     expect(Object.keys(project.cameraShots)).toEqual(['cam_gate_reveal']);

@@ -1,5 +1,6 @@
 import type { EntityData } from '../schemas/entity.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
+import { RenderStyleSchema, type RenderStyleData } from '../schemas/renderStyle.schema';
 
 export interface ProjectPrefabLookup {
   prefabs: Record<string, PrefabData>;
@@ -21,6 +22,23 @@ export function getRenderableModelAssetId(
   const prefabModel = getStringProperty(prefabRenderable, 'model');
 
   return prefabModel ?? prefab?.model;
+}
+
+export function getRenderableRenderStyle(
+  project: ProjectPrefabLookup,
+  entity: EntityData,
+): RenderStyleData | undefined {
+  const entityRenderable = getComponentPayload(entity.components, 'Renderable');
+  const entityRenderStyle = parseRenderStyle(entityRenderable);
+
+  if (entityRenderStyle) {
+    return entityRenderStyle;
+  }
+
+  const prefab = getEntityPrefab(project, entity);
+  const prefabRenderable = getComponentPayload(prefab?.components, 'Renderable');
+
+  return parseRenderStyle(prefabRenderable);
 }
 
 export function getEntityPrefab(
@@ -50,6 +68,18 @@ export function getStringProperty(
   const value = payload?.[key];
 
   return typeof value === 'string' ? value : undefined;
+}
+
+function parseRenderStyle(
+  payload: Record<string, unknown> | undefined,
+): RenderStyleData | undefined {
+  if (!payload || !('renderStyle' in payload)) {
+    return undefined;
+  }
+
+  const result = RenderStyleSchema.safeParse(payload.renderStyle);
+
+  return result.success ? result.data : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

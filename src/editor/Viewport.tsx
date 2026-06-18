@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { ProjectData } from '../data/DataRepository';
-import { getRenderableModelAssetId } from '../data/projectDataSelectors';
+import { getRenderableModelAssetId, getRenderableRenderStyle } from '../data/projectDataSelectors';
 import type {
+  RuntimePalette,
   RuntimeDebugAabb,
+  RuntimeRenderEnvironmentStyle,
+  RuntimeRenderStyle,
   RuntimeTransform,
   TransformGizmoMode,
 } from '../runtime/RuntimeTypes';
@@ -231,6 +234,10 @@ export function Viewport({
 
     syncTriggerDebug(runtime, project, showTriggerDebug);
   }, [project, showTriggerDebug]);
+
+  useEffect(() => {
+    runtimeRef.current?.setSelectedEntity?.(selectedEntityId);
+  }, [selectedEntityId]);
 
   useEffect(() => {
     const runtime = runtimeRef.current;
@@ -484,11 +491,14 @@ function toTransformData(transform: RuntimeTransform): TransformData {
   };
 }
 
-async function loadProjectIntoRuntime(
+export async function loadProjectIntoRuntime(
   runtime: WebRuntime,
   project: ProjectData,
   isDisposed: () => boolean,
 ): Promise<void> {
+  runtime.setStyleResources?.(toRuntimeStyleResources(project));
+  runtime.setRenderEnvironment?.(toRuntimeRenderEnvironment(project.level.environment));
+
   await Promise.all(
     Object.entries(project.assets.assets)
       .filter(([, asset]) => asset.type === 'model')
@@ -509,5 +519,44 @@ async function loadProjectIntoRuntime(
     }
 
     runtime.setTransform(entity.id, entity.transform);
+    runtime.setRenderStyle?.(
+      entity.id,
+      toRuntimeRenderStyle(getRenderableRenderStyle(project, entity)),
+    );
   }
+}
+
+function toRuntimeStyleResources(project: ProjectData): {
+  palettes: Record<string, RuntimePalette>;
+} {
+  return {
+    palettes: Object.fromEntries(
+      Object.entries(project.palettes).map(([paletteId, palette]) => [
+        paletteId,
+        {
+          id: palette.id,
+          tones: palette.tones,
+        },
+      ]),
+    ),
+  };
+}
+
+function toRuntimeRenderStyle(
+  style: RuntimeRenderStyle | undefined,
+): RuntimeRenderStyle | undefined {
+  return style;
+}
+
+function toRuntimeRenderEnvironment(
+  environment: ProjectData['level']['environment'],
+): RuntimeRenderEnvironmentStyle | undefined {
+  if (!environment) {
+    return undefined;
+  }
+
+  return {
+    background: environment.background,
+    ambientLight: environment.ambientLight,
+  };
 }

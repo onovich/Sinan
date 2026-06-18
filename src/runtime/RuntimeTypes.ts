@@ -71,3 +71,47 @@ export interface RuntimeDebugAabb {
   color?: string;
   visible: boolean;
 }
+
+export type RuntimeRenderStyleProfile = 'standard' | 'palette-toon';
+export type RuntimeRenderStyleVisibilityMode = 'none' | 'selected' | 'interactable' | 'always';
+export type RuntimeRenderStyleFeatureMode = 'inherit' | 'enabled' | 'disabled';
+export type RuntimeStyleQualityProfile = 'standard' | 'low-end';
+
+export interface RuntimeRenderStyle {
+  profile: RuntimeRenderStyleProfile;
+  palette?: string;
+  tone?: string;
+  outline?: RuntimeRenderStyleVisibilityMode;
+  highlight?: RuntimeRenderStyleVisibilityMode;
+  fog?: RuntimeRenderStyleFeatureMode;
+  colorGrade?: RuntimeRenderStyleFeatureMode;
+}
+
+export interface RuntimePalette {
+  id: string;
+  tones: Record<string, string>;
+}
+
+export interface RuntimeStyleResources {
+  palettes: Record<string, RuntimePalette>;
+}
+
+export interface RuntimeFogStyle {
+  enabled: boolean;
+  color?: string;
+  near?: number;
+  far?: number;
+}
+
+export interface RuntimeColorGradeStyle {
+  enabled: boolean;
+  exposure?: number;
+  saturation?: number;
+}
+
+export interface RuntimeRenderEnvironmentStyle {
+  background?: string;
+  ambientLight?: number;
+  fog?: RuntimeFogStyle;
+  colorGrade?: RuntimeColorGradeStyle;
+}

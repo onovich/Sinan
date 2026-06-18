@@ -6,16 +6,20 @@ import type { EventData } from '../schemas/event.schema';
 import { EventSchema } from '../schemas/event.schema';
 import type { LevelData } from '../schemas/level.schema';
 import { LevelSchema } from '../schemas/level.schema';
+import type { PaletteData } from '../schemas/palette.schema';
+import { PaletteSchema } from '../schemas/palette.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 import { PrefabSchema } from '../schemas/prefab.schema';
 import type { TimelineData } from '../schemas/timeline.schema';
 import { TimelineSchema } from '../schemas/timeline.schema';
 import { FetchJsonLoader, loadAndParseJson, type ProjectJsonLoader } from './loadJson';
+import { getRenderableRenderStyle } from './projectDataSelectors';
 
 export interface ProjectData {
   assets: AssetManifestData;
   level: LevelData;
   prefabs: Record<string, PrefabData>;
+  palettes: Record<string, PaletteData>;
   events: Record<string, EventData>;
   timelines: Record<string, TimelineData>;
   cameraShots: Record<string, CameraShotData>;
@@ -30,6 +34,10 @@ export class DataRepository {
 
   loadPrefab(prefabId: string): Promise<PrefabData> {
     return loadAndParseJson(this.loader, `data/prefabs/${prefabId}.json`, PrefabSchema);
+  }
+
+  loadPalette(paletteId: string): Promise<PaletteData> {
+    return loadAndParseJson(this.loader, `data/palettes/${paletteId}.json`, PaletteSchema);
   }
 
   loadLevel(levelId: string): Promise<LevelData> {
@@ -54,6 +62,11 @@ export class DataRepository {
       new Set(level.entities.map((entity) => entity.prefab).filter((id) => id !== undefined)),
     );
     const prefabs = await Promise.all(prefabIds.map(async (prefabId) => this.loadPrefab(prefabId)));
+    const prefabLookup = Object.fromEntries(prefabs.map((prefab) => [prefab.id, prefab]));
+    const paletteIds = collectProjectPaletteIds(level, prefabLookup);
+    const palettes = await Promise.all(
+      paletteIds.map(async (paletteId) => this.loadPalette(paletteId)),
+    );
     const events = await Promise.all(level.events.map(async (eventId) => this.loadEvent(eventId)));
     const timelines = await Promise.all(
       level.timelines.map(async (timelineId) => this.loadTimeline(timelineId)),
@@ -65,10 +78,41 @@ export class DataRepository {
     return {
       assets,
       level,
-      prefabs: Object.fromEntries(prefabs.map((prefab) => [prefab.id, prefab])),
+      prefabs: prefabLookup,
+      palettes: Object.fromEntries(palettes.map((palette) => [palette.id, palette])),
       events: Object.fromEntries(events.map((event) => [event.id, event])),
       timelines: Object.fromEntries(timelines.map((timeline) => [timeline.id, timeline])),
       cameraShots: Object.fromEntries(cameraShots.map((shot) => [shot.id, shot])),
     };
   }
+}
+
+function collectProjectPaletteIds(level: LevelData, prefabs: Record<string, PrefabData>): string[] {
+  const project = { prefabs };
+  const ids = new Set<string>();
+
+  for (const prefab of Object.values(prefabs)) {
+    const style = getRenderableRenderStyle(
+      { prefabs: {} },
+      {
+        id: `${prefab.id}:prefab-style`,
+        transform: prefab.defaultTransform,
+        components: prefab.components,
+      },
+    );
+
+    if (style?.palette) {
+      ids.add(style.palette);
+    }
+  }
+
+  for (const entity of level.entities) {
+    const style = getRenderableRenderStyle(project, entity);
+
+    if (style?.palette) {
+      ids.add(style.palette);
+    }
+  }
+
+  return [...ids].sort((left, right) => left.localeCompare(right));
 }

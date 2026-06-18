@@ -9,8 +9,12 @@ import type {
   RuntimeAnimationTimeOptions,
   RuntimeCameraPose,
   RuntimeDebugAabb,
+  RuntimeRenderEnvironmentStyle,
+  RuntimeRenderStyle,
   RuntimeInitOptions,
   RuntimeSize,
+  RuntimeStyleQualityProfile,
+  RuntimeStyleResources,
   TransformGizmoCallbacks,
   TransformGizmoMode,
 } from '../RuntimeTypes';
@@ -61,6 +65,11 @@ export class ThreeRuntime implements WebRuntime {
     { clip: string; loop?: boolean; playing: boolean; time: number }
   >();
   private animationBindingByEntityId = new Map<string, EntityAnimationBinding>();
+  private styleResources: RuntimeStyleResources = { palettes: {} };
+  private renderStyleByEntityId = new Map<string, RuntimeRenderStyle>();
+  private renderEnvironment: RuntimeRenderEnvironmentStyle | undefined;
+  private styleQualityProfile: RuntimeStyleQualityProfile = 'standard';
+  private selectedEntityId: string | undefined;
   private width = 1;
   private height = 1;
   private disposed = false;
@@ -189,6 +198,10 @@ export class ThreeRuntime implements WebRuntime {
 
     this.disposeDebugAabb(entityId);
     this.disposeEntityAnimations(entityId);
+    this.renderStyleByEntityId.delete(entityId);
+    if (this.selectedEntityId === entityId) {
+      this.selectedEntityId = undefined;
+    }
 
     const object = this.objectByEntityId.get(entityId);
     if (!object) {
@@ -390,6 +403,30 @@ export class ThreeRuntime implements WebRuntime {
     this.debugAabbByEntityId.set(entityId, line);
   }
 
+  setStyleResources(resources: RuntimeStyleResources): void {
+    this.styleResources = resources;
+  }
+
+  setRenderStyle(entityId: string, style: RuntimeRenderStyle | undefined): void {
+    if (style) {
+      this.renderStyleByEntityId.set(entityId, style);
+    } else {
+      this.renderStyleByEntityId.delete(entityId);
+    }
+  }
+
+  setRenderEnvironment(environment: RuntimeRenderEnvironmentStyle | undefined): void {
+    this.renderEnvironment = environment;
+  }
+
+  setStyleQualityProfile(profile: RuntimeStyleQualityProfile): void {
+    this.styleQualityProfile = profile;
+  }
+
+  setSelectedEntity(entityId: string | undefined): void {
+    this.selectedEntityId = entityId;
+  }
+
   pick(clientX: number, clientY: number): PickResult | null {
     if (!this.canvas || !this.camera || !this.objectRoot) {
       return null;
@@ -534,9 +571,14 @@ export class ThreeRuntime implements WebRuntime {
     this.transformGizmoCallbacks = undefined;
     this.objectByEntityId.clear();
     this.debugAabbByEntityId.clear();
+    this.renderStyleByEntityId.clear();
     this.modelAssets.dispose();
     this.animationStateByEntityId.clear();
     this.animationBindingByEntityId.clear();
+    this.styleResources = { palettes: {} };
+    this.renderEnvironment = undefined;
+    this.styleQualityProfile = 'standard';
+    this.selectedEntityId = undefined;
   }
 
   private disposeDebugAabb(entityId: string): void {

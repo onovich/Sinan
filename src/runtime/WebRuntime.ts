@@ -9,6 +9,10 @@ import type {
   RuntimeAnimationTimeOptions,
   RuntimeCameraPose,
   RuntimeDebugAabb,
+  RuntimeRenderEnvironmentStyle,
+  RuntimeRenderStyle,
+  RuntimeStyleQualityProfile,
+  RuntimeStyleResources,
 } from './RuntimeTypes';
 import type { ModelHandle, RuntimeObjectHandle } from './RuntimeObjectHandle';
 import type { RuntimeTransform } from './RuntimeTypes';
@@ -27,6 +31,11 @@ export interface WebRuntime {
   setAnimationTime(options: RuntimeAnimationTimeOptions): void;
   setCameraPose(pose: RuntimeCameraPose): void;
   setDebugAabb(entityId: string, bounds: RuntimeDebugAabb | undefined): void;
+  setStyleResources?(resources: RuntimeStyleResources): void;
+  setRenderStyle?(entityId: string, style: RuntimeRenderStyle | undefined): void;
+  setRenderEnvironment?(environment: RuntimeRenderEnvironmentStyle | undefined): void;
+  setStyleQualityProfile?(profile: RuntimeStyleQualityProfile): void;
+  setSelectedEntity?(entityId: string | undefined): void;
   pick(clientX: number, clientY: number): PickResult | null;
   attachTransformGizmo(entityId: string, callbacks?: TransformGizmoCallbacks): void;
   detachTransformGizmo(): void;
