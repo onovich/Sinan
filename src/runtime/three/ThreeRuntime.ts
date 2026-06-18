@@ -30,6 +30,7 @@ import {
   type EditorCameraDragMode,
   type EditorCameraWheelInput,
 } from './EditorCameraController';
+import { ThreeMaterialRegistry } from './ThreeMaterialRegistry';
 import { disposeObjectResources } from './ThreeObjectResources';
 import { pickThreeObject } from './ThreePicking';
 
@@ -59,6 +60,7 @@ export class ThreeRuntime implements WebRuntime {
   private transformGizmoEntityId: string | undefined;
   private transformGizmoCallbacks: TransformGizmoCallbacks | undefined;
   private objectByEntityId = new Map<string, THREE.Object3D>();
+  private readonly materialRegistry: ThreeMaterialRegistry;
   private debugAabbByEntityId = new Map<string, THREE.LineSegments>();
   private animationStateByEntityId = new Map<
     string,
@@ -77,6 +79,7 @@ export class ThreeRuntime implements WebRuntime {
   constructor(options: ThreeRuntimeOptions = {}) {
     this.modelAssets = options.modelAssets ?? new ThreeAssetLoader();
     this.logger = options.logger ?? console;
+    this.materialRegistry = new ThreeMaterialRegistry({ logger: this.logger });
   }
 
   init(options: RuntimeInitOptions): void {
@@ -175,6 +178,7 @@ export class ThreeRuntime implements WebRuntime {
     this.objectRoot?.add(object);
     this.objectByEntityId.set(entityId, object);
     this.bindEntityAnimations(entityId, object, loadedAsset);
+    this.applyEntityRenderStyle(entityId, object);
 
     return { entityId, runtimeObjectId: entityId };
   }
@@ -187,6 +191,7 @@ export class ThreeRuntime implements WebRuntime {
     tagRuntimeObject(object, entityId);
     this.objectRoot?.add(object);
     this.objectByEntityId.set(entityId, object);
+    this.applyEntityRenderStyle(entityId, object);
 
     return { entityId, runtimeObjectId: entityId };
   }
@@ -405,6 +410,7 @@ export class ThreeRuntime implements WebRuntime {
 
   setStyleResources(resources: RuntimeStyleResources): void {
     this.styleResources = resources;
+    this.materialRegistry.setStyleResources(resources);
   }
 
   setRenderStyle(entityId: string, style: RuntimeRenderStyle | undefined): void {
@@ -413,6 +419,7 @@ export class ThreeRuntime implements WebRuntime {
     } else {
       this.renderStyleByEntityId.delete(entityId);
     }
+    this.applyEntityRenderStyle(entityId);
   }
 
   setRenderEnvironment(environment: RuntimeRenderEnvironmentStyle | undefined): void {
@@ -421,6 +428,7 @@ export class ThreeRuntime implements WebRuntime {
 
   setStyleQualityProfile(profile: RuntimeStyleQualityProfile): void {
     this.styleQualityProfile = profile;
+    this.materialRegistry.setQualityProfile(profile);
   }
 
   setSelectedEntity(entityId: string | undefined): void {
@@ -590,6 +598,17 @@ export class ThreeRuntime implements WebRuntime {
     line.removeFromParent();
     disposeObjectResources(line);
     this.debugAabbByEntityId.delete(entityId);
+  }
+
+  private applyEntityRenderStyle(
+    entityId: string,
+    object = this.objectByEntityId.get(entityId),
+  ): void {
+    if (!object) {
+      return;
+    }
+
+    this.materialRegistry.applyStyle(object, this.renderStyleByEntityId.get(entityId));
   }
 
   private emitTransformGizmoChange(callbackName: keyof TransformGizmoCallbacks): void {
