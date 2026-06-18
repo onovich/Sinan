@@ -33,6 +33,7 @@ import {
 import { ThreeMaterialRegistry } from './ThreeMaterialRegistry';
 import { disposeObjectResources } from './ThreeObjectResources';
 import { pickThreeObject } from './ThreePicking';
+import { ThreeStyleDecorators } from './ThreeStyleDecorators';
 
 export interface ThreeRuntimeOptions {
   modelAssets?: ThreeAssetLoader;
@@ -53,6 +54,7 @@ export class ThreeRuntime implements WebRuntime {
   private canvas: HTMLCanvasElement | undefined;
   private scene: THREE.Scene | undefined;
   private objectRoot: THREE.Group | undefined;
+  private styleHelperRoot: THREE.Group | undefined;
   private camera: THREE.PerspectiveCamera | undefined;
   private editorCamera: EditorCameraController | undefined;
   private transformControls: TransformControls | undefined;
@@ -61,6 +63,7 @@ export class ThreeRuntime implements WebRuntime {
   private transformGizmoCallbacks: TransformGizmoCallbacks | undefined;
   private objectByEntityId = new Map<string, THREE.Object3D>();
   private readonly materialRegistry: ThreeMaterialRegistry;
+  private styleDecorators: ThreeStyleDecorators | undefined;
   private debugAabbByEntityId = new Map<string, THREE.LineSegments>();
   private animationStateByEntityId = new Map<
     string,
@@ -103,6 +106,9 @@ export class ThreeRuntime implements WebRuntime {
     const objectRoot = new THREE.Group();
     objectRoot.name = 'runtime-objects';
     scene.add(objectRoot);
+    const styleHelperRoot = new THREE.Group();
+    styleHelperRoot.name = 'style-helpers';
+    scene.add(styleHelperRoot);
 
     const camera = new THREE.PerspectiveCamera(64, this.width / this.height, 0.1, 1000);
     camera.position.set(4, 2.6, 0.35);
@@ -147,8 +153,10 @@ export class ThreeRuntime implements WebRuntime {
     this.renderer = renderer;
     this.scene = scene;
     this.objectRoot = objectRoot;
+    this.styleHelperRoot = styleHelperRoot;
     this.camera = camera;
     this.editorCamera = editorCamera;
+    this.styleDecorators = new ThreeStyleDecorators(styleHelperRoot);
     this.transformControls = transformControls;
     this.transformControlsHelper = transformControlsHelper;
   }
@@ -203,6 +211,7 @@ export class ThreeRuntime implements WebRuntime {
 
     this.disposeDebugAabb(entityId);
     this.disposeEntityAnimations(entityId);
+    this.styleDecorators?.removeEntity(entityId);
     this.renderStyleByEntityId.delete(entityId);
     if (this.selectedEntityId === entityId) {
       this.selectedEntityId = undefined;
@@ -434,6 +443,7 @@ export class ThreeRuntime implements WebRuntime {
 
   setSelectedEntity(entityId: string | undefined): void {
     this.selectedEntityId = entityId;
+    this.styleDecorators?.setSelectedEntity(entityId);
   }
 
   pick(clientX: number, clientY: number): PickResult | null {
@@ -533,6 +543,7 @@ export class ThreeRuntime implements WebRuntime {
         object.rotation.y += deltaSeconds * 0.8;
       }
     }
+    this.styleDecorators?.update();
   }
 
   render(): void {
@@ -565,6 +576,7 @@ export class ThreeRuntime implements WebRuntime {
     for (const object of this.objectByEntityId.values()) {
       this.materialRegistry.applyStyle(object, { profile: 'standard' });
     }
+    this.styleDecorators?.dispose();
     this.scene?.traverse((object) => {
       disposeObjectResources(object);
     });
@@ -575,8 +587,10 @@ export class ThreeRuntime implements WebRuntime {
     this.canvas = undefined;
     this.scene = undefined;
     this.objectRoot = undefined;
+    this.styleHelperRoot = undefined;
     this.camera = undefined;
     this.editorCamera = undefined;
+    this.styleDecorators = undefined;
     this.transformControls = undefined;
     this.transformControlsHelper = undefined;
     this.transformGizmoEntityId = undefined;
@@ -613,6 +627,7 @@ export class ThreeRuntime implements WebRuntime {
     }
 
     this.materialRegistry.applyStyle(object, this.renderStyleByEntityId.get(entityId));
+    this.styleDecorators?.syncEntity(entityId, object, this.renderStyleByEntityId.get(entityId));
   }
 
   private emitTransformGizmoChange(callbackName: keyof TransformGizmoCallbacks): void {
