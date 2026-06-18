@@ -15,7 +15,7 @@ Evidence:
 - `docs/phase-14-release-candidate-finalization.md` records the final validation evidence.
 - `npm ci`, `npm audit --audit-level=moderate`, `Validate.cmd`, `Smoke.cmd`, and the browser demo gate passed on 2026-06-18.
 
-Phase 15 may proceed as a planning and scope-lock phase. Runtime implementation remains deferred until Phase 16.
+Phase 15 scope lock is recorded in `docs/phase-15-abeto-scope-lock-final-report.md`. Its status is PASS for the documentation and handoff gate. Runtime implementation remains deferred until Phase 16.
 
 ## Product Target
 
@@ -281,7 +281,7 @@ Acceptance:
 
 ## Recommended Next Guides
 
-Start with Phase 15 until the scope-lock final report is PASS:
+Phase 15 status is recorded in `docs/phase-15-abeto-scope-lock-final-report.md`. If that report is not PASS, finish Phase 15 first:
 
 ```txt
 Complete Phase 15 from docs/abeto-messenger-development-plan.md: lock the Abeto Messenger-like vertical-slice scope, clean up readable project documentation, define budgets and phase gates, update entry points, and prepare Phase 16 implementation handoff without staging unrelated current worktree changes.
