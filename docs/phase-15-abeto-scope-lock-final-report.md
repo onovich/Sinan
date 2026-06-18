@@ -62,6 +62,6 @@ None for Phase 15.
 
 ## Recommended Next Goal
 
-Complete Phase 16 from `docs/abeto-messenger-development-plan.md`: Stylized Runtime Foundation.
+Complete Phase 16 from `docs/phase-16-stylized-runtime-foundation-goal-mode-execution-guide.md`: Stylized Runtime Foundation.
 
 Before starting Phase 16, read `AGENTS.md` and the architecture guide it references, keep Three.js work inside `src/runtime/three/**`, and do not pull deferred multiplayer-lite work forward before the single-player Showcase path is ready.

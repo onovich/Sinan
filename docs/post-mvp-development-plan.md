@@ -41,7 +41,7 @@ With the superseded optional Phase 15: 31-33 rounds.
 
 After Phase 14, continue with `docs/abeto-messenger-development-plan.md` for the Messenger-like vertical-slice roadmap. The next planning handoff is `docs/phase-15-abeto-scope-lock-goal-mode-execution-guide.md`.
 
-After the Phase 15 scope-lock final report is PASS, the next implementation goal is Phase 16 from `docs/abeto-messenger-development-plan.md`: Stylized Runtime Foundation. The executor should read `AGENTS.md` and `docs/Sinan_Scene_Director_研发方案与架构指南.md` before starting Phase 16.
+After the Phase 15 scope-lock final report is PASS, the next implementation goal is Phase 16 from `docs/phase-16-stylized-runtime-foundation-goal-mode-execution-guide.md`: Stylized Runtime Foundation. The executor should read `AGENTS.md` and `docs/Sinan_Scene_Director_研发方案与架构指南.md` before starting Phase 16.
 
 ## Rendering And Demo Visual Principles
 

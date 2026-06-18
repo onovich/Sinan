@@ -214,4 +214,4 @@ After Phase 14, the next product route is the Abeto Messenger-like vertical slic
 
 Phase 14 release-candidate status is accepted in `docs/phase-14-release-candidate-finalization.md`. Phase 15 is a scope-lock and handoff phase only; it should not start runtime, UI, shader, gameplay, multiplayer, or asset-compression implementation.
 
-For the next implementation goal after Phase 15 passes, read `AGENTS.md` and `docs/Sinan_Scene_Director_研发方案与架构指南.md`, then execute Phase 16 from `docs/abeto-messenger-development-plan.md`: Stylized Runtime Foundation.
+For the next implementation goal after Phase 15 passes, read `AGENTS.md` and `docs/Sinan_Scene_Director_研发方案与架构指南.md`, then execute Phase 16 from `docs/phase-16-stylized-runtime-foundation-goal-mode-execution-guide.md`: Stylized Runtime Foundation.

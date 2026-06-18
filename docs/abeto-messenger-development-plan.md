@@ -287,10 +287,12 @@ Phase 15 status is recorded in `docs/phase-15-abeto-scope-lock-final-report.md`.
 Complete Phase 15 from docs/abeto-messenger-development-plan.md: lock the Abeto Messenger-like vertical-slice scope, clean up readable project documentation, define budgets and phase gates, update entry points, and prepare Phase 16 implementation handoff without staging unrelated current worktree changes.
 ```
 
-After Phase 15 is committed and pushed with a PASS final report, use this implementation goal:
+After Phase 15 is committed and pushed with a PASS final report, use `docs/phase-16-stylized-runtime-foundation-goal-mode-execution-guide.md` and this implementation goal:
 
 ```txt
 Complete Phase 16 from docs/abeto-messenger-development-plan.md: Stylized Runtime Foundation.
 ```
 
 Before starting Phase 16, re-read `AGENTS.md` and `docs/Sinan_Scene_Director_研发方案与架构指南.md` and keep Three.js work inside `src/runtime/three/**`.
+
+The Phase 16 goal-mode guide uses a 16-round budget: 12 implementation rounds, 3 buffer rounds, and 1 final validation/handoff round.
