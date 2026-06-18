@@ -80,6 +80,7 @@ export const AssetMetadataSchema = z
     compression: AssetCompressionMetadataSchema.optional(),
     lodGroup: z.string().min(1).optional(),
     instancing: AssetInstancingHintSchema.optional(),
+    notes: z.string().min(1).optional(),
     clips: z
       .array(z.string().min(1))
       .refine((clips) => new Set(clips).size === clips.length, 'Animation clips must be unique.')

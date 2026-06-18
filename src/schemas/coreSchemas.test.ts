@@ -72,6 +72,7 @@ describe('core data schemas', () => {
               generated: true,
               authoringTool: 'Sinan development GLB generator',
             },
+            notes: 'Generated test asset.',
             extras: {
               reviewer: 'phase-17',
             },

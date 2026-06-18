@@ -3,26 +3,114 @@
   "assets": {
     "model.room_blockout": {
       "type": "model",
-      "url": "/models/room_blockout.glb"
+      "url": "/models/room_blockout.glb",
+      "metadata": {
+        "category": "environment",
+        "materialProfile": "palette-toon",
+        "maxTriangles": 128,
+        "textureBudgetKb": 0,
+        "sizeBudgetBytes": 8192,
+        "compressed": false,
+        "compression": {
+          "codec": "none",
+          "status": "source"
+        },
+        "lodGroup": "gate-demo-room",
+        "instancing": "none",
+        "source": {
+          "file": "scripts/generate-dev-glb-assets.ts",
+          "authoringTool": "Sinan development GLB generator",
+          "generated": true
+        },
+        "notes": "Generated blockout room for the Gate Demo baseline."
+      }
     },
     "model.switch_wall": {
       "type": "model",
-      "url": "/models/props/switch_wall.glb"
+      "url": "/models/props/switch_wall.glb",
+      "metadata": {
+        "category": "prop",
+        "materialProfile": "palette-toon",
+        "maxTriangles": 64,
+        "textureBudgetKb": 0,
+        "sizeBudgetBytes": 4096,
+        "compressed": false,
+        "compression": {
+          "codec": "none",
+          "status": "source"
+        },
+        "lodGroup": "gate-demo-props",
+        "instancing": "eligible",
+        "source": {
+          "file": "scripts/generate-dev-glb-assets.ts",
+          "authoringTool": "Sinan development GLB generator",
+          "generated": true
+        },
+        "notes": "Generated wall switch prop; eligible for future repeated-prop batching."
+      }
     },
     "model.door_wood": {
       "type": "model",
       "url": "/models/props/door_wood.glb",
       "metadata": {
-        "clips": ["Open"]
+        "category": "prop",
+        "materialProfile": "palette-toon",
+        "maxTriangles": 64,
+        "textureBudgetKb": 0,
+        "sizeBudgetBytes": 4096,
+        "compressed": false,
+        "compression": {
+          "codec": "none",
+          "status": "source"
+        },
+        "lodGroup": "gate-demo-props",
+        "instancing": "none",
+        "clips": ["Open"],
+        "source": {
+          "file": "scripts/generate-dev-glb-assets.ts",
+          "authoringTool": "Sinan development GLB generator",
+          "generated": true
+        },
+        "notes": "Generated animated door prop; not marked instancing-eligible because it carries unique animation state."
       }
     },
     "model.player_spawn": {
       "type": "model",
-      "url": "/models/markers/player_spawn.glb"
+      "url": "/models/markers/player_spawn.glb",
+      "metadata": {
+        "category": "marker",
+        "materialProfile": "palette-toon",
+        "maxTriangles": 64,
+        "textureBudgetKb": 0,
+        "sizeBudgetBytes": 4096,
+        "compressed": false,
+        "compression": {
+          "codec": "none",
+          "status": "source"
+        },
+        "lodGroup": "gate-demo-markers",
+        "instancing": "none",
+        "source": {
+          "file": "scripts/generate-dev-glb-assets.ts",
+          "authoringTool": "Sinan development GLB generator",
+          "generated": true
+        },
+        "notes": "Generated editor-visible spawn marker."
+      }
     },
     "audio.switch_click": {
       "type": "audio",
-      "url": "/audio/switch_click.wav"
+      "url": "/audio/switch_click.wav",
+      "metadata": {
+        "category": "audio",
+        "sizeBudgetBytes": 16384,
+        "source": {
+          "file": "scripts/generate-dev-glb-assets.ts",
+          "authoringTool": "Sinan development WAV generator",
+          "generated": true
+        },
+        "notes": "Short generated switch-click placeholder for the Gate Demo."
+      }
     }
   }
 }
