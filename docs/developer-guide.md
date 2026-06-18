@@ -92,6 +92,82 @@ GLB export guidance:
 - Keep the useful mesh origin and transform clean before export. Entity placement should still live in `data/levels/*.json`, not be baked into every scene file.
 - If an asset is missing or invalid, `ThreeRuntime` falls back to deterministic placeholder geometry and logs a warning.
 
+## Render Style Authoring
+
+Phase 16 adds data-driven render styles for the Gate Demo. Style data stays in schemas and JSON; Three.js material work stays in `src/runtime/three/**`.
+
+Palette files live in `data/palettes/*.json`:
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "world_01",
+  "tones": {
+    "base": "#76b28b",
+    "accent": "#5aa7d6",
+    "warm": "#d6a15a",
+    "cool": "#6d8fd6",
+    "neutral": "#9fb0b7"
+  }
+}
+```
+
+Attach a style through a `Renderable.renderStyle` object on a prefab or entity:
+
+```json
+{
+  "Renderable": {
+    "model": "model.switch_wall",
+    "renderStyle": {
+      "profile": "palette-toon",
+      "palette": "world_01",
+      "tone": "accent",
+      "outline": "interactable",
+      "highlight": "selected"
+    }
+  }
+}
+```
+
+Rules:
+
+- Use `profile: "standard"` to preserve the asset or placeholder material.
+- Use `profile: "palette-toon"` with a valid `palette` id and `tone`.
+- `outline` and `highlight` accept `none`, `selected`, `interactable`, or `always`.
+- Missing palette files or tone keys fail `npm run validate-data` with actionable paths.
+- Runtime missing style resources falls back to `standard` and warns instead of crashing.
+
+Level atmosphere is configured separately in `data/levels/*.json` under `environment`:
+
+```json
+{
+  "background": "#111111",
+  "ambientLight": 0.35,
+  "fog": {
+    "enabled": true,
+    "color": "#162024",
+    "near": 8,
+    "far": 18
+  },
+  "colorGrade": {
+    "enabled": true,
+    "exposure": 1.05,
+    "saturation": 1.08
+  }
+}
+```
+
+Low-end mode is deterministic: open `http://127.0.0.1:5174/?styleQuality=low-end` or pass `low-end` to `loadProjectIntoRuntime` in tests. Low-end mode keeps palette readability, uses a lighter palette material, and disables outline/highlight helper boxes.
+
+When adding a new render style profile:
+
+1. Extend `src/schemas/renderStyle.schema.ts` and add schema tests.
+2. Extend renderer-neutral runtime types in `src/runtime/RuntimeTypes.ts` only if the contract changes.
+3. Add validation for any new referenced data in `src/data/ReferenceResolver.ts` or adjacent validators.
+4. Implement the Three-specific behavior under `src/runtime/three/**`.
+5. Add runtime tests and a browser smoke assertion if the visible output should change.
+6. Run `npm run validate-data`, `npm run test`, `npm run check-boundaries`, and `npm run test:smoke`.
+
 ## Actions
 
 Current action types:
@@ -208,3 +284,4 @@ Editor mutations are command-backed so undo/redo, dirty state, save state, and t
 - Keep high-frequency runtime state out of React state. React owns editor panels, HUD, selection, dirty status, and sampled UI state.
 - Keep `data/**/*.json` as the source of truth.
 - Do not add dynamic code execution to JSON DSL paths.
+- Keep Phase 17 asset budgets, compression metadata, Draco/meshopt/KTX2 loading, LOD, and instancing out of Phase 16 render style work.

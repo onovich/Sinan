@@ -1,7 +1,7 @@
 # Phase 16 Stylized Runtime Foundation Notes
 
 Date: 2026-06-18
-Status: Round 16.1 design lock.
+Status: Implemented through Round 16.12; buffer and final validation rounds remain.
 
 Phase 16 starts from the accepted Phase 14 release-candidate baseline and the Phase 15 Abeto Scope Lock final report. Its implementation target is the existing Gate Demo, not a new world, gameplay layer, asset compression pipeline, LOD system, spherical world, Showcase Mode, or multiplayer feature.
 
@@ -21,9 +21,9 @@ Phase 16 starts from the accepted Phase 14 release-candidate baseline and the Ph
 - React may pass selected entity id, slow style/profile config, and authoring data into runtime, but must not own per-frame material, animation, or render state.
 - Editor helpers such as grid, transform gizmo, debug AABB, and authoring overlays must not be replaced by gameplay material styling.
 
-## Proposed Data Shape
+## Implemented Data Shape
 
-Start with a `renderStyle` object on the `Renderable` component:
+Style starts with a `renderStyle` object on the `Renderable` component:
 
 ```json
 {
@@ -88,18 +88,27 @@ Renderer-neutral runtime types should describe parsed style data without importi
 - render environment style
 - style quality profile, for example `standard` or `low-end`
 
-The runtime adapter can expose small methods such as applying a style to an entity, applying a project style set, setting selected/highlighted entity ids, and setting render environment options. The exact method names can be refined in Round 16.4 after schema and validation settle.
+The runtime adapter exposes optional style methods through `WebRuntime`:
+
+- `setStyleResources`
+- `setRenderStyle`
+- `setRenderEnvironment`
+- `setStyleQualityProfile`
+- `setSelectedEntity`
+
+Runtimes that do not implement these methods can ignore style data safely.
 
 ## Three Runtime Plan
 
 The Three implementation should be small and disposable:
 
-- Add a Three-only material/style registry under `src/runtime/three/**`.
-- Keep `standard` as the fallback resolver.
-- Implement `palette-toon` with stable built-in Three materials first. Avoid a shader graph and avoid heavy post-processing.
-- Apply style only to runtime gameplay/model meshes under the runtime object root.
-- Preserve or intentionally dispose replaced materials through existing resource cleanup helpers.
-- Keep debug AABB lines, grid, transform controls, and editor helper objects outside style replacement.
+- `ThreeMaterialRegistry` owns material replacement and fallback.
+- `ThreeStyleDecorators` owns outline/highlight helper boxes.
+- `ThreeEnvironmentStyle` owns background, fog, ambient light, exposure, and saturation.
+- `standard` preserves existing GLB or placeholder material behavior.
+- `palette-toon` uses stable built-in Three materials; low-end mode switches to a lighter palette material.
+- Style replacement only targets runtime gameplay/model meshes under the runtime object root.
+- Debug AABB lines, grid, transform controls, and editor helper objects stay outside material replacement.
 
 ## Fallback And Error States
 
@@ -151,6 +160,13 @@ Targeted tests by layer:
 - Three runtime tests for material application, fallback, helper exclusion, and disposal
 - smoke test for nonblank styled rendering and visible pixel change when style/highlight changes
 
+Round 16.11 adds browser smoke coverage that verifies:
+
+- styled runtime canvas is nonblank
+- selection/highlight changes visible pixels
+- `?styleQuality=low-end` still renders a readable canvas
+- low-end mode changes visible pixels from the standard styled path
+
 Round-level validation starts narrow and should end with:
 
 ```powershell
@@ -162,3 +178,10 @@ git diff --check
 ## Phase 17 Handoff Boundary
 
 Phase 16 should not add Draco, meshopt, KTX2, asset reports, triangle budgets, compressed asset loading, LOD, instancing, spherical world projection, gameplay jobs, or multiplayer. Those remain Phase 17 and later.
+
+Current limitations to carry into Phase 17 and later:
+
+- `palette-toon` is intentionally simple and not a final art shader.
+- Color grade uses lightweight renderer/CSS controls, not an EffectComposer stack.
+- Low-end mode is an explicit profile switch, not device detection.
+- Asset budgets, compression readiness, and production material metadata are deferred to Phase 17.
