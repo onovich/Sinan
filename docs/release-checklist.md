@@ -96,6 +96,7 @@ npm run dev -- --port 5174 --strictPort
 
 - [ ] `npm run validate-data` passes.
 - [ ] `npm run report-assets` passes and reports zero critical issues.
+- [ ] Save or reference the latest asset report summary in the release notes when asset budgets change.
 - [ ] `data/assets.manifest.json` references existing files under `public/`.
 - [ ] Model assets use `.glb` or `.gltf`; audio assets use `.mp3`, `.ogg`, or `.wav`.
 - [ ] Every manifest asset declares `metadata.sizeBudgetBytes`; model assets declare triangle, texture, material profile, and compression metadata.

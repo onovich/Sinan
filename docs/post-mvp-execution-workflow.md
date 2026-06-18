@@ -21,9 +21,11 @@ Complete the core post-MVP roadmap for Sinan Scene Director, Phase 8 through Pha
 
 The earlier optional advanced-gameplay track is superseded by the Abeto route unless the user explicitly asks for Rapier, character-control, or dialogue/quest work outside that route.
 
-After Phase 14, the next product route is the Abeto Messenger-like vertical slice. Use `docs/abeto-messenger-development-plan.md` as the roadmap and `docs/phase-15-abeto-scope-lock-goal-mode-execution-guide.md` as the Phase 15 goal-mode entry point. Phase 15 is a scope-lock and handoff phase, not runtime implementation. After Phase 15 passes, Phase 16 is the next implementation phase: Stylized Runtime Foundation. Use `docs/phase-16-stylized-runtime-foundation-goal-mode-execution-guide.md` for the Phase 16 goal-mode run.
+After Phase 14, the next product route is the Abeto Messenger-like vertical slice. Use `docs/abeto-messenger-development-plan.md` as the roadmap and phase-specific goal-mode guides. Phase 15 is a scope-lock and handoff phase, Phase 16 is Stylized Runtime Foundation, and Phase 17 is Asset Budget And Compression. The Web3D Shader GLSL MVP docs are now integrated into this route: Phase 17 prepares texture metadata and loader policy, Phase 18 starts Shader GLSL Material Runtime Foundation, and later LOD/world/gameplay phases move after the shader track. Use `docs/phase-17-asset-budget-compression-goal-mode-execution-guide.md` for the current Phase 17 goal-mode run after Phase 16 has a PASS final report.
 
-The next executor should start by reading `AGENTS.md`, `docs/Sinan_Scene_Director_研发方案与架构指南.md`, the Abeto roadmap, and the active goal guide.
+The next executor should start by reading `AGENTS.md`, the main architecture guide, the Abeto roadmap, both Web3D Shader GLSL MVP docs, and the active goal guide.
+
+Routine validation now includes `npm run report-assets` through `.codex/project-ops-workflow.json`. Executors should still run it directly when changing asset metadata, public asset files, compression readiness, or release notes.
 
 ## Execution Budget
 

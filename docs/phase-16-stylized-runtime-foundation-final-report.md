@@ -67,7 +67,9 @@ All listed commits were pushed to `origin/main`.
 - `palette-toon` is a simple built-in-material path, not final art shader quality.
 - Color grade uses lightweight renderer/CSS controls, not an EffectComposer stack.
 - Low-end mode is explicit through runtime config/query param, not device detection.
-- Asset budgets, compression metadata, Draco/meshopt/KTX2 loading, LOD, and instancing are deferred to Phase 17 and later.
+- Asset budgets, compression metadata, texture usage/colorSpace metadata, and Draco/meshopt/KTX2 loader policy are deferred to Phase 17.
+- MaterialRuntime, GLSL `.glsl?raw` shader sources, `ShaderMaterial`, material timeline/action integration, shader globals, and postprocessing are deferred to the Phase 18-21 Shader GLSL MVP track.
+- LOD and instancing move after the shader track and are now Phase 22.
 
 ## Remaining Blockers
 
@@ -76,4 +78,4 @@ All listed commits were pushed to `origin/main`.
 
 ## Recommended Next Goal
 
-Complete Phase 17 from `docs/abeto-messenger-development-plan.md`: Asset Budget And Compression.
+Complete Phase 17 from `docs/phase-17-asset-budget-compression-goal-mode-execution-guide.md`: Asset Budget And Compression. Also read `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md` and `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`; Phase 17 only prepares the asset and texture prerequisites for Phase 18 Shader GLSL Material Runtime Foundation.

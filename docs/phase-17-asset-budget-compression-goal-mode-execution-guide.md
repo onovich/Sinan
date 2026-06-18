@@ -3,12 +3,20 @@
 Date: 2026-06-19
 Status: Guide for an executor running Phase 17 in goal mode.
 
-Phase 17 starts after the accepted Phase 16 Stylized Runtime Foundation. Its job is to make Sinan's asset pipeline measurable and compression-aware before the project grows into the Messenger-like vertical slice. This phase must add asset metadata, validation, reporting, and loader strategy without pulling in Phase 18 LOD/instancing or Phase 19 spherical-world work.
+Phase 17 starts after the accepted Phase 16 Stylized Runtime Foundation. Its job is to make Sinan's asset pipeline measurable, compression-aware, and texture-metadata-ready before the project grows into the Shader GLSL MVP and Messenger-like vertical slice. This phase must add asset metadata, validation, reporting, and loader strategy without pulling in Phase 18 shader runtime, Phase 22 LOD/instancing, or Phase 23 spherical-world work.
 
 ## 0. Direct Goal Prompt For The Executor
 
 ```txt
-Complete Phase 17 for Sinan: Asset Budget And Compression. Read AGENTS.md, docs/abeto-messenger-development-plan.md, docs/phase-16-stylized-runtime-foundation-final-report.md, docs/phase-16-stylized-runtime-foundation.md, docs/developer-guide.md, docs/phase-8-real-asset-runtime.md, docs/phase-13-testing-performance-boundaries.md, docs/post-mvp-execution-workflow.md, and docs/Sinan_Scene_Director_研发方案与架构指南.md. Implement typed asset metadata, asset budget validation, npm run report-assets, asset byte/status reports, compression-readiness metadata, and a Three runtime compressed-asset loader strategy with deterministic fallback tests. Keep data as source of truth, keep Three.js/compression-loader code inside src/runtime/three/**, wire report-assets into docs and release guidance, and do not start Phase 18 LOD/instancing, Phase 19 spherical world, Phase 20 gameplay, or Phase 21 multiplayer work.
+Complete Phase 17 for Sinan: Asset Budget And Compression. Read AGENTS.md, docs/abeto-messenger-development-plan.md, docs/phase-16-stylized-runtime-foundation-final-report.md, docs/phase-16-stylized-runtime-foundation.md, docs/developer-guide.md, docs/phase-8-real-asset-runtime.md, docs/phase-13-testing-performance-boundaries.md, docs/post-mvp-execution-workflow.md, docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md, docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md, and docs/Sinan_Scene_Director_研发方案与架构指南.md. Implement typed asset metadata, asset budget validation, npm run report-assets, asset byte/status reports, compression-readiness metadata, texture usage/colorSpace metadata, and a Three runtime compressed-asset loader strategy with deterministic fallback tests. Keep data as source of truth, keep Three.js/compression-loader code inside src/runtime/three/**, wire report-assets into docs and release guidance, and do not start Phase 18 shader runtime, Phase 22 LOD/instancing, Phase 23 spherical world, Phase 24 gameplay, or Phase 25 multiplayer work.
+```
+
+Shader integration note for the executor: also read `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md` and `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`. Phase 17 must prepare texture metadata and loader policy needed by Phase 18, but it must not implement `MaterialRuntime`, `ShaderMaterial`, `.glsl` source loading, material timeline tracks, material actions, or postprocessing.
+
+Compact phase boundary restatement:
+
+```txt
+Complete Phase 17 for Sinan: Asset Budget And Compression. Implement typed asset metadata, asset budget validation, npm run report-assets, asset byte/status reports, compression-readiness metadata, texture usage/colorSpace metadata, and a Three runtime compressed-asset loader strategy with deterministic fallback tests. Read the Abeto roadmap plus both Web3D Shader GLSL MVP docs so Phase 17 prepares the asset and texture prerequisites for Phase 18. Keep data as source of truth, keep Three.js/compression-loader code inside src/runtime/three/**, wire report-assets into docs and release guidance, and do not start Phase 18 shader runtime, Phase 22 LOD/instancing, Phase 23 spherical world, Phase 24 gameplay, or Phase 25 multiplayer work.
 ```
 
 ## 1. Required Reading
@@ -23,6 +31,8 @@ Read these before editing:
 - `docs/phase-8-real-asset-runtime.md`
 - `docs/phase-13-testing-performance-boundaries.md`
 - `docs/post-mvp-execution-workflow.md`
+- `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md`
+- `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`
 - `docs/Sinan_Scene_Director_研发方案与架构指南.md`
 - `.codex/project-ops-workflow.json`
 - `.codex/project-git-workflow.json`
@@ -49,32 +59,34 @@ Current known context:
 - Current manifest metadata is intentionally loose: `metadata: z.record(z.string(), z.unknown()).optional()`.
 - Current validation checks URLs, extensions, public-file existence, references, animation clip metadata, and palette/render-style references.
 - `package.json` does not yet have `report-assets`.
-- Known unrelated untracked files may include `docs/abeto_messenger_technology_research.pdf`, `tmp/`, and `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`. Do not stage them unless the user explicitly asks.
+- Shader planning is accepted as a roadmap input. Phase 17 only handles asset/texture metadata and loader-readiness prerequisites for that track.
+- Known unrelated untracked files may include `docs/abeto_messenger_technology_research.pdf`, `tmp/`, `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md`, and `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`. Do not stage them unless the user explicitly asks.
 
 ## 2. What This Phase Must Complete
 
 Phase 17 must complete:
 
 - Typed, schema-backed asset metadata for current model, audio, image, texture, material, font, and data asset categories where applicable.
-- Metadata fields for category, material profile, triangle budget, texture budget, LOD group marker, compression status, instancing hint, known clips, and optional source notes.
+- Metadata fields for category, material profile, triangle budget, texture budget, texture usage/colorSpace, LOD group marker, compression status, instancing hint, known clips, and optional source notes.
 - Updated `data/assets.manifest.json` metadata for all current Gate Demo assets.
 - `AssetBudgetValidator` or equivalent validation layer with actionable paths.
 - `npm run report-assets`, backed by a script such as `scripts/report-assets.ts`.
 - Asset report output covering asset id, type, URL, public file size, compression status, declared budgets, clips, material profile, and missing metadata warnings.
 - Validation policy for over-budget or missing critical metadata.
 - Runtime compressed-asset loader strategy inside `src/runtime/three/**`, with tests proving safe fallback when decoders/transcoders are not configured.
-- Documentation for Blender/GLB/optimization workflow and Phase 18 handoff.
+- Documentation for Blender/GLB/texture optimization workflow and Phase 18 Shader GLSL Material Runtime Foundation handoff.
 - Final Phase 17 report with validation, smoke, commits, push status, limitations, and next goal.
 
 ## 3. What This Phase Must Not Do
 
 Do not:
 
-- Add LOD runtime switching, LOD distance behavior, hysteresis, or billboard rendering. That is Phase 18.
-- Add InstancedMesh scatter, vegetation systems, or repeated-prop batching. That is Phase 18.
-- Add spherical world projection, surface movement, or spherical camera. That is Phase 19.
-- Add Showcase gameplay, delivery jobs, route markers, or player controller. That is Phase 20.
-- Add multiplayer, WebSocket rooms, remote avatars, or social stamps. That is Phase 21.
+- Add `MaterialRuntime`, `ShaderMaterial`, `.glsl` source imports, material timeline tracks, material actions, shader globals, or postprocessing. That starts in Phase 18.
+- Add LOD runtime switching, LOD distance behavior, hysteresis, or billboard rendering. That is Phase 22.
+- Add InstancedMesh scatter, vegetation systems, or repeated-prop batching. That is Phase 22.
+- Add spherical world projection, surface movement, or spherical camera. That is Phase 23.
+- Add Showcase gameplay, delivery jobs, route markers, or player controller. That is Phase 24.
+- Add multiplayer, WebSocket rooms, remote avatars, or social stamps. That is Phase 25.
 - Replace the entire asset pipeline with an external DCC/export system.
 - Require production Draco/KTX2 artifacts if the repository does not yet include the required decoder/transcoder files; implement and document the loader strategy and fallback instead.
 - Add heavy runtime dependencies without verifying bundle impact.
@@ -181,13 +193,14 @@ Debug self-check:
 
 - Can the plan explain how current five assets will be reported?
 - Are success, missing metadata, over-budget, missing file, and unsupported decoder states listed?
+- Are shader prerequisites limited to texture usage/colorSpace metadata and loader policy?
 - Are current untracked PDF/tmp files left untouched?
 
 Architecture self-check:
 
 - Does the design keep `data/assets.manifest.json` as source of truth?
 - Does it keep Three compression-loader code inside `src/runtime/three/**`?
-- Does it avoid LOD/instancing and gameplay scope?
+- Does it avoid Shader runtime, LOD/instancing, and gameplay scope?
 
 ### Round 17.2: Typed Asset Metadata Schema
 
@@ -198,7 +211,7 @@ Goal:
 Work:
 
 - Extend `src/schemas/asset.schema.ts` with typed metadata structures.
-- Support fields such as `category`, `materialProfile`, `maxTriangles`, `textureBudgetKb`, `compressed`, `compression`, `lodGroup`, `instancing`, `clips`, and `source`.
+- Support fields such as `category`, `materialProfile`, `maxTriangles`, `textureBudgetKb`, `textureUsage`, `colorSpace`, `compressed`, `compression`, `lodGroup`, `instancing`, `clips`, and `source`.
 - Keep unknown metadata policy explicit: reject, allow only under `extras`, or temporarily allow with tests.
 - Add schema tests.
 
@@ -213,13 +226,15 @@ Debug self-check:
 
 - Do current assets remain valid or fail with actionable fixes?
 - Are invalid negative budgets and invalid compression values rejected?
+- Are invalid texture usage/colorSpace combinations rejected or clearly warned?
 - Are animation clips still represented safely?
 
 Architecture self-check:
 
 - Does the schema avoid runtime and Three imports?
-- Are Phase 18 LOD distances excluded unless explicitly only a marker?
+- Are Phase 22 LOD distances excluded unless explicitly only a marker?
 - Are compression fields metadata, not runtime behavior yet?
+- Are shader fields kept to public asset metadata rather than material/runtime contracts?
 
 ### Round 17.3: Current Manifest Metadata Pass
 
@@ -230,7 +245,7 @@ Goal:
 Work:
 
 - Update `data/assets.manifest.json`.
-- Add conservative metadata for room, switch, door, player marker, and audio.
+- Add conservative metadata for room, switch, door, player marker, textures/images if present, and audio.
 - Preserve current asset ids and URLs.
 - Update tests that load demo data.
 
@@ -244,6 +259,7 @@ npm run test
 Debug self-check:
 
 - Does every current asset have enough metadata for reporting?
+- Do texture/image assets distinguish color textures from data/noise/mask textures where applicable?
 - Are clip names still validated?
 - Is metadata realistic but not pretending final production optimization is done?
 
@@ -264,7 +280,7 @@ Work:
 - Add `src/data/AssetBudgetValidator.ts` or equivalent.
 - Validate required metadata by asset type.
 - Validate declared public file size against byte budgets where practical.
-- Validate `maxTriangles`, `textureBudgetKb`, `compression`, and `materialProfile` values.
+- Validate `maxTriangles`, `textureBudgetKb`, texture usage/colorSpace, `compression`, and `materialProfile` values.
 - Integrate into `validateProject` or `validate-data`.
 - Add tests for missing metadata and over-budget assets.
 
@@ -285,7 +301,7 @@ Architecture self-check:
 
 - Is validation data-only?
 - Does validator avoid parsing binary GLB unless explicitly in script/report layer?
-- Does it avoid Phase 18 runtime perf enforcement?
+- Does it avoid Phase 18 shader runtime and Phase 22 runtime perf enforcement?
 
 ### Round 17.5: Asset Report Script MVP
 
@@ -297,7 +313,7 @@ Work:
 
 - Add `scripts/report-assets.ts`.
 - Add `report-assets` to `package.json`.
-- Report asset id, type, URL, public file existence, byte size, compression status, material profile, clips, and declared budgets.
+- Report asset id, type, URL, public file existence, byte size, compression status, material profile, texture usage/colorSpace, clips, and declared budgets.
 - Add script tests if local patterns support them, or add unit-testable helpers under `src/data`.
 
 Validation:
@@ -397,6 +413,7 @@ Work:
 - Add a Three-only compressed loader strategy module, for example `ThreeCompressedAssetLoader.ts`.
 - Configure `GLTFLoader` with optional Draco or meshopt hooks when decoder paths/configs are present.
 - Plan KTX2/Basis texture loader support or implement a guarded strategy if required assets are available.
+- Document how Phase 17 texture usage/colorSpace metadata will let Phase 18 assign Three texture color spaces without exposing Three constants in data.
 - Add tests with fakes/mocks proving configuration and fallback.
 
 Validation:
@@ -417,6 +434,7 @@ Architecture self-check:
 
 - Is all Three loader/compression code inside `src/runtime/three/**`?
 - Does `WebRuntime` remain renderer-neutral?
+- Does the strategy avoid implementing `ShaderMaterial` or `MaterialRuntime`?
 - Are no heavy dependencies added without bundle/build validation?
 
 ### Round 17.9: Compression Metadata And Fallback Tests
@@ -428,6 +446,7 @@ Goal:
 Work:
 
 - Add metadata fields such as `compression.draco`, `compression.meshopt`, `textureCompression.ktx2`, or equivalent.
+- Keep texture usage/colorSpace metadata separate from texture compression metadata.
 - Ensure `report-assets` displays declared compression readiness.
 - Add tests for compressed metadata with missing decoder support and safe fallback.
 - Keep current uncompressed assets valid.
@@ -443,6 +462,7 @@ npm run validate-data
 Debug self-check:
 
 - Does metadata accurately distinguish `none`, `ready`, `required`, and `unknown`?
+- Does metadata distinguish color textures from data/noise/mask textures?
 - Does missing required decoder become actionable?
 - Are current dev assets marked honestly?
 
@@ -463,7 +483,7 @@ Work:
 - Update `docs/developer-guide.md`.
 - Add Blender to GLB to optimize to manifest workflow.
 - Document gltf-transform or equivalent optimization commands as recommendations, not mandatory local commands unless available.
-- Document metadata fields, budgets, report usage, validation failures, and compression limitations.
+- Document metadata fields, texture usage/colorSpace policy, budgets, report usage, validation failures, and compression limitations.
 
 Validation:
 
@@ -482,7 +502,7 @@ Architecture self-check:
 
 - Do docs preserve data-first asset authoring?
 - Do docs keep runtime loader details isolated?
-- Do docs defer LOD/instancing to Phase 18?
+- Do docs defer Shader runtime to Phase 18 and LOD/instancing to Phase 22?
 
 ### Round 17.11: Release And Workflow Docs
 
@@ -495,6 +515,7 @@ Work:
 - Update `docs/release-checklist.md`.
 - Update `docs/abeto-messenger-development-plan.md` Phase 17 status/guide pointer if appropriate.
 - Update workflow docs if `report-assets` is now required before release.
+- Ensure shader planning docs are referenced as the Phase 18 handoff context, not as Phase 17 implementation scope.
 - Avoid claiming Phase 17 PASS before final validation.
 
 Validation:
@@ -508,7 +529,7 @@ Debug self-check:
 
 - Can release validation find asset reports?
 - Is Phase 17 status still honest until final report?
-- Are docs free of stale Phase 16-as-next wording?
+- Are docs free of stale Phase 16-as-next or LOD-as-next wording?
 
 Architecture self-check:
 
@@ -635,13 +656,14 @@ Self-check:
 
 Goal:
 
-- Close Phase 17 and prepare Phase 18 handoff.
+- Close Phase 17 and prepare Phase 18 Shader GLSL Material Runtime Foundation handoff.
 
 Work:
 
 - Run full validation, smoke, and asset report.
 - Confirm no forbidden Three.js imports or dynamic-code patterns.
 - Confirm asset budget behavior is documented.
+- Confirm texture usage/colorSpace metadata is documented for Phase 18 shader texture handling.
 - Confirm git status is clean except intentional preserved untracked research/temp files if still present.
 - Add `docs/phase-17-asset-budget-compression-final-report.md`.
 - Update `docs/abeto-messenger-development-plan.md` if Phase 17 status should be recorded.
@@ -660,19 +682,20 @@ Debug self-check:
 
 - Does the final report state exactly what changed?
 - Are known limitations and Phase 18 handoff explicit?
-- Can a fresh executor start LOD/instancing without guessing?
+- Can a fresh executor start Shader GLSL Material Runtime Foundation without guessing?
 
 Architecture self-check:
 
 - Is all Three compression loader implementation inside `src/runtime/three/**`?
 - Do data/schema/runtime/editor boundaries still match `AGENTS.md`?
-- Did Phase 17 avoid LOD, instancing, spherical world, gameplay, and multiplayer scope?
+- Did Phase 17 avoid Shader runtime, LOD, instancing, spherical world, gameplay, and multiplayer scope?
 
 ## 7. PASS Criteria
 
 Phase 17 passes only when:
 
 - Asset manifest metadata is typed, validated, and populated for current demo assets.
+- Texture usage/colorSpace metadata is validated and documented for current or future texture assets.
 - `npm run report-assets` exists and reports asset id, type, URL, file size, compression status, metadata, and budget status.
 - Asset budget validation catches missing critical metadata and over-budget cases with actionable paths.
 - Current Gate Demo assets pass validation honestly, without pretending production compression exists.
@@ -684,7 +707,7 @@ Phase 17 passes only when:
 - `git diff --check` passes.
 - Developer/release docs are updated.
 - Phase-relevant commits are pushed to `origin/main`.
-- The final report records commit hashes, validation results, buffer usage, limitations, and Phase 18 handoff.
+- The final report records commit hashes, validation results, buffer usage, limitations, and Phase 18 Shader GLSL handoff.
 
 ## 8. Final Report Template
 
@@ -729,5 +752,5 @@ Remaining blockers:
 - ...
 
 Recommended next goal:
-Complete Phase 18 from docs/abeto-messenger-development-plan.md: LOD, Instancing, And Vegetation.
+Complete Phase 18 from docs/abeto-messenger-development-plan.md: Shader GLSL Material Runtime Foundation.
 ```
