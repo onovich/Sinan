@@ -56,6 +56,7 @@ npm run build
 npm run test
 npm run check-boundaries
 npm run validate-data
+npm run report-assets
 npm run migrate-data -- --check
 ```
 
@@ -94,8 +95,10 @@ npm run dev -- --port 5174 --strictPort
 ## Data And Asset Gate
 
 - [ ] `npm run validate-data` passes.
+- [ ] `npm run report-assets` passes and reports zero critical issues.
 - [ ] `data/assets.manifest.json` references existing files under `public/`.
 - [ ] Model assets use `.glb` or `.gltf`; audio assets use `.mp3`, `.ogg`, or `.wav`.
+- [ ] Every manifest asset declares `metadata.sizeBudgetBytes`; model assets declare triangle, texture, material profile, and compression metadata.
 - [ ] Animation clips referenced by actions or timelines are declared in `metadata.clips` when clip metadata is known.
 - [ ] Stable ids are used for entities, prefabs, assets, events, timelines, tracks, and camera shots.
 

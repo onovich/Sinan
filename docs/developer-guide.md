@@ -38,11 +38,12 @@ npm run build
 npm run test
 npm run check-boundaries
 npm run validate-data
+npm run report-assets
 npm run migrate-data -- --check
 npm run test:smoke
 ```
 
-`check-boundaries` rejects forbidden Three.js imports in renderer-neutral layers and dynamic-code execution patterns in project code/data. `validate-data` checks schemas, references, public asset URLs, registry coverage, custom whitelist usage, duplicate ids, timeline references, camera shot references, and animation clip metadata.
+`check-boundaries` rejects forbidden Three.js imports in renderer-neutral layers and dynamic-code execution patterns in project code/data. `validate-data` checks schemas, references, public asset URLs, asset budget metadata, registry coverage, custom whitelist usage, duplicate ids, timeline references, camera shot references, and animation clip metadata. `report-assets` prints the asset budget/compression report and exits nonzero for critical asset issues such as missing files, missing metadata, or over-budget files.
 
 ## Repository Shape
 
