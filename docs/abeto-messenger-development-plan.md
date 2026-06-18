@@ -202,6 +202,8 @@ Acceptance:
 
 Goal: make assets measurable before the project grows beyond demo scale.
 
+Status: PASS on 2026-06-19. Final report: `docs/phase-17-asset-budget-compression-final-report.md`.
+
 Estimated rounds: 4.
 
 Scope:
