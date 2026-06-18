@@ -48,7 +48,7 @@ describe('applyThreeEnvironmentStyle', () => {
     expect((scene.fog as THREE.Fog).far).toBe(18);
     expect(renderer.toneMappingExposure).toBe(1.05);
     expect(renderer.domElement?.style?.filter).toBe('brightness(1.05) saturate(1.08)');
-    expect((helper.material as THREE.LineBasicMaterial).fog).toBe(false);
+    expect(helper.material.fog).toBe(false);
   });
 
   it('clears fog and color grade when controls are disabled or missing', () => {
