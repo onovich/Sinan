@@ -1,15 +1,17 @@
-# Sinan Scene Director Development Plan
+# Sinan Engine Development Plan
 
 ## Project Goal
 
-Sinan Scene Director is an AI-native, text-data-driven Web 3D game director system and project-specific editor. Its long-term value is not a generic Unity clone; it is a maintainable stack where TypeScript, JSON, schemas, validators, registries, and tests make 3D scene direction editable by humans and AI agents through Git-friendly files.
+Sinan Engine is an AI-native, text-data-driven Web 3D game engine and project-specific editor. Its long-term value is not a generic Unity or Godot clone; it is a maintainable engine stack where TypeScript, JSON, schemas, validators, registries, adapters, and tests make runtime, renderer, physics, assets, input, UI, director, and editor semantics editable by humans and AI agents through Git-friendly files.
+
+The original Sinan Scene Director scope is now the engine's first-party Director System. Events, conditions, actions, timelines, camera shots, animation cues, and cinematic flow remain central, but they are no longer treated as a standalone product outside the engine runtime.
 
 The first runtime target is Three.js, with a deliberate adapter boundary so the game semantics can later survive a Babylon.js runtime migration.
 
 ## Non-Negotiable Architecture Rules
 
-1. `data/**/*.json` is the source of truth for assets, prefabs, levels, events, timelines, camera shots, and other game semantics.
-2. `src/runtime/three/**` owns Three.js. Game, world, events, director, schemas, data, and migrations must stay renderer-neutral.
+1. `data/**/*.json` is the source of truth for assets, prefabs, levels, events, timelines, camera shots, render styles, physics settings, input maps, UI flows, and other game semantics.
+2. `src/runtime/three/**` owns Three.js. Game, world, events, director, schemas, data, migrations, and future renderer/physics/input/UI semantic modules must stay adapter-neutral.
 3. React owns editor shell, HUD, panels, selection, inspector tabs, and other slow UI state. Per-frame game state does not live in React state.
 4. Every JSON input needs a Zod schema and clear validation errors.
 5. Actions and conditions execute through registries. JSON must not contain `eval`, arbitrary script strings, or unregistered function calls.
@@ -217,3 +219,5 @@ Phase 14 release-candidate status is accepted in `docs/phase-14-release-candidat
 Current route update: Phase 17 is PASS. The active goal-mode guide is `docs/phase-18-shader-glsl-material-runtime-foundation-goal-mode-execution-guide.md`: Shader GLSL Material Runtime Foundation. The executor should read `AGENTS.md`, the main architecture guide, `docs/abeto-messenger-development-plan.md`, `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md`, `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`, and the Phase 17 final report before starting Phase 18.
 
 Historical note: Phase 17 from `docs/phase-17-asset-budget-compression-goal-mode-execution-guide.md` prepared asset, texture, and compression prerequisites for the Shader GLSL MVP; actual `MaterialRuntime` and GLSL work starts in Phase 18.
+
+Current engine-positioning update: Phase 18 is PASS. Before Phase 19, execute Phase 18.5 Engine Core Alignment using `docs/phase-18-5-engine-core-alignment-goal-mode-execution-guide.md`, `docs/abeto-messenger-development-plan.md`, and `docs/engine-positioning-architecture-adjustment-plan.md`. This checkpoint should add `EngineSession`, `EngineLoop`, minimal `World`, and `EditorSessionBridge`, then move the runtime orchestration root out of `src/editor/Viewport.tsx`.

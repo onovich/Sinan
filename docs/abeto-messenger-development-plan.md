@@ -84,6 +84,7 @@ Non-goals:
 | Phase 16 | Stylized Runtime Foundation | Add render style schema, palette-toon materials, outline/highlight, fog/color grade, and low-end toggles | 4 |
 | Phase 17 | Asset Budget And Compression | Add asset metadata, texture/colorSpace metadata, budget validation, asset reports, and compressed asset loading strategy | 4 |
 | Phase 18 | Shader GLSL Material Runtime Foundation | Add renderer-neutral MaterialDefinition/MaterialRuntime contracts, GLSL raw imports, Three ShaderMaterial backend, fallback materials, and browser compile tests | 6 |
+| Phase 18.5 | Engine Core Alignment | Add EngineSession, EngineLoop, minimal World, and EditorSessionBridge so Viewport stops acting as the engine root | 3 |
 | Phase 19 | Shader Dissolve And Material Timeline | Add the first story shader material, texture-backed dissolve, material.parameter timeline tracks, material.setParameter actions, and Material Inspector MVP | 6 |
 | Phase 20 | Shader Globals And Postprocessing Ramp | Add shared shader globals, a second material, resource sharing/lifecycle checks, and the first postprocessing runtime pass | 6 |
 | Phase 21 | Shader Production Quality Gate | Add shader visual regression, HMR/fallback/error diagnostics, precompile guidance, and mobile shader baseline | 4 |
@@ -93,9 +94,9 @@ Non-goals:
 | Phase 25 | Multiplayer-lite Social Layer | Add local remote-player simulator, avatar/emote/stamp schema, and a small WebSocket room prototype | 5-6 |
 | Phase 26 | Vertical Slice RC Hardening | Lock performance budgets, mobile profile, perf smoke, docs, and final vertical-slice release checklist | 3 |
 
-Core route without multiplayer, from the current accepted Phase 16 baseline onward: Phase 17 through Phase 24 plus Phase 26, about 46 rounds.
+Core route without multiplayer, from the current accepted Phase 16 baseline onward: Phase 17 through Phase 24 plus Phase 26, about 49 rounds.
 
-Full route with multiplayer-lite, from the current accepted Phase 16 baseline onward: Phase 17 through Phase 26, about 51-52 rounds.
+Full route with multiplayer-lite, from the current accepted Phase 16 baseline onward: Phase 17 through Phase 26, about 54-55 rounds.
 
 ## Non-Negotiable Rules
 
@@ -108,6 +109,9 @@ Full route with multiplayer-lite, from the current accepted Phase 16 baseline on
 7. Performance budgets are first-class acceptance criteria, not after-the-fact polish.
 8. Shader timeline/event/editor data may address public material parameters such as `progress`, never raw uniform names such as `uProgress`.
 9. The Shader MVP uses standard GLSL plus `THREE.ShaderMaterial` and `.glsl?raw` imports; no custom shader DSL, shader graph, TSL, WGSL, or transpiler in the MVP.
+10. Sinan Engine is the product boundary; Scene Director is a first-party Director System inside the engine, not the whole engine root.
+11. Editor viewport code is an authoring surface. It should not keep accumulating project loading, frame loop, world state, physics, input, UI, material, and renderer orchestration responsibilities.
+12. New engine systems such as `engine`, `world`, `physics`, `input`, `ui`, and `renderer` must stay semantic/adapter-neutral; platform, Three.js, browser, Rapier, WebSocket, or DOM details belong in adapter subtrees.
 
 ## Performance Budget
 
@@ -149,6 +153,20 @@ Shader stage mapping:
 | S2 Globals and second material | Phase 20 | Shared shader globals, second material, material sharing/cloning, lifecycle tests |
 | S3 Postprocessing | Phase 20 | Initial `EffectComposer`/pass runtime and postprocess parameter path |
 | S4 Production quality | Phase 21 | Compile/visual regression, HMR/error handling, mobile and precompile baseline |
+
+## Engine Positioning Integration
+
+`docs/engine-positioning-architecture-adjustment-plan.md` is accepted as a roadmap input after the Sinan Engine positioning update. The important planning change is that Phase 18 should not be followed immediately by story-material work. First, the project needs a small architecture checkpoint so the editor viewport stops serving as the implicit engine root.
+
+Integrated decisions:
+
+- Sinan Engine is now the product framing. The earlier Scene Director scope remains a first-party Director System for events, actions, timelines, camera shots, animation cues, and cinematic flow.
+- Director System orchestrates engine systems; it must not own world state, input interpretation, physics/trigger detection, UI lifetime, Three.js materials, or raw shader uniforms.
+- Add Phase 18.5 before Phase 19. It is a lightweight alignment checkpoint, not a broad engine rewrite.
+- Phase 18.5 should introduce `EngineSession`, `EngineLoop`, `EngineMode`, minimal renderer-neutral `World`, and `EditorSessionBridge`.
+- Phase 18.5 should move project loading, update/render/dispose orchestration, and the bulk of frame lifecycle responsibility out of `src/editor/Viewport.tsx`.
+- Phase 18.5 should update boundary checks so future semantic directories such as `src/engine/**`, `src/world/**`, `src/physics/**`, `src/input/**`, `src/ui/**`, and `src/renderer/**` cannot import Three.js directly.
+- Project identity migration such as package rename from `sinan-scene-director` to `sinan-engine` should be a separate small phase/commit and should not be mixed with EngineSession or shader/gameplay changes.
 
 ## Phase 15: Abeto Scope Lock
 
@@ -248,6 +266,29 @@ Acceptance:
 - Invalid shader/material references fail with actionable validation errors.
 - Shader compile failures use an explicit fallback material and are not silent.
 - No Three.js imports leak into renderer-neutral layers.
+
+## Phase 18.5: Engine Core Alignment
+
+Goal: make the runtime/editor architecture match the Sinan Engine positioning before adding the first production story material.
+
+Estimated rounds: 3.
+
+Scope:
+
+- Add a thin `EngineSession` that receives project data and a `WebRuntime` implementation, then owns project load, runtime object synchronization, update/render, and disposal orchestration.
+- Add `EngineLoop` and `EngineMode` so edit, preview, play, and future showcase modes have an explicit update lifecycle.
+- Add a minimal renderer-neutral `World` layer initialized from `LevelData`, with entity/component lookup and transform read/write helpers sufficient for current editor/runtime flows.
+- Add `EditorSessionBridge` so `Viewport.tsx` can focus on canvas mount, editor input bridge, selection, and React UI state instead of acting as the engine root.
+- Move the current project-loading/frame-loop responsibilities out of `Viewport.tsx` in small steps without changing user-visible editor behavior.
+- Update boundary checks for new semantic directories and document the new engine/editor/runtime split.
+
+Acceptance:
+
+- Existing editor behavior, Gate Demo loading, timeline preview, transform editing, save/reload, and shader compile smoke still pass.
+- `Viewport.tsx` no longer owns the main project load/update/render/dispose loop.
+- `EngineSession` and `World` do not import Three.js or React.
+- `WebRuntime` remains the renderer adapter contract; `ThreeRuntime` remains the Three implementation facade.
+- No new gameplay, dissolve material, material timeline/action, physics engine, input map, runtime UI, LOD, spherical world, or multiplayer behavior is added.
 
 ## Phase 19: Shader Dissolve And Material Timeline
 
@@ -437,10 +478,14 @@ The Phase 17 goal-mode guide uses a 16-round budget: 12 implementation rounds, 3
 
 Shader integration update: before starting Phase 17, also read `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md` and `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`. Phase 17 prepares shader prerequisites through texture metadata and loader strategy, but it must not implement `MaterialRuntime`, `ShaderMaterial`, material timeline tracks, or postprocessing.
 
-Phase 18 is PASS. The next goal should be Phase 19: Shader Dissolve And Material Timeline.
+Phase 18 is PASS. `docs/engine-positioning-architecture-adjustment-plan.md` inserts a lightweight architecture checkpoint before story-material work. The next goal should be Phase 18.5: Engine Core Alignment.
 
 ```txt
-Complete Phase 19 from docs/abeto-messenger-development-plan.md: Shader Dissolve And Material Timeline.
+Complete Phase 18.5 from docs/abeto-messenger-development-plan.md: Engine Core Alignment.
 ```
 
-Before starting Phase 19, re-read `AGENTS.md`, the main architecture guide, both Web3D Shader GLSL MVP docs, the Phase 18 final report, and the Phase 18 material runtime docs. Phase 19 should implement the first production dissolve/open-gate story material, texture-backed public parameters, material timeline/action integration, Material Inspector MVP, validation, runtime tests, and Chromium smoke coverage.
+Use `docs/phase-18-5-engine-core-alignment-goal-mode-execution-guide.md` as the active goal-mode guide. It uses a 3-round budget: 2 implementation rounds plus 1 integrated validation, buffer, and final-report round.
+
+Before starting Phase 18.5, re-read `AGENTS.md`, the main architecture guide, `docs/engine-positioning-architecture-adjustment-plan.md`, the Phase 18 final report, and the current runtime/editor architecture. Phase 18.5 should add `EngineSession`, `EngineLoop`, minimal `World`, and `EditorSessionBridge`, move project load/update/render/dispose orchestration out of `Viewport.tsx`, update boundary checks, and preserve existing editor behavior.
+
+After Phase 18.5 passes, continue to Phase 19: Shader Dissolve And Material Timeline.

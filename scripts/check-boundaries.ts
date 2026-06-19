@@ -34,10 +34,15 @@ const checks: BoundaryCheck[] = [
   {
     title: 'renderer-neutral layers must not depend on Three.js',
     roots: [
+      'src/engine',
       'src/game',
       'src/events',
       'src/director',
       'src/world',
+      'src/physics',
+      'src/input',
+      'src/ui',
+      'src/renderer',
       'src/schemas',
       'src/data',
       'src/migrations',

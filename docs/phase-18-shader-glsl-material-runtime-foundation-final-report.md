@@ -115,4 +115,6 @@ None for Phase 18.
 
 ## Recommended Next Goal
 
-Complete Phase 19 from `docs/abeto-messenger-development-plan.md`: Shader Dissolve And Material Timeline. Phase 19 should add the first production dissolve/open-gate story material, texture-backed public parameters, material timeline/action integration, Material Inspector MVP, validation, runtime tests, and Chromium smoke coverage without bypassing the Phase 18 material runtime.
+Complete Phase 18.5 from `docs/phase-18-5-engine-core-alignment-goal-mode-execution-guide.md`: Engine Core Alignment. This checkpoint is inserted by `docs/engine-positioning-architecture-adjustment-plan.md` before Phase 19 so the project has an explicit `EngineSession`, `EngineLoop`, minimal `World`, and `EditorSessionBridge` before adding dissolve/material timeline/action behavior.
+
+After Phase 18.5 passes, continue to Phase 19: Shader Dissolve And Material Timeline.
