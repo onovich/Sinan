@@ -5,6 +5,7 @@ import type { LevelData } from '../schemas/level.schema';
 import type { PaletteData } from '../schemas/palette.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 import type { TimelineData } from '../schemas/timeline.schema';
+import { createDefaultMaterialRegistry, type MaterialRegistry } from '../runtime/materials';
 import { validateAssetBudgets, type SupportedModelCompressionCodec } from './AssetBudgetValidator';
 import { validateAssetUrls } from './AssetUrlValidator';
 import { validateRegistryCoverage } from './RegistryCoverageValidator';
@@ -22,6 +23,7 @@ export interface ProjectValidationInput {
   availablePublicAssetUrls?: ReadonlySet<string>;
   availablePublicAssetByteSizes?: ReadonlyMap<string, number>;
   supportedModelCompressionCodecs?: ReadonlySet<SupportedModelCompressionCodec>;
+  materialRegistry?: MaterialRegistry;
   availableEventIds?: ReadonlySet<string>;
   availableTimelineIds?: ReadonlySet<string>;
   availableCameraShotIds?: ReadonlySet<string>;
@@ -46,6 +48,7 @@ export function validateProject(input: ProjectValidationInput): ProjectValidatio
     cameraShots: input.cameraShots,
     events: input.events,
     timelines: input.timelines,
+    materialRegistry: input.materialRegistry ?? createDefaultMaterialRegistry(),
     availableEventIds: input.availableEventIds,
     availableTimelineIds: input.availableTimelineIds,
     availableCameraShotIds: input.availableCameraShotIds,

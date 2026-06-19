@@ -6,6 +6,8 @@ import type { LevelData } from '../schemas/level.schema';
 import type { PaletteData } from '../schemas/palette.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 import type { TimelineData } from '../schemas/timeline.schema';
+import type { MaterialDefinition } from '../runtime/materials';
+import { MaterialRegistry } from '../runtime/materials';
 import { validateProject } from './validateProject';
 
 type AssetMetadata = NonNullable<AssetManifestData['assets'][string]['metadata']>;
@@ -35,6 +37,23 @@ const assets: AssetManifestData = {
       type: 'model',
       url: '/models/props/switch_wall.glb',
       metadata: modelMetadata,
+    },
+  },
+};
+
+const assetsWithTexture: AssetManifestData = {
+  schemaVersion: 1,
+  assets: {
+    ...assets.assets,
+    'texture.noise': {
+      type: 'texture',
+      url: '/textures/noise.webp',
+      metadata: {
+        category: 'texture',
+        textureUsage: 'noise',
+        colorSpace: 'none',
+        sizeBudgetBytes: 4096,
+      },
     },
   },
 };
@@ -621,6 +640,167 @@ describe('validateProject', () => {
         expect.objectContaining({
           path: 'data/levels/level_01.json.entities.switch_c.components.Renderable.renderStyle.palette',
           message: 'Render style profile "palette-toon" requires a palette.',
+        }),
+      ]),
+    );
+  });
+
+  it('validates renderable material references and public parameters', () => {
+    const materialLevel: LevelData = {
+      ...level,
+      entities: [
+        {
+          ...level.entities[0],
+          components: {
+            Renderable: {
+              model: 'model.switch_wall',
+              materials: {
+                main: {
+                  materialId: 'debug.uv-gradient',
+                  parameters: {
+                    baseColor: '#87c5ff',
+                    strength: 0.5,
+                    uvScale: [1, 1],
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    };
+
+    expect(
+      validateProject({
+        assets,
+        prefabs: [switchPrefab],
+        levels: [materialLevel],
+      }).issues,
+    ).toEqual([]);
+  });
+
+  it('reports invalid renderable material ids, slots, and parameters', () => {
+    const invalidMaterialLevel: LevelData = {
+      ...level,
+      entities: [
+        {
+          ...level.entities[0],
+          components: {
+            Renderable: {
+              model: 'model.switch_wall',
+              materials: {
+                main: {
+                  materialId: 'debug.missing',
+                  parameters: {
+                    strength: 'high',
+                  },
+                },
+                rim: {
+                  materialId: 'debug.uv-gradient',
+                  parameters: {
+                    rawUniform: 1,
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    };
+
+    const issues = validateProject({
+      assets,
+      prefabs: [switchPrefab],
+      levels: [invalidMaterialLevel],
+    }).issues;
+
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: 'data/levels/level_01.json.entities.switch_a.components.Renderable.materials.main.materialId',
+          message: 'Missing material definition "debug.missing".',
+        }),
+        expect.objectContaining({
+          path: 'data/levels/level_01.json.entities.switch_a.components.Renderable.materials.rim',
+          message: 'Unsupported renderable material slot "rim". Supported slots: main.',
+        }),
+        expect.objectContaining({
+          path: 'data/levels/level_01.json.entities.switch_a.components.Renderable.materials.rim.parameters.rawUniform',
+          message: 'Unknown material parameter "rawUniform" for material "debug.uv-gradient".',
+        }),
+      ]),
+    );
+  });
+
+  it('validates material texture parameters against texture and image assets', () => {
+    const textureDefinition: MaterialDefinition = {
+      id: 'debug.texture-check',
+      version: 1,
+      parameters: {
+        noiseMap: {
+          type: 'texture',
+          defaultValue: null,
+          timeline: 'discrete',
+        },
+      },
+    };
+    const materialRegistry = new MaterialRegistry([textureDefinition]);
+    const makeLevel = (noiseMap: string): LevelData => ({
+      ...level,
+      entities: [
+        {
+          ...level.entities[0],
+          components: {
+            Renderable: {
+              model: 'model.switch_wall',
+              materials: {
+                main: {
+                  materialId: 'debug.texture-check',
+                  parameters: { noiseMap },
+                },
+              },
+            },
+          },
+        },
+      ],
+    });
+
+    expect(
+      validateProject({
+        assets: assetsWithTexture,
+        prefabs: [switchPrefab],
+        levels: [makeLevel('texture.noise')],
+        materialRegistry,
+      }).issues,
+    ).toEqual([]);
+
+    const wrongTypeIssues = validateProject({
+      assets: assetsWithTexture,
+      prefabs: [switchPrefab],
+      levels: [makeLevel('model.switch_wall')],
+      materialRegistry,
+    }).issues;
+    const missingTextureIssues = validateProject({
+      assets: assetsWithTexture,
+      prefabs: [switchPrefab],
+      levels: [makeLevel('texture.missing')],
+      materialRegistry,
+    }).issues;
+
+    expect(wrongTypeIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: 'data/levels/level_01.json.entities.switch_a.components.Renderable.materials.main.parameters.noiseMap',
+          message:
+            'Material texture parameter "noiseMap" must reference a texture or image asset, got "model".',
+        }),
+      ]),
+    );
+    expect(missingTextureIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: 'data/levels/level_01.json.entities.switch_a.components.Renderable.materials.main.parameters.noiseMap',
+          message: 'Missing texture asset "texture.missing".',
         }),
       ]),
     );

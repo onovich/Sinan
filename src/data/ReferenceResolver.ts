@@ -8,6 +8,7 @@ import type { PaletteData } from '../schemas/palette.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 import { RenderStyleSchema, type RenderStyleData } from '../schemas/renderStyle.schema';
 import type { TimelineData, TimelineTrackData } from '../schemas/timeline.schema';
+import type { MaterialParameterValue, MaterialRegistry } from '../runtime/materials';
 import { getComponentPayload, getRenderableModelAssetId } from './projectDataSelectors';
 
 export type ReferenceSeverity = 'error';
@@ -26,6 +27,7 @@ export interface ReferenceValidationInput {
   cameraShots?: readonly CameraShotData[];
   events?: readonly EventData[];
   timelines?: readonly TimelineData[];
+  materialRegistry: MaterialRegistry;
   availableEventIds?: ReadonlySet<string>;
   availableTimelineIds?: ReadonlySet<string>;
   availableCameraShotIds?: ReadonlySet<string>;
@@ -75,6 +77,13 @@ export function validateProjectReferences(
       prefab.components.Renderable,
       palettesById,
       `data/prefabs/${prefab.id}.json.components.Renderable.renderStyle`,
+      issues,
+    );
+    addRenderableMaterialIssues(
+      prefab.components.Renderable,
+      input.materialRegistry,
+      input.assets,
+      `data/prefabs/${prefab.id}.json.components.Renderable.materials`,
       issues,
     );
   }
@@ -133,6 +142,13 @@ export function validateProjectReferences(
         getComponentPayload(entity.components, 'Renderable'),
         palettesById,
         `data/levels/${level.id}.json.entities.${entity.id}.components.Renderable.renderStyle`,
+        issues,
+      );
+      addRenderableMaterialIssues(
+        getComponentPayload(entity.components, 'Renderable'),
+        input.materialRegistry,
+        input.assets,
+        `data/levels/${level.id}.json.entities.${entity.id}.components.Renderable.materials`,
         issues,
       );
     }
@@ -660,6 +676,110 @@ function addRenderableStyleIssues(
   }
 
   addRenderStylePaletteIssues(result.data, palettesById, path, issues);
+}
+
+const supportedRenderableMaterialSlots = new Set(['main']);
+
+function addRenderableMaterialIssues(
+  renderablePayload: unknown,
+  materialRegistry: MaterialRegistry,
+  assets: AssetManifestData,
+  path: string,
+  issues: ReferenceValidationIssue[],
+): void {
+  if (!isRecord(renderablePayload) || !('materials' in renderablePayload)) {
+    return;
+  }
+
+  const materials = renderablePayload.materials;
+
+  if (!isRecord(materials)) {
+    return;
+  }
+
+  for (const [slotName, slotPayload] of Object.entries(materials)) {
+    const slotPath = `${path}.${slotName}`;
+
+    if (!supportedRenderableMaterialSlots.has(slotName)) {
+      issues.push({
+        severity: 'error',
+        path: slotPath,
+        message: `Unsupported renderable material slot "${slotName}". Supported slots: main.`,
+      });
+    }
+
+    if (!isRecord(slotPayload) || typeof slotPayload.materialId !== 'string') {
+      continue;
+    }
+
+    const parameters = isRecord(slotPayload.parameters)
+      ? (slotPayload.parameters as Record<string, MaterialParameterValue>)
+      : {};
+
+    for (const issue of materialRegistry.validateParameters(slotPayload.materialId, parameters)) {
+      issues.push({
+        severity: 'error',
+        path: `${slotPath}.${issue.path}`,
+        message: issue.message,
+      });
+    }
+
+    addMaterialTextureReferenceIssues(
+      slotPayload.materialId,
+      parameters,
+      materialRegistry,
+      assets,
+      slotPath,
+      issues,
+    );
+  }
+}
+
+function addMaterialTextureReferenceIssues(
+  materialId: string,
+  parameters: Readonly<Record<string, MaterialParameterValue>>,
+  materialRegistry: MaterialRegistry,
+  assets: AssetManifestData,
+  slotPath: string,
+  issues: ReferenceValidationIssue[],
+): void {
+  const definition = materialRegistry.get(materialId);
+
+  if (!definition) {
+    return;
+  }
+
+  for (const [parameterName, parameterDefinition] of Object.entries(definition.parameters)) {
+    if (parameterDefinition.type !== 'texture') {
+      continue;
+    }
+
+    const value = parameters[parameterName];
+
+    if (typeof value !== 'string') {
+      continue;
+    }
+
+    const asset = assets.assets[value];
+    const parameterPath = `${slotPath}.parameters.${parameterName}`;
+
+    if (!asset) {
+      issues.push({
+        severity: 'error',
+        path: parameterPath,
+        message: `Missing texture asset "${value}".`,
+      });
+      continue;
+    }
+
+    if (asset.type !== 'texture' && asset.type !== 'image') {
+      issues.push({
+        severity: 'error',
+        path: parameterPath,
+        message: `Material texture parameter "${parameterName}" must reference a texture or image asset, got "${asset.type}".`,
+      });
+    }
+  }
 }
 
 function addRenderStylePaletteIssues(
