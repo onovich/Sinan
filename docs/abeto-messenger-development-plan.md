@@ -229,6 +229,8 @@ Estimated rounds: 6.
 
 Execution: `docs/phase-18-shader-glsl-material-runtime-foundation-goal-mode-execution-guide.md` expands this into a 16-round goal-mode plan.
 
+Current status: in progress. Phase 18 is not PASS until the final report, full validation, smoke, asset report, and push gate complete.
+
 Scope:
 
 - Add renderer-neutral `MaterialDefinition`, `MaterialParameter`, `MaterialRegistry`, and `MaterialRuntime` contracts under `src/runtime/materials/**`.

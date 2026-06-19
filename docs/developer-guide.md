@@ -236,6 +236,65 @@ When adding a new render style profile:
 5. Add runtime tests and a browser smoke assertion if the visible output should change.
 6. Run `npm run validate-data`, `npm run test`, `npm run check-boundaries`, and `npm run test:smoke`.
 
+## Shader Material Authoring
+
+Phase 18 adds the Shader GLSL Material Runtime Foundation for Shader MVP S0. It is separate from `Renderable.renderStyle`: use `renderStyle` for the high-level built-in style path, and use `Renderable.materials` only when an entity explicitly needs a shader/runtime material slot.
+
+Current S0 material files:
+
+- `src/runtime/materials/**`: renderer-neutral material contracts, definitions, public parameter validation, and the default registry.
+- `src/runtime/materials/BuiltInMaterials.ts`: registers the S0 debug material id `debug.uv-gradient`.
+- `src/shaders/materials/debug/*.glsl`: GLSL source imported with `.glsl?raw`.
+- `src/runtime/three/materials/**`: Three-only `ShaderMaterial` factory, runtime binding, fallback material, and public-parameter-to-uniform mapping.
+- `tests/smoke/shader-material.spec.ts`: Chromium smoke test that compiles the debug shader through the real Three renderer path.
+
+Attach a shader material through the optional `Renderable.materials` slot map:
+
+```json
+{
+  "Renderable": {
+    "model": "model.switch_wall",
+    "renderStyle": {
+      "profile": "palette-toon",
+      "palette": "world_01",
+      "tone": "accent"
+    },
+    "materials": {
+      "main": {
+        "materialId": "debug.uv-gradient",
+        "parameters": {
+          "baseColor": "#87c5ff",
+          "accentColor": "#ffcf70",
+          "strength": 0.8,
+          "uvScale": [1, 1]
+        }
+      }
+    }
+  }
+}
+```
+
+Rules:
+
+- S0 supports the `main` material slot only. Multi-material GLB slot authoring is deferred.
+- Public parameter names are data/editor names such as `baseColor`, `accentColor`, `strength`, and `uvScale`.
+- Do not put raw uniform names such as `uBaseColor` in JSON, timelines, events, or editor-facing contracts.
+- Do not put GLSL source in JSON, React components, or TypeScript template strings. Shader source belongs in `.glsl` files imported with `?raw`.
+- Add renderer-neutral definitions before adding a Three material factory. The Three backend is the only layer that maps public parameter names to uniforms.
+- Invalid material ids, unsupported slots, unknown parameters, wrong value types, and invalid texture asset references should fail through schema/reference validation before runtime.
+- Runtime material creation failures must return a visible fallback material and structured errors; failures should not be silently swallowed.
+
+When adding the next shader material:
+
+1. Add or update a renderer-neutral `MaterialDefinition` under `src/runtime/materials/**`.
+2. Add GLSL files under `src/shaders/**` and import them with `.glsl?raw`.
+3. Add a Three-only factory path under `src/runtime/three/materials/**`.
+4. Add schema/reference validation tests for public parameters and texture asset ids.
+5. Add or extend a Chromium smoke test when shader compilation behavior changes.
+6. Run `npm run validate-data`, `npm run test -- src/runtime/materials src/runtime/three src/data src/schemas`, `npm run build`, `npm run check-boundaries`, and `npm run test:smoke`.
+
+Phase 18 S0 does not include the production dissolve material, material timeline tracks, material actions, shader globals such as `uTime`, postprocessing, or a Material Inspector UI. Those are Phase 19+ work.
+
 ## Actions
 
 Current action types:

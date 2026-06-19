@@ -1,6 +1,6 @@
 # Phase 18 Shader GLSL Material Runtime Foundation
 
-Status: Round 18.1 design locked.
+Status: In progress through Round 18.11 documentation. Do not mark PASS until final validation and handoff are complete.
 
 Phase 18 implements Shader MVP S0 only. The goal is to add a minimal, renderer-neutral material runtime foundation that can import GLSL source, register a small debug shader material, apply it through the Three runtime adapter, compile it in Chromium, and fail with visible diagnostics.
 
@@ -10,11 +10,11 @@ This phase does not build the first production dissolve effect. It prepares the 
 
 - Phase 17 is PASS and added the asset budget, texture metadata, compression-loader strategy, and validation/reporting prerequisites.
 - `data/assets.manifest.json` currently contains four generated model assets and one generated audio asset. It has texture metadata schema support, but no texture asset is currently required by demo data.
-- `Renderable` currently accepts `model` plus optional `renderStyle`. `renderStyle` is the existing high-level built-in style path and remains intact.
+- `Renderable` accepts `model`, optional `renderStyle`, and optional `materials`. `renderStyle` is the existing high-level built-in style path and remains intact.
 - `src/runtime/three/ThreeMaterialRegistry.ts` is a Phase 17 stylized render-style helper. It is not `MaterialRuntime` and should not become the public shader/material runtime contract.
-- `src/runtime/WebRuntime.ts` exposes render-style and environment style hooks, but no material-slot or material-parameter API yet.
-- `src/data/ReferenceResolver.ts` validates model asset references and `renderStyle` palette/tone references. It does not yet validate material ids, slots, material parameters, or material texture references.
-- `vite.config.ts` and `tsconfig.app.json` do not yet declare `.glsl?raw` shader imports beyond the built-in Vite `?raw` asset behavior.
+- `src/runtime/WebRuntime.ts` preserves render-style and environment style hooks and now exposes optional renderable material slot assignment.
+- `src/data/ReferenceResolver.ts` validates model asset references, `renderStyle` palette/tone references, material ids, supported slots, public material parameters, and material texture references.
+- `src/vite-env.d.ts` declares `.glsl?raw` shader imports, and `tsconfig.node.json` includes that declaration so smoke fixtures can typecheck when they import runtime shader code.
 - `package.json` currently keeps `three` as `^0.181.2`; `package-lock.json` pins the installed runtime to `0.181.2`.
 
 ## Source Documents
@@ -53,7 +53,7 @@ Public material parameter names must be stable data/editor names such as `baseCo
 
 The existing `Renderable.renderStyle` field remains the built-in style layer.
 
-Phase 18 should add a separate optional `Renderable.materials` object for shader/runtime materials. Its shape should be slot based:
+Phase 18 adds a separate optional `Renderable.materials` object for shader/runtime materials. Its shape is slot based:
 
 ```json
 {
@@ -64,9 +64,12 @@ Phase 18 should add a separate optional `Renderable.materials` object for shader
     },
     "materials": {
       "main": {
-        "materialId": "debug.uv-color",
+        "materialId": "debug.uv-gradient",
         "parameters": {
-          "baseColor": "#87c5ff"
+          "baseColor": "#87c5ff",
+          "accentColor": "#ffcf70",
+          "strength": 0.8,
+          "uvScale": [1, 1]
         }
       }
     }
@@ -80,9 +83,10 @@ S0 only needs a stable `main` slot for simple meshes. Multi-material GLB slot di
 
 The S0 shader should be deliberately small and boring:
 
-- `src/shaders/debug/debug-material.vert.glsl`
-- `src/shaders/debug/debug-material.frag.glsl`
-- `src/runtime/three/materials/createDebugShaderMaterial.ts`
+- `src/shaders/materials/debug/debug-uv-gradient.vert.glsl`
+- `src/shaders/materials/debug/debug-uv-gradient.frag.glsl`
+- `src/shaders/materials/debug/debugUvGradientShaders.ts`
+- `src/runtime/three/materials/createDebugUvGradientMaterial.ts`
 
 The shader should not require external textures. A color/UV gradient material is enough to prove raw GLSL import, `THREE.ShaderMaterial` creation, parameter mapping, fallback behavior, and Chromium compilation.
 
@@ -132,6 +136,29 @@ The acceptance test must use a real browser path:
 - Fail the test if the shader cannot compile.
 
 If `compileAsync` is unavailable in a browser/runtime variant, the fallback path must be explicit in the test and still render/compile enough to surface WebGL shader errors. Regex-only GLSL tests do not count.
+
+Current compile smoke coverage lives in `tests/smoke/shader-material.spec.ts` and uses `tests/smoke/shaderCompileFixture.ts` to instantiate a minimal Three scene in Chromium, enable `renderer.debug.checkShaderErrors`, call `renderer.compileAsync(scene, camera)` when available, render once, and assert the program list is non-empty.
+
+## S0 Implementation Snapshot
+
+Rounds 18.2 through 18.10 currently provide:
+
+- renderer-neutral contracts under `src/runtime/materials/**`
+- the built-in debug material definition `debug.uv-gradient`
+- optional `Renderable.materials` schema support with `main` slot validation
+- material reference validation in the data layer without importing Three
+- `.glsl?raw` shader imports and the first debug GLSL pair under `src/shaders/materials/debug/**`
+- Three-only material factory/runtime/fallback implementation under `src/runtime/three/materials/**`
+- optional renderable material wiring through `WebRuntime`, `Viewport`, and `ThreeRuntime`
+- Chromium shader compile smoke coverage through `npm run test:smoke`
+
+The runtime still applies custom materials only when data explicitly requests `Renderable.materials`; existing Gate Demo data continues to use Phase 16 `renderStyle` by default.
+
+## Phase 19 Handoff
+
+Phase 19 should build on this S0 path by adding the first production story material, likely a dissolve/open-gate shader. It should reuse the public material parameter model, add any required texture assets with Phase 17 metadata, then introduce material timeline tracks/actions through schemas, registries, validators, runtime adapters, editor forms, and smoke tests.
+
+Phase 19 should not bypass the S0 runtime with ad hoc `ShaderMaterial` construction, raw uniform names in data, or GLSL embedded in JSON/React/TypeScript strings.
 
 ## Three Version Policy
 

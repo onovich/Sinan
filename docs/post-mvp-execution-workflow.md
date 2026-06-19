@@ -27,6 +27,8 @@ The next executor should start by reading `AGENTS.md`, the main architecture gui
 
 Routine validation now includes `npm run report-assets` through `.codex/project-ops-workflow.json`. Executors should still run it directly when changing asset metadata, public asset files, compression readiness, or release notes.
 
+Phase 18 adds a Chromium shader compile smoke under `npm run test:smoke`. Run smoke after changing `src/shaders/**`, `src/runtime/materials/**`, `src/runtime/three/materials/**`, renderable material data flow, or fallback/diagnostic behavior.
+
 ## Execution Budget
 
 Core route:
