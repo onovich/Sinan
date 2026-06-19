@@ -1,6 +1,6 @@
 # Phase 18 Shader GLSL Material Runtime Foundation
 
-Status: In progress through Round 18.11 documentation. Do not mark PASS until final validation and handoff are complete.
+Status: PASS. Final report: `docs/phase-18-shader-glsl-material-runtime-foundation-final-report.md`.
 
 Phase 18 implements Shader MVP S0 only. The goal is to add a minimal, renderer-neutral material runtime foundation that can import GLSL source, register a small debug shader material, apply it through the Three runtime adapter, compile it in Chromium, and fail with visible diagnostics.
 

@@ -229,7 +229,7 @@ Estimated rounds: 6.
 
 Execution: `docs/phase-18-shader-glsl-material-runtime-foundation-goal-mode-execution-guide.md` expands this into a 16-round goal-mode plan.
 
-Current status: in progress. Phase 18 is not PASS until the final report, full validation, smoke, asset report, and push gate complete.
+Current status: PASS on 2026-06-20. Final report: `docs/phase-18-shader-glsl-material-runtime-foundation-final-report.md`.
 
 Scope:
 
@@ -437,14 +437,10 @@ The Phase 17 goal-mode guide uses a 16-round budget: 12 implementation rounds, 3
 
 Shader integration update: before starting Phase 17, also read `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md` and `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`. Phase 17 prepares shader prerequisites through texture metadata and loader strategy, but it must not implement `MaterialRuntime`, `ShaderMaterial`, material timeline tracks, or postprocessing.
 
-After Phase 17 passes, the next goal guide should be Phase 18: Shader GLSL Material Runtime Foundation.
-
-Current active next guide: `docs/phase-18-shader-glsl-material-runtime-foundation-goal-mode-execution-guide.md`.
+Phase 18 is PASS. The next goal should be Phase 19: Shader Dissolve And Material Timeline.
 
 ```txt
-Complete Phase 18 from docs/abeto-messenger-development-plan.md: Shader GLSL Material Runtime Foundation.
+Complete Phase 19 from docs/abeto-messenger-development-plan.md: Shader Dissolve And Material Timeline.
 ```
 
-Before starting Phase 18, re-read `AGENTS.md`, the main architecture guide, both Web3D Shader GLSL MVP docs, the Phase 17 final report, and the Phase 18 guide. Phase 18 implements Shader MVP S0 only: material runtime contracts, `.glsl?raw`, Three `ShaderMaterial` backend, fallback, schema/reference validation, and browser compile tests.
-
-The Phase 18 goal-mode guide uses a 16-round budget: 12 implementation rounds, 3 buffer rounds, and 1 final validation/handoff round.
+Before starting Phase 19, re-read `AGENTS.md`, the main architecture guide, both Web3D Shader GLSL MVP docs, the Phase 18 final report, and the Phase 18 material runtime docs. Phase 19 should implement the first production dissolve/open-gate story material, texture-backed public parameters, material timeline/action integration, Material Inspector MVP, validation, runtime tests, and Chromium smoke coverage.
