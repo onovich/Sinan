@@ -1,17 +1,15 @@
-# Sinan Engine Development Plan
+# Sinan Scene Director Development Plan
 
 ## Project Goal
 
-Sinan Engine is an AI-native, text-data-driven Web 3D game engine and project-specific editor. Its long-term value is not a generic Unity or Godot clone; it is a maintainable engine stack where TypeScript, JSON, schemas, validators, registries, adapters, and tests make runtime, renderer, physics, assets, input, UI, director, and editor semantics editable by humans and AI agents through Git-friendly files.
-
-The original Sinan Scene Director scope is now the engine's first-party Director System. Events, conditions, actions, timelines, camera shots, animation cues, and cinematic flow remain central, but they are no longer treated as a standalone product outside the engine runtime.
+Sinan Scene Director is an AI-native, text-data-driven Web 3D game director system and project-specific editor. Its long-term value is not a generic Unity clone; it is a maintainable stack where TypeScript, JSON, schemas, validators, registries, and tests make 3D scene direction editable by humans and AI agents through Git-friendly files.
 
 The first runtime target is Three.js, with a deliberate adapter boundary so the game semantics can later survive a Babylon.js runtime migration.
 
 ## Non-Negotiable Architecture Rules
 
-1. `data/**/*.json` is the source of truth for assets, prefabs, levels, events, timelines, camera shots, render styles, physics settings, input maps, UI flows, and other game semantics.
-2. `src/runtime/three/**` owns Three.js. Game, world, events, director, schemas, data, migrations, and future renderer/physics/input/UI semantic modules must stay adapter-neutral.
+1. `data/**/*.json` is the source of truth for assets, prefabs, levels, events, timelines, camera shots, and other game semantics.
+2. `src/runtime/three/**` owns Three.js. Game, world, events, director, schemas, data, and migrations must stay renderer-neutral.
 3. React owns editor shell, HUD, panels, selection, inspector tabs, and other slow UI state. Per-frame game state does not live in React state.
 4. Every JSON input needs a Zod schema and clear validation errors.
 5. Actions and conditions execute through registries. JSON must not contain `eval`, arbitrary script strings, or unregistered function calls.

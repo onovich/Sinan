@@ -1,4 +1,4 @@
-# Sinan Engine：Shader 研发方案与架构指南
+# Web 3D 场景导演项目：Shader 研发方案与架构指南
 
 > 文档状态：**Accepted / 已采纳**
 > 版本：**1.0.0**
@@ -1632,7 +1632,7 @@ WGSL Shader 或 Babylon 节点材质实现
 
 决策：MVP 不以 WebGPU、WGSL 或 TSL 为生产基础。
 
-原因：当前需求未证明其必要性；先完成 Sinan Engine 的 WebGL 渲染管线、材质系统和 Director System 联动闭环。
+原因：当前需求未证明其必要性；先完成产品与导演系统。
 
 ---
 
@@ -1641,7 +1641,7 @@ WGSL Shader 或 Babylon 节点材质实现
 以下内容可以直接提供给新的 coding agent：
 
 ```text
-请按照《Sinan Engine：Shader 研发方案与架构指南》实现 Shader 子系统。
+请按照《Web 3D 场景导演项目：Shader 研发方案与架构指南》实现 Shader 子系统。
 
 硬约束：
 1. 使用 Three.js WebGLRenderer。
