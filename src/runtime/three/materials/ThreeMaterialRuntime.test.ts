@@ -1,0 +1,111 @@
+import * as THREE from 'three';
+import { describe, expect, it } from 'vitest';
+
+import { DEBUG_UV_GRADIENT_MATERIAL_ID } from '../../materials';
+import { FALLBACK_MATERIAL_NAME } from './createFallbackMaterial';
+import { ThreeMaterialRuntime } from './ThreeMaterialRuntime';
+
+const target = { entityId: 'switch_a', slot: 'main' };
+
+describe('ThreeMaterialRuntime', () => {
+  it('binds a debug shader material to an entity main slot', () => {
+    const mesh = createMesh();
+    const runtime = new ThreeMaterialRuntime();
+
+    runtime.bindEntityObject(target.entityId, mesh);
+    const result = runtime.applyMaterial(target, DEBUG_UV_GRADIENT_MATERIAL_ID, {
+      strength: 0.25,
+    });
+
+    expect(result).toEqual({ ok: true, errors: [] });
+    expect(mesh.material).toBeInstanceOf(THREE.ShaderMaterial);
+    expect(runtime.getParameter(target, 'strength')).toBe(0.25);
+  });
+
+  it('sets and resets public parameters through Three uniforms', () => {
+    const mesh = createMesh();
+    const runtime = new ThreeMaterialRuntime();
+
+    runtime.bindEntityObject(target.entityId, mesh);
+    runtime.applyMaterial(target, DEBUG_UV_GRADIENT_MATERIAL_ID);
+
+    expect(runtime.setParameter(target, 'strength', 0.4)).toEqual({ ok: true, errors: [] });
+
+    const material = mesh.material as THREE.ShaderMaterial;
+    expect(material.uniforms.uStrength.value).toBe(0.4);
+    expect(runtime.getParameter(target, 'strength')).toBe(0.4);
+
+    expect(runtime.resetParameter(target, 'strength')).toEqual({ ok: true, errors: [] });
+    expect(material.uniforms.uStrength.value).toBe(1);
+    expect(runtime.getParameter(target, 'strength')).toBe(1);
+  });
+
+  it('binds fallback material and returns errors when factory validation fails', () => {
+    const mesh = createMesh();
+    const runtime = new ThreeMaterialRuntime();
+
+    runtime.bindEntityObject(target.entityId, mesh);
+    const result = runtime.applyMaterial(target, 'debug.missing');
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toEqual([
+      {
+        code: 'missing_material',
+        message: 'Missing material definition "debug.missing".',
+        materialId: 'debug.missing',
+        target,
+      },
+    ]);
+    expect(mesh.material).toBeInstanceOf(THREE.MeshBasicMaterial);
+    expect(mesh.material.name).toBe(FALLBACK_MATERIAL_NAME);
+  });
+
+  it('restores original materials and disposes owned material instances', () => {
+    const originalMaterial = new THREE.MeshBasicMaterial({ color: 0x123456 });
+    const mesh: THREE.Mesh<THREE.BoxGeometry, THREE.Material> = new THREE.Mesh(
+      new THREE.BoxGeometry(),
+      originalMaterial,
+    );
+    const runtime = new ThreeMaterialRuntime();
+
+    runtime.bindEntityObject(target.entityId, mesh);
+    runtime.applyMaterial(target, DEBUG_UV_GRADIENT_MATERIAL_ID);
+
+    const shaderMaterial = mesh.material as THREE.ShaderMaterial;
+    let disposed = false;
+    shaderMaterial.addEventListener('dispose', () => {
+      disposed = true;
+    });
+
+    runtime.disposeEntityMaterials(target.entityId);
+
+    expect(disposed).toBe(true);
+    expect(mesh.material).toBe(originalMaterial);
+  });
+
+  it('rejects unsupported slots without mutating the mesh', () => {
+    const mesh = createMesh();
+    const originalMaterial = mesh.material;
+    const runtime = new ThreeMaterialRuntime();
+    const unsupportedTarget = { entityId: target.entityId, slot: 'rim' };
+
+    runtime.bindEntityObject(target.entityId, mesh);
+    const result = runtime.applyMaterial(unsupportedTarget, DEBUG_UV_GRADIENT_MATERIAL_ID);
+
+    expect(result).toEqual({
+      ok: false,
+      errors: [
+        {
+          code: 'unsupported_slot',
+          message: 'Unsupported renderable material slot "rim". Supported slots: main.',
+          target: unsupportedTarget,
+        },
+      ],
+    });
+    expect(mesh.material).toBe(originalMaterial);
+  });
+});
+
+function createMesh(): THREE.Mesh<THREE.BoxGeometry, THREE.Material> {
+  return new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial());
+}
