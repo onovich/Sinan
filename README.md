@@ -1,8 +1,10 @@
-# Sinan Scene Director
+# Sinan Engine
 
-Sinan Scene Director is a data-first Web 3D scene direction editor built with Vite, React, TypeScript, Three.js, Zod, Vitest, and Playwright.<br/>**Sinan Scene Director 是一个数据优先的 Web 3D 场景导演编辑器，使用 Vite、React、TypeScript、Three.js、Zod、Vitest 和 Playwright 构建。**
+Sinan Engine is an AI-native, data-first Web 3D game engine and editor built with Vite, React, TypeScript, Three.js, Zod, Vitest, and Playwright.<br/>**Sinan Engine 是一个 AI 原生、数据优先的 Web 3D 游戏引擎与编辑器，使用 Vite、React、TypeScript、Three.js、Zod、Vitest 和 Playwright 构建。**
 
-The project is intentionally not a Unity clone; game semantics live in JSON, schemas, validators, registries, and tests so humans and AI agents can edit the scene through Git-friendly files.<br/>**这个项目不是 Unity 克隆；游戏语义保存在 JSON、schema、validator、registry 和测试里，方便人和 AI agent 通过 Git 友好的文件协作编辑场景。**
+The project is intentionally not a Unity or Godot clone. Its engine semantics live in JSON, schemas, validators, registries, adapters, and tests so humans and AI agents can edit, validate, migrate, and run game projects through Git-friendly files.<br/>**这个项目不是 Unity 或 Godot 克隆。它的引擎语义保存在 JSON、schema、validator、registry、adapter 和测试里，方便人和 AI agent 通过 Git 友好的文件协作编辑、验证、迁移和运行游戏项目。**
+
+The original Scene Director scope is now treated as a first-party Director System inside the engine: events, conditions, actions, timelines, camera shots, animation cues, and cinematic flow must run together with runtime, renderer, physics, assets, input, UI, and editor systems.<br/>**原先的 Scene Director 范围现在升级为引擎内置的 Director System：events、conditions、actions、timelines、camera shots、animation cues 和 cinematic flow 必须与 runtime、renderer、physics、assets、input、UI、editor 系统共同组成可运行闭环。**
 
 ## Current Status
 
@@ -55,10 +57,10 @@ npm run test:smoke
 
 ## Project Map
 
-- `data/**/*.json` is the source of truth for assets, prefabs, levels, events, timelines, and camera shots.<br/>**`data/**/*.json` 是 assets、prefabs、levels、events、timelines 和 camera shots 的事实源。**
-- `src/runtime/three/**` owns Three.js, GLB loading, runtime object resources, picking, animation, and transform controls.<br/>**`src/runtime/three/**` 负责 Three.js、GLB 加载、runtime object 资源、拾取、动画和 transform controls。**
-- `src/schemas/**`, `src/data/**`, `src/events/**`, `src/director/**`, and `src/world/**` stay renderer-neutral.<br/>**`src/schemas/**`、`src/data/**`、`src/events/**`、`src/director/**` 和 `src/world/**` 必须保持 renderer-neutral。**
-- `src/editor/**` owns React editor state, panels, command-backed mutations, dirty state, and save UX.<br/>**`src/editor/**` 负责 React 编辑器状态、面板、命令驱动的数据修改、dirty state 和保存体验。**
+- `data/**/*.json` is the source of truth for assets, prefabs, levels, events, timelines, and camera shots.<br/><strong><code>data/**/*.json</code> 是 assets、prefabs、levels、events、timelines 和 camera shots 的事实源。</strong>
+- `src/runtime/three/**` owns Three.js, GLB loading, runtime object resources, picking, animation, and transform controls.<br/><strong><code>src/runtime/three/**</code> 负责 Three.js、GLB 加载、runtime object 资源、拾取、动画和 transform controls。</strong>
+- `src/schemas/**`, `src/data/**`, `src/events/**`, and `src/director/**` stay renderer-neutral; new engine modules such as physics, renderer, input, and UI should follow the same adapter boundary.<br/><strong><code>src/schemas/**</code>、<code>src/data/**</code>、<code>src/events/**</code> 和 <code>src/director/**</code> 必须保持 renderer-neutral；后续新增的 physics、renderer、input、UI 等引擎模块也应遵守同样的 adapter 边界。</strong>
+- `src/editor/**` owns React editor state, panels, command-backed mutations, dirty state, and save UX.<br/><strong><code>src/editor/**</code> 负责 React 编辑器状态、面板、命令驱动的数据修改、dirty state 和保存体验。</strong>
 - `docs/developer-guide.md` is the compact guide for assets, actions, conditions, timelines, camera shots, and release validation.<br/>**`docs/developer-guide.md` 是资产、actions、conditions、timelines、camera shots 和 release 验证的精简开发指南。**
 
 ## Core Rules
@@ -74,4 +76,4 @@ Timeline scrub must not execute destructive or runtime-only side effects, and ed
 - `docs/developer-guide.md` - setup, validation, assets, actions, conditions, timelines, and camera shots.<br/>**`docs/developer-guide.md` - setup、验证、资产、actions、conditions、timelines 和 camera shots。**
 - `docs/post-mvp-development-plan.md` - Phase 8 through Phase 14 roadmap and acceptance gates.<br/>**`docs/post-mvp-development-plan.md` - Phase 8 到 Phase 14 的路线和验收 gate。**
 - `docs/post-mvp-execution-workflow.md` - execution workflow, validation rhythm, and boundary checks.<br/>**`docs/post-mvp-execution-workflow.md` - 执行 workflow、验证节奏和边界检查。**
-- `docs/Sinan_Scene_Director_研发方案与架构指南.md` - original product and architecture guide.<br/>**`docs/Sinan_Scene_Director_研发方案与架构指南.md` - 原始产品与架构指南。**
+- `docs/Sinan_Scene_Director_研发方案与架构指南.md` - primary product and architecture guide, now updated for the Sinan Engine positioning.<br/>**`docs/Sinan_Scene_Director_研发方案与架构指南.md` - 主要产品与架构指南，已更新为 Sinan Engine 定位。**

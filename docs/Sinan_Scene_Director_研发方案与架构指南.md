@@ -1,22 +1,25 @@
-# Sinan Scene Director：AI 原生 Web 3D 游戏导演系统研发方案与架构指南
+# Sinan Engine：AI 原生 Web 3D 游戏引擎研发方案与架构指南
 
 > 版本：v0.1  
-> 日期：2026-06-17  
+> 日期：2026-06-20  
 > 目标读者：负责实现项目的 AI coding agent、技术负责人、前端/玩法/工具链开发者  
-> 项目名：`Sinan Scene Director`  
-> 中文说明：**司南场景导演系统**（说明性译名，不作为第二项目名）  
-> 推荐仓库名：`sinan-scene-director`  
-> 推荐 npm scope：`@sinan-scene/*`
+> 项目名：`Sinan Engine`  
+> 中文说明：**司南游戏引擎**（说明性译名，不作为第二项目名）  
+> 当前仓库名：`sinan-scene-director`（历史沿用名，可后续迁移）  
+> 推荐长期仓库名：`sinan-engine`  
+> 推荐 npm scope：`@sinan-engine/*`
 
 ---
 
 ## 0. 给实现 AI 的执行摘要
 
-本项目要实现一个 **AI 友好的 Web 原生 3D 游戏开发框架与项目专用编辑器**。它不是 Unity/PlayCanvas/Babylon Editor 的复刻，也不是完整商业游戏引擎。它的核心目标是：
+本项目要实现一个 **AI 原生、Web 原生、数据驱动的 3D 游戏引擎与项目专用编辑器**。它不是 Unity、Godot、PlayCanvas Editor 或 Babylon Editor 的复刻，也不以大而全商业引擎为第一阶段目标。它的核心目标是：
 
 ```txt
-让 AI 可以通过读写 TypeScript + JSON，快速构建、修改、验证、迁移一个带有 3D 场景、事件联动、Condition、Action、Timeline、角色动画和运镜的游戏项目。
+让 AI 和人类可以通过读写 TypeScript + JSON，快速构建、运行、修改、验证、迁移一个带有 3D 场景、输入、资源、渲染、物理、UI、事件联动、Condition、Action、Timeline、角色动画和运镜的游戏项目。
 ```
+
+原先的 **Sinan Scene Director** 不再是整个产品定位，而是 Sinan Engine 内部的 **Director System**：负责事件、Action、Timeline、Camera Shot、演出编排和剧情/场景导演。Sinan Engine 是总项目，Director System 是其核心子系统之一。
 
 第一版选择：
 
@@ -27,19 +30,19 @@ Vite             dev/build
 React            编辑器 UI、HUD、面板、慢状态
 Zod              JSON schema 和运行时校验
 GLB/glTF         3D 资源格式
-Rapier           可选物理层，MVP 可先不用或只接触发器/碰撞
+Rapier           物理求解与碰撞/触发器适配层
 Theatre.js       可选关键帧 authoring 工具，不作为游戏事件真相源
 ```
 
 最重要的架构原则：
 
 ```txt
-1. level.json / prefab.json / timeline.json / cameraShot.json 是 source of truth。
+1. level.json / prefab.json / timeline.json / cameraShot.json / renderStyle.json / physics.json / inputMap.json 是 source of truth。
 2. Three.js 只存在于 /src/runtime/three 以及少数 editor viewport glue 层。
-3. /src/game、/src/events、/src/director、/src/world、/src/schemas 禁止 import 'three'。
+3. /src/game、/src/events、/src/director、/src/world、/src/physics、/src/renderer、/src/input、/src/ui、/src/schemas 原则上禁止 import 'three'。
 4. React 只负责编辑器 UI、HUD、菜单、Inspector、Timeline 面板等慢状态。
 5. 每帧游戏状态、动画、物理、AI、镜头采样不走 React setState。
-6. Event、Condition、Action、Timeline、Camera Shot 全部使用数据驱动 DSL。
+6. Entity、Render、Physics、Input、UI、Event、Condition、Action、Timeline、Camera Shot 全部使用数据驱动协议或 registry。
 7. JSON 中不允许 eval，不允许任意 JS 函数字符串；所有函数调用必须走 registry 白名单。
 8. Timeline 可以触发 Action；Event 也可以触发 Action；Action Registry 是统一执行入口。
 9. Camera 运镜使用 Virtual Camera / Director Camera，不直接把 Timeline 绑死到 Three.Camera。
@@ -52,21 +55,21 @@ Theatre.js       可选关键帧 authoring 工具，不作为游戏事件真相�
 
 ### 1.1 唯一正式名称
 
-**Sinan Scene Director**
+**Sinan Engine**
 
 推荐仓库名：
 
 ```txt
-sinan-scene-director
+sinan-engine
 ```
 
 推荐 npm scope：
 
 ```txt
-@sinan-scene/*
+@sinan-engine/*
 ```
 
-本文档后续只使用 **Sinan Scene Director** 作为项目正式名称。不要再使用 `StageWeaver`、`AstraStage Director`、`星幕` 或其他候选名，避免 AI coding agent 在实现时出现命名分叉。
+本文档后续使用 **Sinan Engine** 作为项目正式名称。**Sinan Scene Director** 仅作为历史名称或 Director System 子模块名称使用。不要再使用 `StageWeaver`、`AstraStage Director`、`星幕` 或其他候选名，避免 AI coding agent 在实现时出现命名分叉。
 
 ### 1.2 命名理由
 
@@ -74,22 +77,22 @@ sinan-scene-director
 
 ```txt
 Sinan                 一点点文化属性，来自“司南”，表达方向、引导、定位
-Scene Director        直接说明项目用途：场景导演、事件编排、Timeline、运镜
+Engine                直接说明项目已经从导演/演出系统升级为可运行的游戏引擎
 ```
 
 选择它的原因：
 
 ```txt
-1. 比 AstraStage Director 更直白，不再强调抽象的“星空/舞台感”。
-2. 比 StageWeaver 更工程化，不会让人误解成偏文学或艺术创作工具。
-3. Scene Director 直接对应本项目的核心：配置角色、事件、条件、Action、Timeline、镜头和动画。
+1. 比 Sinan Scene Director 更符合产品真实边界：本项目需要 runtime、渲染、物理、输入、资源、UI、编辑器和导演系统共同闭环。
+2. 比 “Web 3D Editor” 更准确，因为编辑器只是引擎数据与 runtime 的 authoring surface。
+3. 比 Unity/Godot 替代品更克制，因为 Sinan 聚焦 AI 原生、Web 原生、数据驱动的 3D 游戏。
 4. Sinan 只提供轻微文化辨识度，不把项目包装成重文化品牌。
 5. 仓库名、包名、代码命名都容易落地。
 ```
 
 ### 1.3 命名边界
 
-`Sinan` 是文化来源说明，不建议在文档中再单独制造中文品牌名。对外、对内、对 AI coding agent，都统一称为 **Sinan Scene Director**。
+`Sinan` 是文化来源说明，不建议在文档中再单独制造中文品牌名。对外、对内、对 AI coding agent，都统一称为 **Sinan Engine**。
 
 本名称仅作为工程名和项目代号，不代表已经完成商标、域名、npm 包名或开源项目重名检查。若未来商业发布，需要单独做命名合规检查。
 
@@ -99,38 +102,46 @@ Scene Director        直接说明项目用途：场景导演、事件编排、T
 
 ### 2.1 本项目是什么
 
-Sinan Scene Director 是一个 Web 原生 3D 游戏项目基础设施，包含：
+Sinan Engine 是一个 **AI 原生 Web 3D 游戏引擎**。它面向互动叙事、轻玩法、剧情演出、可编辑 3D 场景游戏和 AI 协作开发，核心特征是：
 
 ```txt
-1. Three.js runtime adapter
-2. Entity / Component / World 数据层
-3. Prefab / Level JSON 数据协议
-4. Event / Trigger / Condition / Action 系统
-5. Timeline / Sequencer 系统
-6. Virtual Camera / Camera Shot / 运镜系统
-7. 角色动画调度系统
-8. 项目专用 3D 场景编辑器
-9. 项目专用 Timeline 编辑器
-10. 项目专用 Camera Shot 编辑器
-11. JSON schema 校验、迁移、静态检查工具
-12. 面向 AI coding agent 的实现规范与模块边界
+1. 数据驱动：游戏语义以 JSON / TypeScript schema / registry / validator 表达。
+2. Web 原生：第一运行目标是浏览器，第一渲染实现是 Three.js adapter。
+3. AI 原生：AI coding agent 可以读写、验证、迁移、测试和重构游戏内容。
+4. 编辑器内建：编辑器不是额外产品，而是引擎数据协议的可视化 authoring surface。
+5. 导演能力内建：事件、Action、Timeline、Camera Shot 和演出编排是引擎一等能力。
+```
+
+Sinan Engine 包含：
+
+```txt
+1. Runtime Core：game loop、module lifecycle、World、Entity、Component。
+2. Renderer System：Three.js/WebGPU adapter、render pipeline、lighting、shadow、postprocess、debug view。
+3. Physics System：Rapier adapter、rigidbody、collider、trigger、raycast、character controller。
+4. Asset System：manifest、GLB/glTF、texture、audio、preload、cache、budget、fallback。
+5. Input System：keyboard、mouse、pointer、touch、gamepad、action mapping、input replay。
+6. UI System：HUD、dialogue、overlay、runtime UI bridge、game/editor input routing。
+7. Director System：Event、Trigger、Condition、Action、Timeline、Sequencer、Camera Shot、角色动画调度。
+8. Editor System：Scene、Inspector、Hierarchy、Timeline、Camera、Asset、Physics、Render、UI 面板。
+9. Data Toolchain：JSON schema 校验、引用检查、migration、静态检查、测试和报告。
+10. AI Agent Contract：面向 AI coding agent 的实现规范、模块边界和自动验证入口。
 ```
 
 ### 2.2 本项目不是什么
 
-Sinan Scene Director 不是：
+Sinan Engine 不是：
 
 ```txt
-1. 不是完整 Unity 替代品
-2. 不是 PlayCanvas Editor 替代品
-3. 不是 Blender 替代品
-4. 不是完整材质编辑器
-5. 不是 Shader Graph
-6. 不是完整物理编辑器
-7. 不是完整动画制作软件
-8. 不是通用低代码游戏引擎
-9. 不是所有项目都适用的可视化节点引擎
-10. 不是从零自研渲染引擎
+1. 不是完整 Unity / Godot 替代品。
+2. 不是 PlayCanvas Editor / Babylon Editor 复刻。
+3. 不是 Blender / Maya / DCC 替代品。
+4. 不是从零自研渲染器；渲染底层优先复用 Three.js / WebGPU 生态。
+5. 不是从零自研物理求解器；物理底层优先复用 Rapier 等成熟库。
+6. 不是完整 Shader Graph 或通用材质节点系统。
+7. 不是完整动画制作软件。
+8. 不是覆盖所有游戏类型的通用低代码游戏引擎。
+9. 不是所有项目都适用的可视化节点引擎。
+10. 不是追求 3A、大型开放世界、主机平台和资产商店生态的商业引擎。
 ```
 
 ### 2.3 核心使用方式
@@ -147,12 +158,17 @@ Blender / Mixamo / Maya
 /data/levels/*.json
 /data/timelines/*.json
 /data/cameraShots/*.json
+/data/renderStyles/*.json
+/data/physics/*.json
+/data/inputMaps/*.json
   ↓
-Sinan Scene Director 运行时加载数据
+Sinan Engine 运行时加载数据
   ↓
-Three.js 渲染和播放
+Runtime / Renderer / Physics / Input / UI / Director 模块执行
   ↓
-React Editor 修改 JSON
+Three.js / Rapier / Browser APIs 适配层落地
+  ↓
+React Editor 修改引擎数据
   ↓
 Zod 校验 + migration + tests
 ```
@@ -201,7 +217,7 @@ UI:             React
 State:          Zustand 或自研轻量 store
 Schema:         Zod
 3D Assets:      GLB / glTF 2.0
-Physics:        Rapier，MVP 可延后
+Physics:        Rapier adapter，作为 Sinan Physics System 的底层求解实现
 Timeline UI:    自研轻量 Timeline，Theatre.js 作为可选 authoring 辅助
 Testing:        Vitest + Playwright
 Lint:           ESLint + import boundary rules
@@ -223,7 +239,7 @@ Three.js 提供了本项目需要的底层能力：
 6. WebGL/WebGPU 演进路径
 ```
 
-本项目不需要 Three.js 提供游戏语义。游戏语义必须由 Sinan Scene Director 自己的数据层定义。
+本项目不需要 Three.js 提供游戏语义。游戏语义必须由 Sinan Engine 自己的数据层、runtime core、renderer/physics/input/UI/director 系统定义。
 
 Three.js 官方 `GLTFLoader` 用于加载 glTF 2.0，并返回 scene、scenes、cameras、animations 等数据；这适合本项目的 GLB 资产管线。Three.js `AnimationMixer` 是针对特定 Object3D 的动画播放器，适合播放角色/机关 GLB clip。Three.js `TransformControls` 提供类似 DCC 工具的 translate / rotate / scale 操作，适合 MVP 编辑器。参考文档见文末“资料来源”。
 
@@ -246,7 +262,7 @@ React Three Fiber 适合 3D 是 React 产品的一部分的场景，例如：
 用户、表单、选项、价格、权限、项目列表、数据库记录、面板状态
 ```
 
-本项目更接近游戏和导演系统，核心状态是：
+本项目更接近游戏引擎，而不是纯编辑器或 3D UI 应用。核心状态是：
 
 ```txt
 position、velocity、animation state、physics body、timeline time、condition result、AI state、camera sample、trigger event
@@ -326,7 +342,7 @@ Theatre.js 可以和 Three.js 集成，用于给 camera、light、material color
 ```txt
 可选 authoring 辅助，用于镜头/灯光/材质等关键帧编辑。
 不作为核心 Event/Timeline DSL。
-不让 Theatre 项目状态取代 Sinan Scene Director 的 timeline.json。
+不让 Theatre 项目状态取代 Sinan Engine 的 timeline.json / Director System 数据。
 ```
 
 ---
@@ -2024,9 +2040,9 @@ Timeline 播放时主相机跟随 Director Camera
 ### 18.4 适合交给 AI 的任务模板
 
 ```txt
-请实现 Sinan Scene Director 的 [模块名]。
+请实现 Sinan Engine 的 [模块名]。
 必须遵守：
-- 不在 /src/game /src/events /src/director /src/world /src/schemas 中 import three
+- 不在 /src/game /src/events /src/director /src/world /src/physics /src/renderer /src/input /src/ui /src/schemas 中 import three
 - 所有输入 JSON 先写 Zod schema
 - 所有数据修改走 EditorCommand
 - 所有 action/condition 走 registry
@@ -2393,21 +2409,25 @@ Editor save/load
 
 ## 26. 最终结论
 
-Sinan Scene Director 的核心不是 “Web 3D 编辑器”，而是：
+Sinan Engine 的核心不是 “Web 3D 编辑器”，也不再只是独立的 “导演/演出系统”，而是：
 
 ```txt
-AI 原生、文本数据驱动、可测试、可迁移的 3D 游戏导演系统。
+AI 原生、Web 原生、文本数据驱动、可测试、可迁移的 3D 游戏引擎。
 ```
 
-Three.js 只是第一版 runtime。真正长期有价值的是：
+原 Sinan Scene Director 升级为引擎内的 Director System。它仍然是 Sinan 的差异化中枢，负责 Event、Condition、Action、Timeline、Camera Shot、角色动画和演出编排；但它必须和 Runtime Core、Renderer、Physics、Assets、Input、UI、Editor 共同组成可运行闭环。
+
+Three.js 和 Rapier 只是第一版底层实现。真正长期有价值的是：
 
 ```txt
-Entity / Prefab / Level 数据模型
+Runtime Core / World / Entity / Component 生命周期
+Renderer / Physics / Assets / Input / UI 的数据协议和 adapter 边界
+Prefab / Level / Render / Physics / Input / UI / Timeline / Camera Shot 数据模型
 Event / Trigger / Condition / Action DSL
 Timeline / Director / Camera Shot DSL
 Editor Command / Undo / Save 架构
-Schema / Validator / Migration 工具链
+Schema / Validator / Migration / Smoke Test 工具链
 AI 可读写、可验证、可重构的项目边界
 ```
 
-只要这些边界守住，项目可以快速由 AI 迭代；未来如果 Three.js 不够用，也可以迁移到 Babylon.js，而不必推翻事件、Timeline、关卡和编辑器数据体系。
+只要这些边界守住，项目可以快速由 AI 迭代；未来如果 Three.js、Rapier 或某个 Web API 不够用，也可以替换对应 adapter，而不必推翻事件、Timeline、关卡、物理、渲染、输入、UI 和编辑器数据体系。
