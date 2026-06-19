@@ -95,4 +95,4 @@ None for Phase 17.
 
 ## Recommended Next Goal
 
-Complete Phase 18 from `docs/abeto-messenger-development-plan.md`: Shader GLSL Material Runtime Foundation.
+Complete Phase 18 from `docs/abeto-messenger-development-plan.md`: Shader GLSL Material Runtime Foundation. Use `docs/phase-18-shader-glsl-material-runtime-foundation-goal-mode-execution-guide.md` for the goal-mode run.

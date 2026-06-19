@@ -41,7 +41,9 @@ With the superseded optional Phase 15: 31-33 rounds.
 
 After Phase 14, continue with `docs/abeto-messenger-development-plan.md` for the Messenger-like vertical-slice roadmap. The next planning handoff is `docs/phase-15-abeto-scope-lock-goal-mode-execution-guide.md`.
 
-After the Phase 16 final report is PASS, the next implementation goal is Phase 17 from `docs/phase-17-asset-budget-compression-goal-mode-execution-guide.md`: Asset Budget And Compression. The executor should read `AGENTS.md`, the main architecture guide, `docs/abeto-messenger-development-plan.md`, `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md`, and `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md` before starting Phase 17. Phase 17 prepares texture metadata and loader policy for the Shader GLSL MVP; actual shader runtime work starts in Phase 18.
+Current route update: Phase 17 is PASS. The active goal-mode guide is `docs/phase-18-shader-glsl-material-runtime-foundation-goal-mode-execution-guide.md`: Shader GLSL Material Runtime Foundation.
+
+Historical note: Phase 17 from `docs/phase-17-asset-budget-compression-goal-mode-execution-guide.md` prepared texture metadata and loader policy for the Shader GLSL MVP. Phase 18 is the first shader runtime implementation phase and should start by reading `AGENTS.md`, the main architecture guide, `docs/abeto-messenger-development-plan.md`, `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md`, `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`, and the Phase 17 final report.
 
 ## Rendering And Demo Visual Principles
 

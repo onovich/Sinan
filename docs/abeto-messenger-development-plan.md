@@ -227,6 +227,8 @@ Goal: make custom shader materials possible without leaking Three.js or uniforms
 
 Estimated rounds: 6.
 
+Execution: `docs/phase-18-shader-glsl-material-runtime-foundation-goal-mode-execution-guide.md` expands this into a 16-round goal-mode plan.
+
 Scope:
 
 - Add renderer-neutral `MaterialDefinition`, `MaterialParameter`, `MaterialRegistry`, and `MaterialRuntime` contracts under `src/runtime/materials/**`.
@@ -434,3 +436,13 @@ The Phase 17 goal-mode guide uses a 16-round budget: 12 implementation rounds, 3
 Shader integration update: before starting Phase 17, also read `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md` and `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`. Phase 17 prepares shader prerequisites through texture metadata and loader strategy, but it must not implement `MaterialRuntime`, `ShaderMaterial`, material timeline tracks, or postprocessing.
 
 After Phase 17 passes, the next goal guide should be Phase 18: Shader GLSL Material Runtime Foundation.
+
+Current active next guide: `docs/phase-18-shader-glsl-material-runtime-foundation-goal-mode-execution-guide.md`.
+
+```txt
+Complete Phase 18 from docs/abeto-messenger-development-plan.md: Shader GLSL Material Runtime Foundation.
+```
+
+Before starting Phase 18, re-read `AGENTS.md`, the main architecture guide, both Web3D Shader GLSL MVP docs, the Phase 17 final report, and the Phase 18 guide. Phase 18 implements Shader MVP S0 only: material runtime contracts, `.glsl?raw`, Three `ShaderMaterial` backend, fallback, schema/reference validation, and browser compile tests.
+
+The Phase 18 goal-mode guide uses a 16-round budget: 12 implementation rounds, 3 buffer rounds, and 1 final validation/handoff round.

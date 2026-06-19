@@ -214,4 +214,6 @@ After Phase 14, the next product route is the Abeto Messenger-like vertical slic
 
 Phase 14 release-candidate status is accepted in `docs/phase-14-release-candidate-finalization.md`. Phase 15 is a scope-lock and handoff phase only; it should not start runtime, UI, shader, gameplay, multiplayer, or asset-compression implementation.
 
-For the next implementation goal after Phase 16 passes, read `AGENTS.md`, the main architecture guide, `docs/abeto-messenger-development-plan.md`, `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md`, and `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`, then execute Phase 17 from `docs/phase-17-asset-budget-compression-goal-mode-execution-guide.md`: Asset Budget And Compression. Phase 17 prepares asset, texture, and compression prerequisites for the Shader GLSL MVP; actual MaterialRuntime and GLSL work starts in Phase 18.
+Current route update: Phase 17 is PASS. The active goal-mode guide is `docs/phase-18-shader-glsl-material-runtime-foundation-goal-mode-execution-guide.md`: Shader GLSL Material Runtime Foundation. The executor should read `AGENTS.md`, the main architecture guide, `docs/abeto-messenger-development-plan.md`, `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md`, `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`, and the Phase 17 final report before starting Phase 18.
+
+Historical note: Phase 17 from `docs/phase-17-asset-budget-compression-goal-mode-execution-guide.md` prepared asset, texture, and compression prerequisites for the Shader GLSL MVP; actual `MaterialRuntime` and GLSL work starts in Phase 18.
