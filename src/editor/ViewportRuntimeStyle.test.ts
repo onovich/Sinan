@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { ProjectData } from '../data/DataRepository';
 import type {
   RuntimeRenderStyle,
+  RuntimeRenderableMaterialSlots,
   RuntimeStyleQualityProfile,
   RuntimeStyleResources,
 } from '../runtime/RuntimeTypes';
@@ -77,6 +78,14 @@ describe('Viewport runtime style flow', () => {
                 outline: 'interactable',
                 highlight: 'selected',
               },
+              materials: {
+                main: {
+                  materialId: 'debug.uv-gradient',
+                  parameters: {
+                    strength: 0.5,
+                  },
+                },
+              },
             },
           },
         },
@@ -149,6 +158,18 @@ describe('Viewport runtime style flow', () => {
           highlight: 'selected',
         },
       },
+      {
+        type: 'setRenderableMaterials',
+        entityId: 'switch_a',
+        materials: {
+          main: {
+            materialId: 'debug.uv-gradient',
+            parameters: {
+              strength: 0.5,
+            },
+          },
+        },
+      },
     ]);
   });
 
@@ -201,6 +222,12 @@ function createRuntimeMock(calls: unknown[]): WebRuntime {
     },
     setRenderStyle: (entityId: string, style: RuntimeRenderStyle | undefined) => {
       calls.push({ type: 'setRenderStyle', entityId, style });
+    },
+    setRenderableMaterials: (
+      entityId: string,
+      materials: RuntimeRenderableMaterialSlots | undefined,
+    ) => {
+      calls.push({ type: 'setRenderableMaterials', entityId, materials });
     },
     setStyleQualityProfile: (profile: RuntimeStyleQualityProfile) => {
       calls.push({ type: 'styleQuality', profile });

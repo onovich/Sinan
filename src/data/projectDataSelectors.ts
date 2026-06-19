@@ -1,4 +1,8 @@
 import type { EntityData } from '../schemas/entity.schema';
+import {
+  RenderableMaterialSlotsSchema,
+  type RenderableMaterialSlotsData,
+} from '../schemas/material.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 import { RenderStyleSchema, type RenderStyleData } from '../schemas/renderStyle.schema';
 
@@ -41,6 +45,23 @@ export function getRenderableRenderStyle(
   return parseRenderStyle(prefabRenderable);
 }
 
+export function getRenderableMaterials(
+  project: ProjectPrefabLookup,
+  entity: EntityData,
+): RenderableMaterialSlotsData | undefined {
+  const entityRenderable = getComponentPayload(entity.components, 'Renderable');
+  const entityMaterials = parseRenderableMaterials(entityRenderable);
+
+  if (entityMaterials) {
+    return entityMaterials;
+  }
+
+  const prefab = getEntityPrefab(project, entity);
+  const prefabRenderable = getComponentPayload(prefab?.components, 'Renderable');
+
+  return parseRenderableMaterials(prefabRenderable);
+}
+
 export function getEntityPrefab(
   project: ProjectPrefabLookup,
   entity: EntityData,
@@ -78,6 +99,18 @@ function parseRenderStyle(
   }
 
   const result = RenderStyleSchema.safeParse(payload.renderStyle);
+
+  return result.success ? result.data : undefined;
+}
+
+function parseRenderableMaterials(
+  payload: Record<string, unknown> | undefined,
+): RenderableMaterialSlotsData | undefined {
+  if (!payload || !('materials' in payload)) {
+    return undefined;
+  }
+
+  const result = RenderableMaterialSlotsSchema.safeParse(payload.materials);
 
   return result.success ? result.data : undefined;
 }

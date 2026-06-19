@@ -1,3 +1,5 @@
+import type { MaterialParameterValue } from './materials';
+
 export type Vec3 = readonly [number, number, number];
 export type Quat = readonly [number, number, number, number];
 
@@ -86,6 +88,15 @@ export interface RuntimeRenderStyle {
   fog?: RuntimeRenderStyleFeatureMode;
   colorGrade?: RuntimeRenderStyleFeatureMode;
 }
+
+export interface RuntimeRenderableMaterialSlot {
+  materialId: string;
+  parameters?: Readonly<Record<string, MaterialParameterValue>>;
+}
+
+export type RuntimeRenderableMaterialSlots = Readonly<
+  Record<string, RuntimeRenderableMaterialSlot>
+>;
 
 export interface RuntimePalette {
   id: string;

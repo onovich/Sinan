@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { ProjectData } from '../data/DataRepository';
-import { getRenderableModelAssetId, getRenderableRenderStyle } from '../data/projectDataSelectors';
+import {
+  getRenderableMaterials,
+  getRenderableModelAssetId,
+  getRenderableRenderStyle,
+} from '../data/projectDataSelectors';
 import type {
   RuntimePalette,
   RuntimeDebugAabb,
@@ -526,6 +530,10 @@ export async function loadProjectIntoRuntime(
       entity.id,
       toRuntimeRenderStyle(getRenderableRenderStyle(project, entity)),
     );
+    const materials = getRenderableMaterials(project, entity);
+    if (materials) {
+      runtime.setRenderableMaterials?.(entity.id, materials);
+    }
   }
 }
 

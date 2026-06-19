@@ -10,6 +10,7 @@ import type {
   RuntimeCameraPose,
   RuntimeDebugAabb,
   RuntimeRenderEnvironmentStyle,
+  RuntimeRenderableMaterialSlots,
   RuntimeRenderStyle,
   RuntimeStyleQualityProfile,
   RuntimeStyleResources,
@@ -33,6 +34,10 @@ export interface WebRuntime {
   setDebugAabb(entityId: string, bounds: RuntimeDebugAabb | undefined): void;
   setStyleResources?(resources: RuntimeStyleResources): void;
   setRenderStyle?(entityId: string, style: RuntimeRenderStyle | undefined): void;
+  setRenderableMaterials?(
+    entityId: string,
+    materials: RuntimeRenderableMaterialSlots | undefined,
+  ): void;
   setRenderEnvironment?(environment: RuntimeRenderEnvironmentStyle | undefined): void;
   setStyleQualityProfile?(profile: RuntimeStyleQualityProfile): void;
   setSelectedEntity?(entityId: string | undefined): void;

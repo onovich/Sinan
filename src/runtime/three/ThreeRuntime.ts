@@ -10,6 +10,7 @@ import type {
   RuntimeCameraPose,
   RuntimeDebugAabb,
   RuntimeRenderEnvironmentStyle,
+  RuntimeRenderableMaterialSlots,
   RuntimeRenderStyle,
   RuntimeInitOptions,
   RuntimeSize,
@@ -32,6 +33,7 @@ import {
 } from './EditorCameraController';
 import { applyThreeEnvironmentStyle } from './ThreeEnvironmentStyle';
 import { ThreeMaterialRegistry } from './ThreeMaterialRegistry';
+import { ThreeMaterialRuntime } from './materials/ThreeMaterialRuntime';
 import { disposeObjectResources } from './ThreeObjectResources';
 import { pickThreeObject } from './ThreePicking';
 import { ThreeStyleDecorators } from './ThreeStyleDecorators';
@@ -66,6 +68,7 @@ export class ThreeRuntime implements WebRuntime {
   private transformGizmoCallbacks: TransformGizmoCallbacks | undefined;
   private objectByEntityId = new Map<string, THREE.Object3D>();
   private readonly materialRegistry: ThreeMaterialRegistry;
+  private readonly materialRuntime: ThreeMaterialRuntime;
   private styleDecorators: ThreeStyleDecorators | undefined;
   private debugAabbByEntityId = new Map<string, THREE.LineSegments>();
   private animationStateByEntityId = new Map<
@@ -86,6 +89,7 @@ export class ThreeRuntime implements WebRuntime {
     this.modelAssets = options.modelAssets ?? new ThreeAssetLoader();
     this.logger = options.logger ?? console;
     this.materialRegistry = new ThreeMaterialRegistry({ logger: this.logger });
+    this.materialRuntime = new ThreeMaterialRuntime();
   }
 
   init(options: RuntimeInitOptions): void {
@@ -196,6 +200,7 @@ export class ThreeRuntime implements WebRuntime {
     tagRuntimeObject(object, entityId, assetId);
     this.objectRoot?.add(object);
     this.objectByEntityId.set(entityId, object);
+    this.materialRuntime.bindEntityObject(entityId, object);
     this.bindEntityAnimations(entityId, object, loadedAsset);
     this.applyEntityRenderStyle(entityId, object);
 
@@ -210,6 +215,7 @@ export class ThreeRuntime implements WebRuntime {
     tagRuntimeObject(object, entityId);
     this.objectRoot?.add(object);
     this.objectByEntityId.set(entityId, object);
+    this.materialRuntime.bindEntityObject(entityId, object);
     this.applyEntityRenderStyle(entityId, object);
 
     return { entityId, runtimeObjectId: entityId };
@@ -233,6 +239,7 @@ export class ThreeRuntime implements WebRuntime {
       return;
     }
 
+    this.materialRuntime.disposeEntityMaterials(entityId);
     this.materialRegistry.applyStyle(object, { profile: 'standard' });
     object.removeFromParent();
     object.traverse((child) => {
@@ -443,6 +450,27 @@ export class ThreeRuntime implements WebRuntime {
     this.applyEntityRenderStyle(entityId);
   }
 
+  setRenderableMaterials(
+    entityId: string,
+    materials: RuntimeRenderableMaterialSlots | undefined,
+  ): void {
+    if (!materials) {
+      return;
+    }
+
+    for (const [slot, material] of Object.entries(materials)) {
+      const result = this.materialRuntime.applyMaterial(
+        { entityId, slot },
+        material.materialId,
+        material.parameters,
+      );
+
+      for (const error of result.errors) {
+        this.logger.warn(error.message);
+      }
+    }
+  }
+
   setRenderEnvironment(environment: RuntimeRenderEnvironmentStyle | undefined): void {
     this.renderEnvironment = environment;
     this.applyRenderEnvironment();
@@ -589,6 +617,9 @@ export class ThreeRuntime implements WebRuntime {
     }
 
     this.disposed = true;
+    for (const entityId of this.objectByEntityId.keys()) {
+      this.materialRuntime.disposeEntityMaterials(entityId);
+    }
     for (const object of this.objectByEntityId.values()) {
       this.materialRegistry.applyStyle(object, { profile: 'standard' });
     }
