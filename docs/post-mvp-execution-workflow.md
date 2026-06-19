@@ -21,7 +21,7 @@ Complete the core post-MVP roadmap for Sinan Scene Director, Phase 8 through Pha
 
 The earlier optional advanced-gameplay track is superseded by the Abeto route unless the user explicitly asks for Rapier, character-control, or dialogue/quest work outside that route.
 
-After Phase 14, the next product route is the Abeto Messenger-like vertical slice. Use `docs/abeto-messenger-development-plan.md` as the roadmap and phase-specific goal-mode guides. Phase 15 is a scope-lock and handoff phase, Phase 16 is Stylized Runtime Foundation, Phase 17 is Asset Budget And Compression, and Phase 18 is Shader GLSL Material Runtime Foundation. The Web3D Shader GLSL MVP docs are now integrated into this route: Phase 17 prepares texture metadata and loader policy, Phase 18 establishes the S0 material runtime foundation, and later LOD/world/gameplay phases move after the shader track. Phase 18 is PASS; `docs/engine-positioning-architecture-adjustment-plan.md` inserts Phase 18.5 Engine Core Alignment before Phase 19 story-material work.
+After Phase 14, the next product route is the Abeto Messenger-like vertical slice. Use `docs/abeto-messenger-development-plan.md` as the roadmap and phase-specific goal-mode guides. Phase 15 is a scope-lock and handoff phase, Phase 16 is Stylized Runtime Foundation, Phase 17 is Asset Budget And Compression, Phase 18 is Shader GLSL Material Runtime Foundation, and Phase 18.5 is Engine Core Alignment. The Web3D Shader GLSL MVP docs are now integrated into this route: Phase 17 prepares texture metadata and loader policy, Phase 18 establishes the S0 material runtime foundation, Phase 18.5 establishes the engine/session/world root, and later LOD/world/gameplay phases move after the shader track.
 
 The next executor should start by reading `AGENTS.md`, the main architecture guide, the Abeto roadmap, both Web3D Shader GLSL MVP docs, and the active goal guide.
 
@@ -29,7 +29,7 @@ Routine validation now includes `npm run report-assets` through `.codex/project-
 
 Phase 18 adds a Chromium shader compile smoke under `npm run test:smoke`. Run smoke after changing `src/shaders/**`, `src/runtime/materials/**`, `src/runtime/three/materials/**`, renderable material data flow, or fallback/diagnostic behavior.
 
-Phase 18.5 should be treated as the current next checkpoint. The active goal-mode guide is `docs/phase-18-5-engine-core-alignment-goal-mode-execution-guide.md`. It should introduce `EngineSession`, `EngineLoop`, minimal renderer-neutral `World`, and `EditorSessionBridge`, then move project load/update/render/dispose orchestration out of `src/editor/Viewport.tsx` without changing editor behavior or adding gameplay. Run full validation and smoke after this refactor.
+Phase 18.5 is PASS. The current next checkpoint is Phase 19: Shader Dissolve And Material Timeline. Phase 19 should use the new `EngineSession`/`EditorSessionBridge` path for material timeline/action behavior instead of reintroducing runtime orchestration into `src/editor/Viewport.tsx`.
 
 ## Execution Budget
 

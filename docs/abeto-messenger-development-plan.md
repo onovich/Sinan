@@ -273,6 +273,8 @@ Goal: make the runtime/editor architecture match the Sinan Engine positioning be
 
 Estimated rounds: 3.
 
+Current status: PASS on 2026-06-20. Final report: `docs/phase-18-5-engine-core-alignment-final-report.md`.
+
 Scope:
 
 - Add a thin `EngineSession` that receives project data and a `WebRuntime` implementation, then owns project load, runtime object synchronization, update/render, and disposal orchestration.
@@ -478,14 +480,12 @@ The Phase 17 goal-mode guide uses a 16-round budget: 12 implementation rounds, 3
 
 Shader integration update: before starting Phase 17, also read `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md` and `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`. Phase 17 prepares shader prerequisites through texture metadata and loader strategy, but it must not implement `MaterialRuntime`, `ShaderMaterial`, material timeline tracks, or postprocessing.
 
-Phase 18 is PASS. `docs/engine-positioning-architecture-adjustment-plan.md` inserts a lightweight architecture checkpoint before story-material work. The next goal should be Phase 18.5: Engine Core Alignment.
+Phase 18.5 is PASS. `docs/engine-positioning-architecture-adjustment-plan.md` inserted and completed a lightweight architecture checkpoint before story-material work. The next goal should be Phase 19: Shader Dissolve And Material Timeline.
 
 ```txt
-Complete Phase 18.5 from docs/abeto-messenger-development-plan.md: Engine Core Alignment.
+Complete Phase 19 from docs/abeto-messenger-development-plan.md: Shader Dissolve And Material Timeline.
 ```
 
-Use `docs/phase-18-5-engine-core-alignment-goal-mode-execution-guide.md` as the active goal-mode guide. It uses a 3-round budget: 2 implementation rounds plus 1 integrated validation, buffer, and final-report round.
+Start only after confirming `docs/phase-18-5-engine-core-alignment-final-report.md` is PASS and pushed. Phase 19 should use the new `EngineSession` and `EditorSessionBridge` route for material timeline/action integration.
 
-Before starting Phase 18.5, re-read `AGENTS.md`, the main architecture guide, `docs/engine-positioning-architecture-adjustment-plan.md`, the Phase 18 final report, and the current runtime/editor architecture. Phase 18.5 should add `EngineSession`, `EngineLoop`, minimal `World`, and `EditorSessionBridge`, move project load/update/render/dispose orchestration out of `Viewport.tsx`, update boundary checks, and preserve existing editor behavior.
-
-After Phase 18.5 passes, continue to Phase 19: Shader Dissolve And Material Timeline.
+Before starting Phase 19, re-read `AGENTS.md`, the main architecture guide, `docs/engine-positioning-architecture-adjustment-plan.md`, the Phase 18 and Phase 18.5 final reports, and the current runtime/editor architecture.

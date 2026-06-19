@@ -220,4 +220,4 @@ Current route update: Phase 17 is PASS. The active goal-mode guide is `docs/phas
 
 Historical note: Phase 17 from `docs/phase-17-asset-budget-compression-goal-mode-execution-guide.md` prepared asset, texture, and compression prerequisites for the Shader GLSL MVP; actual `MaterialRuntime` and GLSL work starts in Phase 18.
 
-Current engine-positioning update: Phase 18 is PASS. Before Phase 19, execute Phase 18.5 Engine Core Alignment using `docs/phase-18-5-engine-core-alignment-goal-mode-execution-guide.md`, `docs/abeto-messenger-development-plan.md`, and `docs/engine-positioning-architecture-adjustment-plan.md`. This checkpoint should add `EngineSession`, `EngineLoop`, minimal `World`, and `EditorSessionBridge`, then move the runtime orchestration root out of `src/editor/Viewport.tsx`.
+Current engine-positioning update: Phase 18.5 is PASS. The project now has `EngineSession`, `EngineLoop`, minimal renderer-neutral `World`, and `EditorSessionBridge`, and `src/editor/Viewport.tsx` no longer owns the bulk of runtime orchestration. The next implementation phase is Phase 19: Shader Dissolve And Material Timeline.
