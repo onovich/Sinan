@@ -16,7 +16,7 @@
     "npm run validate-data",
     "npm run migrate-data -- --check"
   ],
-  "stagingPolicy": "all changes",
+  "stagingPolicy": "explicit paths",
   "commitCommand": "",
   "pushCommand": "git -c safe.directory=D:/LabProjects/Sinan push -u origin HEAD",
   "docsRequirement": "Keep docs/development-plan.md and the architecture guide aligned when project scope changes.",
