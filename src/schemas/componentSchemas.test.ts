@@ -20,6 +20,23 @@ describe('component schemas', () => {
       })?.success,
     ).toBe(true);
     expect(
+      parseKnownComponentPayload('Renderable', {
+        model: 'model.switch_wall',
+        materials: {
+          main: {
+            materialId: 'debug.uv-gradient',
+            parameters: {
+              baseColor: '#87c5ff',
+              enabled: true,
+              noiseMap: 'texture.noise',
+              strength: 0.65,
+              uvScale: [1, 1],
+            },
+          },
+        },
+      })?.success,
+    ).toBe(true);
+    expect(
       parseKnownComponentPayload('Door', {
         locked: true,
         requiredKey: 'gate_key',
@@ -50,6 +67,52 @@ describe('component schemas', () => {
         model: 'model.switch_wall',
         renderStyle: {
           profile: 'shader-graph',
+        },
+      })?.success,
+    ).toBe(false);
+    expect(
+      parseKnownComponentPayload('Renderable', {
+        model: 'model.switch_wall',
+        materials: {
+          'main slot': {
+            materialId: 'debug.uv-gradient',
+          },
+        },
+      })?.success,
+    ).toBe(false);
+    expect(
+      parseKnownComponentPayload('Renderable', {
+        model: 'model.switch_wall',
+        materials: {
+          main: {
+            materialId: 'Debug.UV',
+          },
+        },
+      })?.success,
+    ).toBe(false);
+    expect(
+      parseKnownComponentPayload('Renderable', {
+        model: 'model.switch_wall',
+        materials: {
+          main: {
+            materialId: 'debug.uv-gradient',
+            parameters: {
+              uProgress: 0,
+            },
+          },
+        },
+      })?.success,
+    ).toBe(false);
+    expect(
+      parseKnownComponentPayload('Renderable', {
+        model: 'model.switch_wall',
+        materials: {
+          main: {
+            materialId: 'debug.uv-gradient',
+            parameters: {
+              offset: [1, 2, 3, 4],
+            },
+          },
         },
       })?.success,
     ).toBe(false);
