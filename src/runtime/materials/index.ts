@@ -1,5 +1,11 @@
 export type { MaterialDefinition } from './MaterialDefinition';
 export { isMaterialDefinitionId, validateMaterialDefinition } from './MaterialDefinition';
+export {
+  BUILT_IN_MATERIAL_DEFINITIONS,
+  DEBUG_UV_GRADIENT_MATERIAL_ID,
+  createDefaultMaterialRegistry,
+  debugUvGradientMaterialDefinition,
+} from './BuiltInMaterials';
 export { MaterialRegistry, MaterialRegistryError } from './MaterialRegistry';
 export type {
   MaterialRuntime,
