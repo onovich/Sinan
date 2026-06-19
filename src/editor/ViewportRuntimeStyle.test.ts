@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ProjectData } from '../data/DataRepository';
+import { EngineSession } from '../engine/EngineSession';
 import type {
   RuntimeRenderStyle,
   RuntimeRenderableMaterialSlots,
@@ -9,7 +10,6 @@ import type {
 } from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
 import type { TransformData } from '../schemas/transform.schema';
-import { loadProjectIntoRuntime } from './Viewport';
 
 const transform: TransformData = {
   position: [0, 0, 0],
@@ -17,7 +17,7 @@ const transform: TransformData = {
   scale: [1, 1, 1],
 };
 
-describe('Viewport runtime style flow', () => {
+describe('EngineSession runtime style flow', () => {
   it('passes palette resources, environment, and render styles through WebRuntime', async () => {
     const calls: unknown[] = [];
     const project: ProjectData = {
@@ -105,7 +105,9 @@ describe('Viewport runtime style flow', () => {
       cameraShots: {},
     };
 
-    await loadProjectIntoRuntime(createRuntimeMock(calls), project, () => false);
+    const session = new EngineSession({ runtime: createRuntimeMock(calls) });
+
+    await session.loadProject(project);
 
     expect(calls).toEqual([
       {
@@ -170,17 +172,19 @@ describe('Viewport runtime style flow', () => {
           },
         },
       },
+      {
+        type: 'setDebugAabb',
+        entityId: 'switch_a',
+        bounds: undefined,
+      },
     ]);
   });
 
   it('accepts a deterministic low-end style quality profile override', async () => {
     const calls: unknown[] = [];
-    await loadProjectIntoRuntime(
-      createRuntimeMock(calls),
-      createEmptyProject(),
-      () => false,
-      'low-end',
-    );
+    const session = new EngineSession({ runtime: createRuntimeMock(calls) });
+
+    await session.loadProject(createEmptyProject(), { styleQualityProfile: 'low-end' });
 
     expect(calls).toContainEqual({
       type: 'styleQuality',
@@ -213,7 +217,9 @@ function createRuntimeMock(calls: unknown[]): WebRuntime {
     stopAnimation: () => undefined,
     setAnimationTime: () => undefined,
     setCameraPose: () => undefined,
-    setDebugAabb: () => undefined,
+    setDebugAabb: (entityId, bounds) => {
+      calls.push({ type: 'setDebugAabb', entityId, bounds });
+    },
     setStyleResources: (resources: RuntimeStyleResources) => {
       calls.push({ type: 'styleResources', resources });
     },

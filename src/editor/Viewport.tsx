@@ -1,29 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { ProjectData } from '../data/DataRepository';
-import {
-  getRenderableMaterials,
-  getRenderableModelAssetId,
-  getRenderableRenderStyle,
-} from '../data/projectDataSelectors';
-import type {
-  RuntimePalette,
-  RuntimeDebugAabb,
-  RuntimeRenderEnvironmentStyle,
-  RuntimeRenderStyle,
-  RuntimeStyleQualityProfile,
-  RuntimeTransform,
-  TransformGizmoMode,
-} from '../runtime/RuntimeTypes';
+import { EngineSession } from '../engine/EngineSession';
 import type { WebRuntime } from '../runtime/WebRuntime';
-import {
-  AabbColliderComponentSchema,
-  TriggerZoneComponentSchema,
-} from '../schemas/collider.schema';
-import type { EntityData } from '../schemas/entity.schema';
 import type { TransformData } from '../schemas/transform.schema';
+import { EditorSessionBridge, readEditorRuntimeStyleQualityProfile } from './EditorSessionBridge';
 import type { ActiveTool } from './store/editorStore';
-import { SelectionTool } from './tools/SelectionTool';
 
 type ViewportStatus =
   | 'Waiting for level data'
@@ -31,21 +13,6 @@ type ViewportStatus =
   | 'Level loaded'
   | 'Load failed';
 type ViewportNavigationMode = 'idle' | 'pan' | 'orbit';
-
-interface EditorCameraRuntime extends WebRuntime {
-  handleEditorCameraWheel?: (input: {
-    deltaX: number;
-    deltaY: number;
-    shiftKey: boolean;
-    ctrlKey: boolean;
-  }) => void;
-  startEditorCameraDrag?: (mode: 'pan' | 'orbit', clientX: number, clientY: number) => void;
-  updateEditorCameraDrag?: (clientX: number, clientY: number) => void;
-  endEditorCameraDrag?: () => void;
-  frameEntity?: (entityId: string) => void;
-  frameAll?: () => void;
-  resetEditorCamera?: () => void;
-}
 
 interface ViewportPointerInteraction {
   pointerId: number;
@@ -82,8 +49,8 @@ export function Viewport({
 }: ViewportProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const runtimeRef = useRef<WebRuntime | null>(null);
-  const selectionToolRef = useRef<SelectionTool | null>(null);
+  const bridgeRef = useRef<EditorSessionBridge | null>(null);
+  const sessionRef = useRef<EngineSession | null>(null);
   const selectEntityRef = useRef(onSelectEntity);
   const transformPreviewRef = useRef(onTransformPreview);
   const transformCommitRef = useRef(onTransformCommit);
@@ -127,9 +94,8 @@ export function Viewport({
       return undefined;
     }
 
-    let runtime: WebRuntime | null = null;
+    let session: EngineSession | null = null;
     let resizeObserver: ResizeObserver | undefined;
-    let frameId: number | undefined;
     let disposed = false;
 
     const readSize = () => {
@@ -150,34 +116,26 @@ export function Viewport({
       }
 
       const activeRuntime = new ThreeRuntime();
-      runtime = activeRuntime;
-      runtimeRef.current = activeRuntime;
-      runtimeReadyRef.current?.(activeRuntime);
-      selectionToolRef.current = new SelectionTool(activeRuntime, (entityId) => {
+      activeRuntime.init({ canvas, ...readSize() });
+
+      const activeSession = new EngineSession({
+        runtime: activeRuntime,
+        styleQualityProfile: readEditorRuntimeStyleQualityProfile(),
+      });
+      const activeBridge = new EditorSessionBridge(activeSession, activeRuntime, (entityId) => {
         selectEntityRef.current(entityId);
       });
 
-      activeRuntime.init({ canvas, ...readSize() });
+      session = activeSession;
+      sessionRef.current = activeSession;
+      bridgeRef.current = activeBridge;
+      runtimeReadyRef.current?.(activeRuntime);
 
       resizeObserver = new ResizeObserver(() => {
-        activeRuntime.resize(readSize());
+        activeSession.resize(readSize());
       });
       resizeObserver.observe(host);
-
-      let lastTime = performance.now();
-      const frame = (now: number) => {
-        if (disposed) {
-          return;
-        }
-
-        const deltaSeconds = Math.min((now - lastTime) / 1000, 0.05);
-        lastTime = now;
-        activeRuntime.update(deltaSeconds);
-        activeRuntime.render();
-        frameId = window.requestAnimationFrame(frame);
-      };
-
-      frameId = window.requestAnimationFrame(frame);
+      activeSession.startLoop(createBrowserFrameScheduler());
       setRuntimeVersion((version) => version + 1);
     };
 
@@ -190,31 +148,29 @@ export function Viewport({
 
     return () => {
       disposed = true;
-      if (frameId !== undefined) {
-        window.cancelAnimationFrame(frameId);
-      }
       resizeObserver?.disconnect();
-      runtime?.dispose();
-      runtimeRef.current = null;
+      session?.dispose();
+      sessionRef.current = null;
+      bridgeRef.current = null;
       runtimeReadyRef.current?.(null);
-      selectionToolRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    const runtime = runtimeRef.current;
+    const session = sessionRef.current;
 
-    if (!runtime || !project) {
+    if (!session || !project) {
       setStatus('Waiting for level data');
       return;
     }
 
     let disposed = false;
     setStatus('Loading level data');
-    void loadProjectIntoRuntime(runtime, project, () => disposed)
-      .then(() => {
-        if (!disposed) {
-          syncTriggerDebug(runtime, project, showTriggerDebugRef.current);
+    void session
+      .loadProject(project, { isCancelled: () => disposed })
+      .then((world) => {
+        if (!disposed && world) {
+          bridgeRef.current?.setTriggerDebugVisible(showTriggerDebugRef.current);
           setStatus('Level loaded');
         }
       })
@@ -231,40 +187,33 @@ export function Viewport({
   }, [project, runtimeVersion]);
 
   useEffect(() => {
-    const runtime = runtimeRef.current;
-
-    if (!runtime || !project) {
-      return;
-    }
-
-    syncTriggerDebug(runtime, project, showTriggerDebug);
+    bridgeRef.current?.setTriggerDebugVisible(showTriggerDebug);
   }, [project, showTriggerDebug]);
 
   useEffect(() => {
-    runtimeRef.current?.setSelectedEntity?.(selectedEntityId);
+    bridgeRef.current?.setSelectedEntity(selectedEntityId);
   }, [selectedEntityId]);
 
   useEffect(() => {
-    const runtime = runtimeRef.current;
-    const mode = getTransformGizmoMode(activeTool);
+    const bridge = bridgeRef.current;
 
-    if (!runtime || !selectedEntityId || !mode) {
-      runtime?.detachTransformGizmo();
+    if (!bridge) {
       return;
     }
 
-    runtime.setTransformGizmoMode(mode);
-    runtime.attachTransformGizmo(selectedEntityId, {
-      onChange: (event) => {
-        transformPreviewRef.current?.(event.entityId, toTransformData(event.transform));
+    bridge.syncTransformGizmo({
+      activeTool,
+      selectedEntityId,
+      onPreview: (entityId, transform) => {
+        transformPreviewRef.current?.(entityId, transform);
       },
-      onCommit: (event) => {
-        transformCommitRef.current(event.entityId, toTransformData(event.transform));
+      onCommit: (entityId, transform) => {
+        transformCommitRef.current(entityId, transform);
       },
     });
 
     return () => {
-      runtime.detachTransformGizmo();
+      bridge.detachTransformGizmo();
     };
   }, [activeTool, selectedEntityId, project]);
 
@@ -284,7 +233,7 @@ export function Viewport({
         tabIndex={0}
         onContextMenu={(event) => event.preventDefault()}
         onWheel={(event) => {
-          getEditorCameraRuntime(runtimeRef.current)?.handleEditorCameraWheel?.({
+          bridgeRef.current?.handleEditorCameraWheel({
             deltaX: event.deltaX,
             deltaY: event.deltaY,
             shiftKey: event.shiftKey,
@@ -292,30 +241,30 @@ export function Viewport({
           });
         }}
         onKeyDown={(event) => {
-          const runtime = getEditorCameraRuntime(runtimeRef.current);
-
           if (event.key === 'f' || event.key === 'F') {
             const entityId = selectedEntityIdRef.current;
 
             if (entityId) {
-              runtime?.frameEntity?.(entityId);
+              bridgeRef.current?.frameEntity(entityId);
             }
             event.preventDefault();
           } else if (event.key === 'Home') {
-            runtime?.frameAll?.();
+            bridgeRef.current?.frameAll();
             event.preventDefault();
           } else if (event.key === '0') {
-            runtime?.resetEditorCamera?.();
+            bridgeRef.current?.resetEditorCamera();
             event.preventDefault();
           }
         }}
         onPointerDown={(event) => {
           event.currentTarget.focus();
-          const runtime = getEditorCameraRuntime(runtimeRef.current);
           const mode =
             event.button === 2 ? 'pan' : event.button === 1 || event.altKey ? 'orbit' : undefined;
 
-          if (mode && runtime?.startEditorCameraDrag) {
+          if (
+            mode &&
+            bridgeRef.current?.startEditorCameraDrag(mode, event.clientX, event.clientY)
+          ) {
             event.preventDefault();
             pointerInteractionRef.current = {
               pointerId: event.pointerId,
@@ -325,7 +274,6 @@ export function Viewport({
               dragged: true,
             };
             event.currentTarget.setPointerCapture(event.pointerId);
-            runtime.startEditorCameraDrag(mode, event.clientX, event.clientY);
             setNavigationMode(mode);
             return;
           }
@@ -356,10 +304,7 @@ export function Viewport({
           }
 
           if (interaction.mode === 'pan' || interaction.mode === 'orbit') {
-            getEditorCameraRuntime(runtimeRef.current)?.updateEditorCameraDrag?.(
-              event.clientX,
-              event.clientY,
-            );
+            bridgeRef.current?.updateEditorCameraDrag(event.clientX, event.clientY);
           }
         }}
         onPointerUp={(event) => {
@@ -372,13 +317,13 @@ export function Viewport({
           pointerInteractionRef.current = undefined;
 
           if (interaction.mode === 'pan' || interaction.mode === 'orbit') {
-            getEditorCameraRuntime(runtimeRef.current)?.endEditorCameraDrag?.();
+            bridgeRef.current?.endEditorCameraDrag();
             setNavigationMode('idle');
             return;
           }
 
           if (!interaction.dragged && selectionEnabled) {
-            selectionToolRef.current?.handlePointerDown(event);
+            bridgeRef.current?.handleSelectionPointer(event);
           }
         }}
         onPointerCancel={() => {
@@ -387,7 +332,7 @@ export function Viewport({
           pointerInteractionRef.current = undefined;
 
           if (interaction?.mode === 'pan' || interaction?.mode === 'orbit') {
-            getEditorCameraRuntime(runtimeRef.current)?.endEditorCameraDrag?.();
+            bridgeRef.current?.endEditorCameraDrag();
             setNavigationMode('idle');
           }
         }}
@@ -427,159 +372,10 @@ function formatRuntimeStatus(status: ViewportStatus): string {
   }
 }
 
-function syncTriggerDebug(
-  runtime: WebRuntime,
-  project: ProjectData,
-  showTriggerDebug: boolean,
-): void {
-  for (const entity of project.level.entities) {
-    runtime.setDebugAabb(entity.id, showTriggerDebug ? createTriggerDebugAabb(entity) : undefined);
-  }
-}
-
-function createTriggerDebugAabb(entity: EntityData): RuntimeDebugAabb | undefined {
-  const colliderResult = AabbColliderComponentSchema.safeParse(entity.components.Collider);
-
-  if (!colliderResult.success) {
-    return undefined;
-  }
-
-  const triggerZoneResult = TriggerZoneComponentSchema.safeParse(entity.components.TriggerZone);
-  const isTrigger =
-    colliderResult.data.isTrigger === true ||
-    (triggerZoneResult.success && triggerZoneResult.data.enabled !== false);
-
-  if (!isTrigger) {
-    return undefined;
-  }
-
-  const { center, size, debugColor } = colliderResult.data;
-  const { position, scale } = entity.transform;
-
+function createBrowserFrameScheduler() {
   return {
-    center: [
-      position[0] + center[0] * scale[0],
-      position[1] + center[1] * scale[1],
-      position[2] + center[2] * scale[2],
-    ],
-    size: [
-      Math.abs(size[0] * scale[0]),
-      Math.abs(size[1] * scale[1]),
-      Math.abs(size[2] * scale[2]),
-    ],
-    color: debugColor,
-    visible: true,
-  };
-}
-
-function getTransformGizmoMode(activeTool: ActiveTool): TransformGizmoMode | undefined {
-  if (activeTool === 'move') {
-    return 'translate';
-  }
-
-  if (activeTool === 'rotate' || activeTool === 'scale') {
-    return activeTool;
-  }
-
-  return undefined;
-}
-
-function getEditorCameraRuntime(runtime: WebRuntime | null): EditorCameraRuntime | undefined {
-  return runtime ?? undefined;
-}
-
-function toTransformData(transform: RuntimeTransform): TransformData {
-  return {
-    position: [...transform.position],
-    rotation: [...transform.rotation],
-    scale: [...transform.scale],
-  };
-}
-
-export async function loadProjectIntoRuntime(
-  runtime: WebRuntime,
-  project: ProjectData,
-  isDisposed: () => boolean,
-  styleQualityProfile: RuntimeStyleQualityProfile = readRuntimeStyleQualityProfile(),
-): Promise<void> {
-  runtime.setStyleQualityProfile?.(styleQualityProfile);
-  runtime.setStyleResources?.(toRuntimeStyleResources(project));
-  runtime.setRenderEnvironment?.(toRuntimeRenderEnvironment(project.level.environment));
-
-  await Promise.all(
-    Object.entries(project.assets.assets)
-      .filter(([, asset]) => asset.type === 'model')
-      .map(([assetId, asset]) => runtime.loadModel(assetId, asset.url)),
-  );
-
-  for (const entity of project.level.entities) {
-    if (isDisposed()) {
-      return;
-    }
-
-    const modelAssetId = getRenderableModelAssetId(project, entity);
-
-    if (modelAssetId) {
-      runtime.instantiateModel(modelAssetId, entity.id);
-    } else {
-      runtime.createEmpty(entity.id);
-    }
-
-    runtime.setTransform(entity.id, entity.transform);
-    runtime.setRenderStyle?.(
-      entity.id,
-      toRuntimeRenderStyle(getRenderableRenderStyle(project, entity)),
-    );
-    const materials = getRenderableMaterials(project, entity);
-    if (materials) {
-      runtime.setRenderableMaterials?.(entity.id, materials);
-    }
-  }
-}
-
-function readRuntimeStyleQualityProfile(): RuntimeStyleQualityProfile {
-  if (typeof window === 'undefined') {
-    return 'standard';
-  }
-
-  return new URLSearchParams(window.location.search).get('styleQuality') === 'low-end'
-    ? 'low-end'
-    : 'standard';
-}
-
-function toRuntimeStyleResources(project: ProjectData): {
-  palettes: Record<string, RuntimePalette>;
-} {
-  return {
-    palettes: Object.fromEntries(
-      Object.entries(project.palettes).map(([paletteId, palette]) => [
-        paletteId,
-        {
-          id: palette.id,
-          tones: palette.tones,
-        },
-      ]),
-    ),
-  };
-}
-
-function toRuntimeRenderStyle(
-  style: RuntimeRenderStyle | undefined,
-): RuntimeRenderStyle | undefined {
-  return style;
-}
-
-function toRuntimeRenderEnvironment(
-  environment: ProjectData['level']['environment'],
-): RuntimeRenderEnvironmentStyle | undefined {
-  if (!environment) {
-    return undefined;
-  }
-
-  return {
-    background: environment.background,
-    ambientLight: environment.ambientLight,
-    fog: environment.fog,
-    colorGrade: environment.colorGrade,
+    cancelFrame: (handle: number) => window.cancelAnimationFrame(handle),
+    now: () => performance.now(),
+    requestFrame: (callback: (timeMs: number) => void) => window.requestAnimationFrame(callback),
   };
 }

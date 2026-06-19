@@ -142,7 +142,7 @@ Round 16.9 applies the first renderer-neutral level environment controls to the 
 ## Low-End Style Profile
 
 Round 16.10 keeps the style quality switch renderer-neutral through `RuntimeStyleQualityProfile`.
-The editor can request low-end mode with `?styleQuality=low-end`, and tests can pass the same profile directly through `loadProjectIntoRuntime`.
+The editor can request low-end mode with `?styleQuality=low-end`, and tests can pass the same profile directly through `EngineSession.loadProject`.
 
 Current low-end behavior:
 

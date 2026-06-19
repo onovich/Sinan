@@ -1,19 +1,48 @@
 import type { ProjectData } from '../data/DataRepository';
+import {
+  getRenderableMaterials,
+  getRenderableModelAssetId,
+  getRenderableRenderStyle,
+} from '../data/projectDataSelectors';
+import type {
+  RuntimeDebugAabb,
+  RuntimePalette,
+  RuntimeRenderEnvironmentStyle,
+  RuntimeRenderStyle,
+  RuntimeSize,
+  RuntimeStyleQualityProfile,
+} from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
+import {
+  AabbColliderComponentSchema,
+  TriggerZoneComponentSchema,
+} from '../schemas/collider.schema';
+import type { EntityData } from '../schemas/entity.schema';
 import { World } from '../world';
-import { EngineLoop } from './EngineLoop';
+import { EngineLoop, type EngineFrameScheduler } from './EngineLoop';
 import type { EngineMode } from './EngineMode';
 
-export type EngineSessionStatus = 'idle' | 'loaded' | 'disposed';
+export type EngineSessionStatus = 'idle' | 'loading' | 'loaded' | 'disposed';
 
 export interface EngineSessionOptions {
+  maxFrameDeltaSeconds?: number;
   mode?: EngineMode;
-  runtime: Pick<WebRuntime, 'dispose' | 'render' | 'update'>;
+  runtime: WebRuntime;
+  styleQualityProfile?: RuntimeStyleQualityProfile;
+}
+
+export interface EngineProjectLoadOptions {
+  isCancelled?: () => boolean;
+  styleQualityProfile?: RuntimeStyleQualityProfile;
 }
 
 export class EngineSession {
   private readonly loop: EngineLoop;
+  private currentProject: ProjectData | undefined;
+  private loadedEntityIds = new Set<string>();
+  private loadRevision = 0;
   private status: EngineSessionStatus = 'idle';
+  private triggerDebugVisible = false;
   private world: World | undefined;
 
   constructor(private readonly options: EngineSessionOptions) {
@@ -37,6 +66,9 @@ export class EngineSession {
 
     this.loop.dispose();
     this.options.runtime.dispose();
+    this.currentProject = undefined;
+    this.loadedEntityIds.clear();
+    this.loadRevision += 1;
     this.world = undefined;
     this.status = 'disposed';
   }
@@ -53,12 +85,76 @@ export class EngineSession {
     return this.world;
   }
 
-  loadProject(project: ProjectData): World {
+  async loadProject(
+    project: ProjectData,
+    loadOptions: EngineProjectLoadOptions = {},
+  ): Promise<World | undefined> {
     this.ensureActive();
+    const revision = this.loadRevision + 1;
+    this.loadRevision = revision;
+    this.currentProject = project;
+    this.status = 'loading';
     this.world = World.fromLevel(project.level);
+    this.options.runtime.setStyleQualityProfile?.(
+      loadOptions.styleQualityProfile ?? this.options.styleQualityProfile ?? 'standard',
+    );
+    this.options.runtime.setStyleResources?.(toRuntimeStyleResources(project));
+    this.options.runtime.setRenderEnvironment?.(
+      toRuntimeRenderEnvironment(project.level.environment),
+    );
+
+    await Promise.all(
+      Object.entries(project.assets.assets)
+        .filter(([, asset]) => asset.type === 'model')
+        .map(([assetId, asset]) => this.options.runtime.loadModel(assetId, asset.url)),
+    );
+
+    if (this.isLoadCancelled(revision, loadOptions)) {
+      return undefined;
+    }
+
+    const nextEntityIds = new Set(project.level.entities.map((entity) => entity.id));
+    for (const entityId of this.loadedEntityIds) {
+      if (!nextEntityIds.has(entityId)) {
+        this.options.runtime.destroyObject(entityId);
+        this.options.runtime.setDebugAabb(entityId, undefined);
+      }
+    }
+
+    for (const entity of project.level.entities) {
+      if (this.isLoadCancelled(revision, loadOptions)) {
+        return undefined;
+      }
+
+      const modelAssetId = getRenderableModelAssetId(project, entity);
+
+      if (modelAssetId) {
+        this.options.runtime.instantiateModel(modelAssetId, entity.id);
+      } else {
+        this.options.runtime.createEmpty(entity.id);
+      }
+
+      this.options.runtime.setTransform(entity.id, entity.transform);
+      this.options.runtime.setRenderStyle?.(
+        entity.id,
+        toRuntimeRenderStyle(getRenderableRenderStyle(project, entity)),
+      );
+      this.options.runtime.setRenderableMaterials?.(
+        entity.id,
+        getRenderableMaterials(project, entity),
+      );
+    }
+
+    this.loadedEntityIds = nextEntityIds;
+    this.syncTriggerDebug();
     this.status = 'loaded';
 
     return this.world;
+  }
+
+  resize(size: RuntimeSize): void {
+    this.ensureActive();
+    this.options.runtime.resize(size);
   }
 
   setMode(mode: EngineMode): void {
@@ -66,9 +162,52 @@ export class EngineSession {
     this.loop.setMode(mode);
   }
 
+  setSelectedEntity(entityId: string | undefined): void {
+    this.ensureActive();
+    this.options.runtime.setSelectedEntity?.(entityId);
+  }
+
+  setTriggerDebugVisible(visible: boolean): void {
+    this.ensureActive();
+    this.triggerDebugVisible = visible;
+    this.syncTriggerDebug();
+  }
+
+  startLoop(scheduler: EngineFrameScheduler): void {
+    this.ensureActive();
+    this.loop.start(scheduler, {
+      maxDeltaSeconds: this.options.maxFrameDeltaSeconds,
+    });
+  }
+
   step(deltaSeconds: number): void {
     this.ensureActive();
     this.loop.step(deltaSeconds);
+  }
+
+  stopLoop(): void {
+    this.loop.stop();
+  }
+
+  private isLoadCancelled(revision: number, loadOptions: EngineProjectLoadOptions): boolean {
+    return (
+      this.status === 'disposed' ||
+      revision !== this.loadRevision ||
+      loadOptions.isCancelled?.() === true
+    );
+  }
+
+  private syncTriggerDebug(): void {
+    if (!this.currentProject) {
+      return;
+    }
+
+    for (const entity of this.currentProject.level.entities) {
+      this.options.runtime.setDebugAabb(
+        entity.id,
+        this.triggerDebugVisible ? createTriggerDebugAabb(entity) : undefined,
+      );
+    }
   }
 
   private ensureActive(): void {
@@ -76,4 +215,76 @@ export class EngineSession {
       throw new Error('EngineSession has been disposed.');
     }
   }
+}
+
+function createTriggerDebugAabb(entity: EntityData): RuntimeDebugAabb | undefined {
+  const colliderResult = AabbColliderComponentSchema.safeParse(entity.components.Collider);
+
+  if (!colliderResult.success) {
+    return undefined;
+  }
+
+  const triggerZoneResult = TriggerZoneComponentSchema.safeParse(entity.components.TriggerZone);
+  const isTrigger =
+    colliderResult.data.isTrigger === true ||
+    (triggerZoneResult.success && triggerZoneResult.data.enabled !== false);
+
+  if (!isTrigger) {
+    return undefined;
+  }
+
+  const { center, size, debugColor } = colliderResult.data;
+  const { position, scale } = entity.transform;
+
+  return {
+    center: [
+      position[0] + center[0] * scale[0],
+      position[1] + center[1] * scale[1],
+      position[2] + center[2] * scale[2],
+    ],
+    size: [
+      Math.abs(size[0] * scale[0]),
+      Math.abs(size[1] * scale[1]),
+      Math.abs(size[2] * scale[2]),
+    ],
+    color: debugColor,
+    visible: true,
+  };
+}
+
+function toRuntimeStyleResources(project: ProjectData): {
+  palettes: Record<string, RuntimePalette>;
+} {
+  return {
+    palettes: Object.fromEntries(
+      Object.entries(project.palettes).map(([paletteId, palette]) => [
+        paletteId,
+        {
+          id: palette.id,
+          tones: palette.tones,
+        },
+      ]),
+    ),
+  };
+}
+
+function toRuntimeRenderStyle(
+  style: RuntimeRenderStyle | undefined,
+): RuntimeRenderStyle | undefined {
+  return style;
+}
+
+function toRuntimeRenderEnvironment(
+  environment: ProjectData['level']['environment'],
+): RuntimeRenderEnvironmentStyle | undefined {
+  if (!environment) {
+    return undefined;
+  }
+
+  return {
+    background: environment.background,
+    ambientLight: environment.ambientLight,
+    fog: environment.fog,
+    colorGrade: environment.colorGrade,
+  };
 }

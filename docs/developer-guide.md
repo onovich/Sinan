@@ -225,7 +225,7 @@ Level atmosphere is configured separately in `data/levels/*.json` under `environ
 }
 ```
 
-Low-end mode is deterministic: open `http://127.0.0.1:5174/?styleQuality=low-end` or pass `low-end` to `loadProjectIntoRuntime` in tests. Low-end mode keeps palette readability, uses a lighter palette material, and disables outline/highlight helper boxes.
+Low-end mode is deterministic: open `http://127.0.0.1:5174/?styleQuality=low-end` or pass `styleQualityProfile: 'low-end'` to `EngineSession.loadProject` in tests. Low-end mode keeps palette readability, uses a lighter palette material, and disables outline/highlight helper boxes.
 
 When adding a new render style profile:
 
