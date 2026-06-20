@@ -485,6 +485,25 @@ function addTimelineTrackReferenceIssues(
     case 'property':
       addMissingEntityReference(track.target, entityIds, `${path}.target`, 'entity', issues);
       break;
+    case 'material.parameter':
+      track.keys.forEach((key, index) =>
+        addMaterialParameterReferenceIssues(
+          {
+            entityId: track.target,
+            slot: track.slot,
+            parameter: track.parameter,
+            value: key.value,
+          },
+          path,
+          `${path}.target`,
+          `${path}.keys.${index}`,
+          input.materialRegistry,
+          entityIds,
+          entityMaterialSlots,
+          issues,
+        ),
+      );
+      break;
     case 'sound':
       addMissingAssetIssue(track.soundId, assetIds, `${path}.soundId`, issues);
       addAssetTypeIssue(track.soundId, input.assets, 'audio', `${path}.soundId`, issues);
@@ -507,56 +526,84 @@ function addMaterialSetParameterActionIssues(
   entityMaterialSlots: ReadonlyMap<string, RenderableMaterialSlotsData>,
   issues: ReferenceValidationIssue[],
 ): void {
-  addMissingEntityReference(action.entityId, entityIds, `${path}.entityId`, 'entity', issues);
+  addMaterialParameterReferenceIssues(
+    action,
+    path,
+    `${path}.entityId`,
+    path,
+    materialRegistry,
+    entityIds,
+    entityMaterialSlots,
+    issues,
+  );
+}
 
-  if (!supportedRenderableMaterialSlots.has(action.slot)) {
+function addMaterialParameterReferenceIssues(
+  reference: {
+    entityId: string;
+    slot: string;
+    parameter: string;
+    value: MaterialParameterValue;
+  },
+  targetPath: string,
+  entityPath: string,
+  valuePath: string,
+  materialRegistry: MaterialRegistry,
+  entityIds: ReadonlySet<string>,
+  entityMaterialSlots: ReadonlyMap<string, RenderableMaterialSlotsData>,
+  issues: ReferenceValidationIssue[],
+): void {
+  addMissingEntityReference(reference.entityId, entityIds, entityPath, 'entity', issues);
+
+  if (!supportedRenderableMaterialSlots.has(reference.slot)) {
     issues.push({
       severity: 'error',
-      path: `${path}.slot`,
-      message: `Unsupported renderable material slot "${action.slot}". Supported slots: main.`,
+      path: `${targetPath}.slot`,
+      message: `Unsupported renderable material slot "${reference.slot}". Supported slots: main.`,
     });
     return;
   }
 
-  const materialSlot = entityMaterialSlots.get(action.entityId)?.[action.slot];
+  const materialSlot = entityMaterialSlots.get(reference.entityId)?.[reference.slot];
 
   if (!materialSlot) {
     issues.push({
       severity: 'error',
-      path: `${path}.slot`,
-      message: `Entity "${action.entityId}" does not define renderable material slot "${action.slot}".`,
+      path: `${targetPath}.slot`,
+      message: `Entity "${reference.entityId}" does not define renderable material slot "${reference.slot}".`,
     });
     return;
   }
 
   for (const issue of materialRegistry.validateParameters(materialSlot.materialId, {
-    [action.parameter]: action.value,
+    [reference.parameter]: reference.value,
   })) {
     issues.push({
       severity: 'error',
-      path: getMaterialActionIssuePath(path, issue),
+      path: getMaterialParameterReferenceIssuePath(targetPath, valuePath, issue),
       message: issue.message,
     });
   }
 }
 
-function getMaterialActionIssuePath(
-  actionPath: string,
+function getMaterialParameterReferenceIssuePath(
+  targetPath: string,
+  valuePath: string,
   issue: { path: string; message: string },
 ): string {
   const issuePath = issue.path;
 
   if (issuePath === 'materialId') {
-    return `${actionPath}.slot`;
+    return `${targetPath}.slot`;
   }
 
   if (issuePath.startsWith('parameters.')) {
     return issue.message.startsWith('Unknown material parameter')
-      ? `${actionPath}.parameter`
-      : `${actionPath}.value`;
+      ? `${targetPath}.parameter`
+      : `${valuePath}.value`;
   }
 
-  return `${actionPath}.${issuePath}`;
+  return `${targetPath}.${issuePath}`;
 }
 
 function addCameraShotReferenceIssues(

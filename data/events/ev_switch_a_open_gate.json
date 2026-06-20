@@ -50,6 +50,13 @@
       "value": true
     },
     {
+      "type": "material.setParameter",
+      "entityId": "gate_a",
+      "slot": "main",
+      "parameter": "progress",
+      "value": 0
+    },
+    {
       "type": "timeline.play",
       "timelineId": "tl_open_gate"
     }

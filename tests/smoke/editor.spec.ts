@@ -596,7 +596,7 @@ test('event action cards support drag reorder before command commit', async ({ p
   const eventInspector = page.locator('.event-inspector');
   await eventInspector.locator('#event-inspector-select').selectOption('ev_switch_a_open_gate');
   const actionCards = eventInspector.locator('.event-actions .event-list > li');
-  await expect(actionCards).toHaveCount(6);
+  await expect(actionCards).toHaveCount(7);
   const initialOrder = await readEventActionOrder(page);
   expect(initialOrder).toEqual([
     'switch.setState',
@@ -604,6 +604,7 @@ test('event action cards support drag reorder before command commit', async ({ p
     'camera.playShot',
     'entity.animateTransform',
     'flag.set',
+    'material.setParameter',
     'timeline.play',
   ]);
 
@@ -633,6 +634,7 @@ test('event action cards support drag reorder before command commit', async ({ p
       'camera.playShot',
       'entity.animateTransform',
       'flag.set',
+      'material.setParameter',
       'timeline.play',
     ]);
   await expect(eventInspector.locator('.status-pill')).toHaveText('Clean');

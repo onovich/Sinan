@@ -52,6 +52,25 @@
       ]
     },
     {
+      "id": "track_gate_dissolve_progress",
+      "type": "material.parameter",
+      "target": "gate_a",
+      "slot": "main",
+      "parameter": "progress",
+      "keys": [
+        {
+          "time": 0.4,
+          "value": 0,
+          "ease": "linear"
+        },
+        {
+          "time": 2,
+          "value": 1,
+          "ease": "easeOutCubic"
+        }
+      ]
+    },
+    {
       "id": "track_subtitle_gate_open",
       "type": "subtitle",
       "time": 1.2,

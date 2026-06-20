@@ -1022,4 +1022,168 @@ describe('validateProject', () => {
       ]),
     );
   });
+
+  it('validates material parameter timeline track references', () => {
+    const materialLevel: LevelData = {
+      ...level,
+      entities: [
+        {
+          ...level.entities[0],
+          components: {
+            Renderable: {
+              model: 'model.switch_wall',
+              materials: {
+                main: {
+                  materialId: STORY_GATE_DISSOLVE_MATERIAL_ID,
+                  parameters: {
+                    progress: 0,
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    };
+    const materialTimeline: TimelineData = {
+      schemaVersion: 1,
+      id: 'tl_material',
+      duration: 2,
+      tracks: [
+        {
+          id: 'track_gate_progress',
+          type: 'material.parameter',
+          target: 'switch_a',
+          slot: 'main',
+          parameter: 'progress',
+          keys: [
+            { time: 0, value: 0 },
+            { time: 2, value: 1 },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      validateProject({
+        assets,
+        prefabs: [switchPrefab],
+        levels: [materialLevel],
+        timelines: [materialTimeline],
+      }).issues,
+    ).toEqual([]);
+  });
+
+  it('reports invalid material parameter timeline track references', () => {
+    const materialLevel: LevelData = {
+      ...level,
+      entities: [
+        {
+          ...level.entities[0],
+          components: {},
+        },
+        {
+          id: 'switch_b',
+          prefab: 'switch_wall',
+          transform: level.entities[0].transform,
+          components: {
+            Renderable: {
+              model: 'model.switch_wall',
+              materials: {
+                main: {
+                  materialId: STORY_GATE_DISSOLVE_MATERIAL_ID,
+                  parameters: {
+                    progress: 0,
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    };
+    const materialTimeline: TimelineData = {
+      schemaVersion: 1,
+      id: 'tl_material',
+      duration: 2,
+      tracks: [
+        {
+          id: 'track_missing_target',
+          type: 'material.parameter',
+          target: 'missing_gate',
+          slot: 'main',
+          parameter: 'progress',
+          keys: [{ time: 0, value: 0 }],
+        },
+        {
+          id: 'track_missing_slot',
+          type: 'material.parameter',
+          target: 'switch_a',
+          slot: 'main',
+          parameter: 'progress',
+          keys: [{ time: 0, value: 0 }],
+        },
+        {
+          id: 'track_bad_slot',
+          type: 'material.parameter',
+          target: 'switch_b',
+          slot: 'rim',
+          parameter: 'progress',
+          keys: [{ time: 0, value: 0 }],
+        },
+        {
+          id: 'track_bad_parameter',
+          type: 'material.parameter',
+          target: 'switch_b',
+          slot: 'main',
+          parameter: 'missing',
+          keys: [{ time: 0, value: 0 }],
+        },
+        {
+          id: 'track_bad_value',
+          type: 'material.parameter',
+          target: 'switch_b',
+          slot: 'main',
+          parameter: 'progress',
+          keys: [{ time: 0, value: 'high' }],
+        },
+      ],
+    };
+
+    const issues = validateProject({
+      assets,
+      prefabs: [switchPrefab],
+      levels: [materialLevel],
+      timelines: [materialTimeline],
+    }).issues;
+
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: 'data/timelines/tl_material.json.tracks.track_missing_target.target',
+          message: 'Missing entity "missing_gate".',
+        }),
+        expect.objectContaining({
+          path: 'data/timelines/tl_material.json.tracks.track_missing_target.slot',
+          message: 'Entity "missing_gate" does not define renderable material slot "main".',
+        }),
+        expect.objectContaining({
+          path: 'data/timelines/tl_material.json.tracks.track_missing_slot.slot',
+          message: 'Entity "switch_a" does not define renderable material slot "main".',
+        }),
+        expect.objectContaining({
+          path: 'data/timelines/tl_material.json.tracks.track_bad_slot.slot',
+          message: 'Unsupported renderable material slot "rim". Supported slots: main.',
+        }),
+        expect.objectContaining({
+          path: 'data/timelines/tl_material.json.tracks.track_bad_parameter.parameter',
+          message: `Unknown material parameter "missing" for material "${STORY_GATE_DISSOLVE_MATERIAL_ID}".`,
+        }),
+        expect.objectContaining({
+          path: 'data/timelines/tl_material.json.tracks.track_bad_value.keys.0.value',
+          message: 'Expected finite number.',
+        }),
+      ]),
+    );
+  });
 });

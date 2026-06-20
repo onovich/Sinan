@@ -41,7 +41,7 @@ describe('DirectorSystem', () => {
     director.update(0.5, context);
     director.update(4, context);
 
-    expect(runtimeCalls).toEqual(['play gate_a Open']);
+    expect(runtimeCalls).toEqual(['play gate_a Open', 'material gate_a main progress 0.0625']);
     expect(cameraPoses.length).toBeGreaterThan(0);
     expect(cameraPoses[0]).toMatchObject({
       fov: 55,
@@ -78,7 +78,7 @@ describe('DirectorSystem', () => {
     director.scrub('tl_open_gate', 4, context);
 
     expect(context.state.flags.gate_a_opened).toBeUndefined();
-    expect(runtimeCalls).toEqual(['time gate_a Open 3.6']);
+    expect(runtimeCalls).toEqual(['time gate_a Open 3.6', 'material gate_a main progress 1']);
     expect(cameraPoses.at(-1)).toMatchObject({
       fov: 38,
       lookAt: [5, 1, 8],
@@ -90,6 +90,14 @@ describe('DirectorSystem', () => {
       {
         target: 'gate_a',
         property: 'Door.openAmount',
+        value: 1,
+      },
+    ]);
+    expect(director.getLastMaterialParameterSamples()).toEqual([
+      {
+        target: 'gate_a',
+        slot: 'main',
+        parameter: 'progress',
         value: 1,
       },
     ]);
