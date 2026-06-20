@@ -30,6 +30,24 @@ interface ShaderGlobalsSmokeResult extends ShaderCompileSmokeResult {
   viewportPixelDelta: number;
 }
 
+interface ShaderLifecycleResourceSmokeResult {
+  finalProgramCount: number | null;
+  finalRuntimeBindingCount: number;
+  iterations: number;
+  maxRuntimeBindingCount: number;
+  memoryAfterDispose: {
+    geometries: number;
+    textures: number;
+  };
+  memoryAfterWarmup: {
+    geometries: number;
+    textures: number;
+  };
+  ok: boolean;
+  programGrowthAfterWarmup: number | null;
+  warmProgramCount: number | null;
+}
+
 test('S0 debug ShaderMaterial compiles in Chromium', async ({ page }) => {
   const browserErrors = collectBrowserErrors(page);
 
@@ -112,6 +130,37 @@ test('debug ShaderMaterial responds to shader globals in Chromium', async ({ pag
   expect(result.baselinePixel[3]).toBe(255);
   expect(result.timePixel[3]).toBe(255);
   expect(result.viewportPixel[3]).toBe(255);
+  expect(browserErrors).toEqual([]);
+});
+
+test('shader material lifecycle counters stay bounded in Chromium', async ({ page }) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/');
+  const result = await page.evaluate(async (): Promise<ShaderLifecycleResourceSmokeResult> => {
+    const fixtureUrl = '/tests/smoke/shaderCompileFixture.ts';
+    const fixture = (await import(/* @vite-ignore */ fixtureUrl)) as {
+      runShaderMaterialLifecycleResourceSmoke: () => ShaderLifecycleResourceSmokeResult;
+    };
+
+    return fixture.runShaderMaterialLifecycleResourceSmoke();
+  });
+
+  expect(result).toMatchObject({
+    finalRuntimeBindingCount: 0,
+    iterations: 18,
+    maxRuntimeBindingCount: 1,
+    ok: true,
+  });
+  expect(result.warmProgramCount ?? 0).toBeGreaterThan(0);
+  expect(result.finalProgramCount ?? 0).toBeGreaterThan(0);
+  expect(result.programGrowthAfterWarmup ?? 0).toBeLessThanOrEqual(1);
+  expect(result.memoryAfterDispose.geometries).toBeLessThanOrEqual(
+    result.memoryAfterWarmup.geometries + 1,
+  );
+  expect(result.memoryAfterDispose.textures).toBeLessThanOrEqual(
+    result.memoryAfterWarmup.textures + 1,
+  );
   expect(browserErrors).toEqual([]);
 });
 

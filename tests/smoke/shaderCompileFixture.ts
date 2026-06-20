@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import {
   DEBUG_UV_GRADIENT_MATERIAL_ID,
   STORY_GATE_DISSOLVE_MATERIAL_ID,
+  STORY_HOLOGRAM_SCANLINE_MATERIAL_ID,
 } from '../../src/runtime/materials';
 import { ThreeMaterialFactory } from '../../src/runtime/three/materials/ThreeMaterialFactory';
 import { ThreeMaterialRuntime } from '../../src/runtime/three/materials/ThreeMaterialRuntime';
@@ -35,6 +36,24 @@ export interface ShaderGlobalsSmokeResult extends ShaderCompileSmokeResult {
   timePixelDelta: number;
   viewportPixel: readonly [number, number, number, number];
   viewportPixelDelta: number;
+}
+
+export interface ShaderLifecycleResourceSmokeResult {
+  finalProgramCount: number | null;
+  finalRuntimeBindingCount: number;
+  iterations: number;
+  maxRuntimeBindingCount: number;
+  memoryAfterDispose: {
+    geometries: number;
+    textures: number;
+  };
+  memoryAfterWarmup: {
+    geometries: number;
+    textures: number;
+  };
+  ok: boolean;
+  programGrowthAfterWarmup: number | null;
+  warmProgramCount: number | null;
 }
 
 export async function compileDebugUvGradientMaterial(): Promise<ShaderCompileSmokeResult> {
@@ -275,6 +294,163 @@ export async function renderDebugUvGradientWithShaderGlobals(): Promise<ShaderGl
     originalMaterial.dispose();
     renderer.dispose();
     canvas.remove();
+  }
+}
+
+export function runShaderMaterialLifecycleResourceSmoke(): ShaderLifecycleResourceSmokeResult {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  document.body.append(canvas);
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: false,
+    preserveDrawingBuffer: true,
+  });
+  renderer.debug.checkShaderErrors = true;
+  renderer.setClearColor(0x000000, 1);
+  renderer.setSize(64, 64, false);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+  camera.position.z = 2;
+  const geometry = new THREE.PlaneGeometry(1.8, 1.8);
+  const originalMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  const mesh = new THREE.Mesh(geometry, originalMaterial);
+  const materialRuntime = new ThreeMaterialRuntime();
+  const target = { entityId: 'diagnostic_surface', slot: 'main' };
+  const iterations = 18;
+  let maxRuntimeBindingCount = 0;
+  scene.add(mesh);
+  materialRuntime.bindEntityObject(target.entityId, mesh);
+
+  const materialCases: Array<{
+    materialId: string;
+    parameters: Record<string, number | string | readonly [number, number]>;
+  }> = [
+    {
+      materialId: DEBUG_UV_GRADIENT_MATERIAL_ID,
+      parameters: {
+        baseColor: '#000000',
+        accentColor: '#ffffff',
+        strength: 1,
+        uvScale: [1, 1],
+      },
+    },
+    {
+      materialId: STORY_GATE_DISSOLVE_MATERIAL_ID,
+      parameters: {
+        progress: 0,
+        edgeWidth: 0.08,
+        edgeColor: '#ffcf70',
+        baseColor: '#9b6a3c',
+        noiseScale: 8,
+      },
+    },
+    {
+      materialId: STORY_HOLOGRAM_SCANLINE_MATERIAL_ID,
+      parameters: {
+        intensity: 0.75,
+        baseColor: '#5aa7d6',
+        scanlineColor: '#ffcf70',
+        scanlineDensity: 36,
+        flickerStrength: 0.12,
+      },
+    },
+  ];
+
+  try {
+    for (const materialCase of materialCases) {
+      applyDiagnosticMaterial(
+        materialRuntime,
+        target,
+        materialCase.materialId,
+        materialCase.parameters,
+      );
+      renderer.render(scene, camera);
+      maxRuntimeBindingCount = Math.max(
+        maxRuntimeBindingCount,
+        materialRuntime.getLifecycleDiagnostics().materialBindingCount,
+      );
+    }
+
+    const warmProgramCount = renderer.info.programs?.length ?? null;
+    const memoryAfterWarmup = {
+      geometries: renderer.info.memory.geometries,
+      textures: renderer.info.memory.textures,
+    };
+
+    for (let index = 0; index < iterations; index += 1) {
+      const materialCase = materialCases[index % materialCases.length];
+      applyDiagnosticMaterial(
+        materialRuntime,
+        target,
+        materialCase.materialId,
+        materialCase.parameters,
+      );
+      materialRuntime.setShaderGlobals({
+        elapsedSeconds: index * 0.1,
+        deltaSeconds: 0.016,
+        viewportSize: [64, 64],
+      });
+      renderer.render(scene, camera);
+      maxRuntimeBindingCount = Math.max(
+        maxRuntimeBindingCount,
+        materialRuntime.getLifecycleDiagnostics().materialBindingCount,
+      );
+    }
+
+    materialRuntime.disposeEntityMaterials(target.entityId);
+    renderer.render(scene, camera);
+
+    const finalProgramCount = renderer.info.programs?.length ?? null;
+    const finalRuntimeBindingCount = materialRuntime.getLifecycleDiagnostics().materialBindingCount;
+    const memoryAfterDispose = {
+      geometries: renderer.info.memory.geometries,
+      textures: renderer.info.memory.textures,
+    };
+    const programGrowthAfterWarmup =
+      finalProgramCount === null || warmProgramCount === null
+        ? null
+        : finalProgramCount - warmProgramCount;
+
+    return {
+      finalProgramCount,
+      finalRuntimeBindingCount,
+      iterations,
+      maxRuntimeBindingCount,
+      memoryAfterDispose,
+      memoryAfterWarmup,
+      ok:
+        finalRuntimeBindingCount === 0 &&
+        maxRuntimeBindingCount === 1 &&
+        (programGrowthAfterWarmup === null || programGrowthAfterWarmup <= 1) &&
+        memoryAfterDispose.geometries <= memoryAfterWarmup.geometries + 1 &&
+        memoryAfterDispose.textures <= memoryAfterWarmup.textures + 1,
+      programGrowthAfterWarmup,
+      warmProgramCount,
+    };
+  } finally {
+    materialRuntime.disposeEntityMaterials(target.entityId);
+    geometry.dispose();
+    originalMaterial.dispose();
+    renderer.dispose();
+    canvas.remove();
+  }
+}
+
+function applyDiagnosticMaterial(
+  materialRuntime: ThreeMaterialRuntime,
+  target: { entityId: string; slot: string },
+  materialId: string,
+  parameters: Record<string, number | string | readonly [number, number]>,
+): void {
+  const result = materialRuntime.applyMaterial(target, materialId, parameters);
+
+  if (!result.ok) {
+    throw new Error(result.errors.map((error) => error.message).join('; '));
   }
 }
 
