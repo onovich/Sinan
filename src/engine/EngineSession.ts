@@ -4,6 +4,12 @@ import {
   getRenderableModelAssetId,
   getRenderableRenderStyle,
 } from '../data/projectDataSelectors';
+import {
+  createDefaultShaderGlobals,
+  normalizeShaderGlobals,
+  type ShaderGlobals,
+  type ShaderGlobalsInput,
+} from '../runtime/materials';
 import type {
   RuntimeDebugAabb,
   RuntimeMaterialParameterUpdate,
@@ -42,6 +48,7 @@ export class EngineSession {
   private currentProject: ProjectData | undefined;
   private loadedEntityIds = new Set<string>();
   private loadRevision = 0;
+  private shaderGlobals: ShaderGlobals = createDefaultShaderGlobals();
   private status: EngineSessionStatus = 'idle';
   private triggerDebugVisible = false;
   private world: World | undefined;
@@ -49,7 +56,8 @@ export class EngineSession {
   constructor(private readonly options: EngineSessionOptions) {
     this.loop = new EngineLoop(
       {
-        update: ({ deltaSeconds }) => {
+        update: ({ deltaSeconds, elapsedSeconds }) => {
+          this.syncShaderGlobals({ deltaSeconds, elapsedSeconds });
           this.options.runtime.update(deltaSeconds);
         },
         render: () => {
@@ -57,6 +65,7 @@ export class EngineSession {
         },
       },
       options.mode ?? 'edit',
+      { maxDeltaSeconds: options.maxFrameDeltaSeconds },
     );
   }
 
@@ -156,6 +165,9 @@ export class EngineSession {
   resize(size: RuntimeSize): void {
     this.ensureActive();
     this.options.runtime.resize(size);
+    this.syncShaderGlobals({
+      viewportSize: [Math.max(1, Math.floor(size.width)), Math.max(1, Math.floor(size.height))],
+    });
   }
 
   setMode(mode: EngineMode): void {
@@ -214,6 +226,13 @@ export class EngineSession {
         this.triggerDebugVisible ? createTriggerDebugAabb(entity) : undefined,
       );
     }
+  }
+
+  private syncShaderGlobals(input: ShaderGlobalsInput): void {
+    this.shaderGlobals = normalizeShaderGlobals(input, this.shaderGlobals, {
+      maxDeltaSeconds: this.options.maxFrameDeltaSeconds ?? 0.05,
+    });
+    this.options.runtime.setShaderGlobals?.(this.shaderGlobals);
   }
 
   private ensureActive(): void {

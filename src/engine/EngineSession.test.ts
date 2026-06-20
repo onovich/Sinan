@@ -5,6 +5,7 @@ import type {
   RuntimeDebugAabb,
   RuntimeRenderStyle,
   RuntimeRenderableMaterialSlots,
+  RuntimeShaderGlobals,
   RuntimeSize,
   RuntimeStyleQualityProfile,
   RuntimeStyleResources,
@@ -137,6 +138,53 @@ describe('EngineSession', () => {
     ]);
   });
 
+  it('routes shader globals from frame steps and resize through the runtime', () => {
+    const calls: unknown[] = [];
+    const session = new EngineSession({
+      maxFrameDeltaSeconds: 0.1,
+      runtime: createRuntimeProbe(calls, { recordShaderGlobals: true }),
+    });
+
+    session.resize({ height: 600, pixelRatio: 2, width: 800 });
+    session.step(0.016);
+    session.step(0.25);
+
+    expect(calls[0]).toEqual({
+      type: 'resize',
+      size: { height: 600, pixelRatio: 2, width: 800 },
+    });
+    expect(calls[1]).toEqual({
+      type: 'setShaderGlobals',
+      globals: {
+        elapsedSeconds: 0,
+        deltaSeconds: 0,
+        viewportSize: [800, 600],
+      },
+    });
+    expect(calls[2]).toEqual({
+      type: 'setShaderGlobals',
+      globals: {
+        elapsedSeconds: 0.016,
+        deltaSeconds: 0.016,
+        viewportSize: [800, 600],
+      },
+    });
+    expect(calls[3]).toEqual({ type: 'update', deltaSeconds: 0.016 });
+    expect(calls[4]).toEqual({ type: 'render' });
+    expect(calls[5]).toMatchObject({
+      type: 'setShaderGlobals',
+      globals: {
+        deltaSeconds: 0.1,
+        viewportSize: [800, 600],
+      },
+    });
+    expect((calls[5] as { globals: RuntimeShaderGlobals }).globals.elapsedSeconds).toBeCloseTo(
+      0.116,
+    );
+    expect(calls[6]).toEqual({ type: 'update', deltaSeconds: 0.1 });
+    expect(calls[7]).toEqual({ type: 'render' });
+  });
+
   it('syncs trigger debug helpers from renderer-neutral collider data', async () => {
     const calls: unknown[] = [];
     const session = new EngineSession({ runtime: createRuntimeProbe(calls) });
@@ -157,8 +205,11 @@ describe('EngineSession', () => {
   });
 });
 
-function createRuntimeProbe(calls: unknown[]): WebRuntime {
-  return {
+function createRuntimeProbe(
+  calls: unknown[],
+  options: { recordShaderGlobals?: boolean } = {},
+): WebRuntime {
+  const runtime: WebRuntime = {
     init: () => undefined,
     loadModel: (assetId, url) => {
       calls.push({ type: 'loadModel', assetId, url });
@@ -220,6 +271,14 @@ function createRuntimeProbe(calls: unknown[]): WebRuntime {
     resize: (size: RuntimeSize) => calls.push({ type: 'resize', size }),
     dispose: () => calls.push({ type: 'dispose' }),
   };
+
+  if (options.recordShaderGlobals) {
+    runtime.setShaderGlobals = (globals) => {
+      calls.push({ type: 'setShaderGlobals', globals });
+    };
+  }
+
+  return runtime;
 }
 
 function createProject(): ProjectData {

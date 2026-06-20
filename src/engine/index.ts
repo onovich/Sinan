@@ -3,6 +3,7 @@ export {
   type EngineFrameContext,
   type EngineFrameScheduler,
   type EngineLoopHooks,
+  type EngineLoopOptions,
   type EngineLoopStartOptions,
 } from './EngineLoop';
 export { ENGINE_MODES, isEngineMode, type EngineMode } from './EngineMode';

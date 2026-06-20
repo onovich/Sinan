@@ -2,6 +2,7 @@ import type { EngineMode } from './EngineMode';
 
 export interface EngineFrameContext {
   deltaSeconds: number;
+  elapsedSeconds: number;
   mode: EngineMode;
 }
 
@@ -20,17 +21,25 @@ export interface EngineLoopStartOptions {
   maxDeltaSeconds?: number;
 }
 
+export interface EngineLoopOptions {
+  maxDeltaSeconds?: number;
+}
+
 export class EngineLoop {
   private disposed = false;
+  private elapsedSeconds = 0;
   private frameHandle: number | undefined;
+  private readonly maxDeltaSeconds: number;
   private mode: EngineMode;
   private scheduler: Pick<EngineFrameScheduler, 'cancelFrame'> | undefined;
 
   constructor(
     private readonly hooks: EngineLoopHooks,
     initialMode: EngineMode = 'edit',
+    options: EngineLoopOptions = {},
   ) {
     this.mode = initialMode;
+    this.maxDeltaSeconds = normalizeMaxDeltaSeconds(options.maxDeltaSeconds);
   }
 
   dispose(): void {
@@ -55,7 +64,9 @@ export class EngineLoop {
       return;
     }
 
-    const maxDeltaSeconds = options.maxDeltaSeconds ?? 0.05;
+    const maxDeltaSeconds = normalizeMaxDeltaSeconds(
+      options.maxDeltaSeconds ?? this.maxDeltaSeconds,
+    );
     let lastTime = scheduler.now();
     this.scheduler = scheduler;
 
@@ -64,9 +75,9 @@ export class EngineLoop {
         return;
       }
 
-      const deltaSeconds = Math.min(Math.max(0, (now - lastTime) / 1000), maxDeltaSeconds);
+      const deltaSeconds = clampDeltaSeconds((now - lastTime) / 1000, maxDeltaSeconds);
       lastTime = now;
-      this.step(deltaSeconds);
+      this.dispatchFrame(deltaSeconds);
 
       if (!this.disposed && this.frameHandle !== undefined) {
         this.frameHandle = scheduler.requestFrame(frame);
@@ -81,13 +92,7 @@ export class EngineLoop {
       return;
     }
 
-    const context = {
-      deltaSeconds: Math.max(0, deltaSeconds),
-      mode: this.mode,
-    };
-
-    this.hooks.update?.(context);
-    this.hooks.render?.(context);
+    this.dispatchFrame(clampDeltaSeconds(deltaSeconds, this.maxDeltaSeconds));
   }
 
   stop(scheduler?: Pick<EngineFrameScheduler, 'cancelFrame'>): void {
@@ -99,4 +104,28 @@ export class EngineLoop {
     this.frameHandle = undefined;
     this.scheduler = undefined;
   }
+
+  private dispatchFrame(deltaSeconds: number): void {
+    this.elapsedSeconds += deltaSeconds;
+    const context = {
+      deltaSeconds,
+      elapsedSeconds: this.elapsedSeconds,
+      mode: this.mode,
+    };
+
+    this.hooks.update?.(context);
+    this.hooks.render?.(context);
+  }
+}
+
+function normalizeMaxDeltaSeconds(value: number | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0.05;
+}
+
+function clampDeltaSeconds(deltaSeconds: number, maxDeltaSeconds: number): number {
+  if (!Number.isFinite(deltaSeconds)) {
+    return 0;
+  }
+
+  return Math.min(Math.max(0, deltaSeconds), maxDeltaSeconds);
 }

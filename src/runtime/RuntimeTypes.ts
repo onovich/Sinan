@@ -1,4 +1,4 @@
-import type { MaterialParameterValue } from './materials';
+import type { MaterialParameterValue, ShaderGlobals } from './materials';
 
 export type Vec3 = readonly [number, number, number];
 export type Quat = readonly [number, number, number, number];
@@ -104,6 +104,8 @@ export interface RuntimeMaterialParameterUpdate {
   parameter: string;
   value: MaterialParameterValue;
 }
+
+export type RuntimeShaderGlobals = ShaderGlobals;
 
 export interface RuntimePalette {
   id: string;
