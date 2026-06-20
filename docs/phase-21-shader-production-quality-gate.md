@@ -148,6 +148,10 @@ Budget intent:
 
 Round 21.10 adds `runLowEndShaderBaselineSmoke` as the current local gate. It uses Chromium through Playwright at `360x640`, pixel ratio `1`, production materials `story.gate-dissolve` and `story.hologram-scanline`, and the `cinematic.vignette` output path. The fixture records duration, renderer memory counters, shader program count, visible material pixels, and vignette edge darkening against broad local budgets documented in `docs/developer-guide.md`. Real mobile hardware remains unavailable in this workspace and is not certified by this phase.
 
+## Production Shader Quality Checklist
+
+Round 21.11 promotes the production shader checklist into `docs/developer-guide.md` and the post-MVP execution workflow. Future production materials or postprocess passes must provide the renderer-neutral public contract, Three-boundary implementation, browser compile smoke, deterministic visual fixture, fallback/diagnostic evidence, precompile consideration, and low-end baseline evidence appropriate to the change. Editor-only visual confirmation is not enough for a production shader gate.
+
 ## Explicit Non-Scope
 
 Phase 21 does not implement:

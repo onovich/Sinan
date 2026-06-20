@@ -338,8 +338,12 @@ When adding the next shader material:
 2. Add GLSL files under `src/shaders/**` and import them with `.glsl?raw`.
 3. Add a Three-only factory path under `src/runtime/three/materials/**`.
 4. Add schema/reference validation tests for public parameters and texture asset ids.
-5. Add or extend a Chromium smoke test when shader compilation behavior changes.
-6. Run `npm run validate-data`, `npm run test -- src/runtime/materials src/runtime/three src/data src/schemas`, `npm run build`, `npm run check-boundaries`, and `npm run test:smoke`.
+5. Add or extend Chromium compile smoke coverage when shader compilation behavior changes.
+6. Add deterministic visual regression fixtures for demo-critical output.
+7. Add fallback and structured diagnostics evidence for invalid ids, invalid public parameters, unsupported paths, or runtime failures where practical.
+8. Add the material or postprocess path to the precompile inventory when it is a known production target.
+9. Consider the low-end Chromium baseline budget and update the documented budget only with smoke evidence.
+10. Run `npm run validate-data`, `npm run test -- src/runtime/materials src/runtime/three src/data src/schemas`, `npm run build`, `npm run check-boundaries`, and `npm run test:smoke`.
 
 Phase 19 still does not include shader globals such as `uTime`, postprocessing, shader graph authoring, multi-slot material assignment, or a second production material. Those remain future-phase work.
 
@@ -426,6 +430,23 @@ Accepted local budgets:
 - textures: `<= 6`
 
 These budgets are intentionally broad for local stability. They are not a frame-rate promise and should be tightened only after dedicated mobile hardware or a more complete performance harness exists. If a real device test is unavailable, reports must say so explicitly and cite this local Chromium baseline instead.
+
+### Shader Production Quality Checklist
+
+Every production shader material or postprocess pass added after Phase 21 must ship with the same quality-gate shape, scaled to the risk of the effect:
+
+- Renderer-neutral public contract in `src/runtime/materials/**` or `src/runtime/postprocess/**`.
+- GLSL source under `src/shaders/**` for material shaders; no GLSL in JSON, React, or TypeScript strings.
+- Three-only mapping, pass setup, renderer counters, and fallback behavior under `src/runtime/three/**`.
+- Schema/reference validation for public material ids, effect ids, slots, parameters, and texture asset ids.
+- Browser compile smoke in `tests/smoke/shader-material.spec.ts` or an equivalent Playwright fixture.
+- Deterministic visual regression coverage for demo-critical output using fixed viewport, camera, globals, parameters, samples, and tolerance.
+- Structured diagnostics that identify material/effect id, source path or runtime owner, shader stage when applicable, runtime context, browser/GPU context when available, affected entity or slot when practical, and public parameter name when relevant.
+- Explicit fallback behavior that keeps the editor visible while still failing CI for production compile or validation failures.
+- Precompile inventory and guidance updates for known production targets.
+- Low-end Chromium baseline consideration, including renderer memory counters, program count, visible pixels, postprocess output where applicable, and documented limitations when no real mobile hardware is available.
+
+Do not approve a new production shader or postprocess path if it only renders visually once in the editor. It must be covered by compile, visual, diagnostics/fallback, precompile, and low-end evidence appropriate to its scope.
 
 ## Actions
 

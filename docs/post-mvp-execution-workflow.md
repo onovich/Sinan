@@ -27,9 +27,11 @@ The next executor should start by reading `AGENTS.md`, the main architecture gui
 
 Routine validation now includes `npm run report-assets` through `.codex/project-ops-workflow.json`. Executors should still run it directly when changing asset metadata, public asset files, compression readiness, or release notes.
 
-Phase 18 adds a Chromium shader compile smoke under `npm run test:smoke`. Run smoke after changing `src/shaders/**`, `src/runtime/materials/**`, `src/runtime/three/materials/**`, renderable material data flow, or fallback/diagnostic behavior.
+Phase 18 adds a Chromium shader compile smoke under `npm run test:smoke`. Phase 21 extends that into the production shader quality gate: compile coverage, deterministic visual fixtures, structured fallback diagnostics, HMR/precompile guidance, and the low-end Chromium baseline. Run smoke after changing `src/shaders/**`, `src/runtime/materials/**`, `src/runtime/postprocess/**`, `src/runtime/three/**`, renderable material data flow, postprocess routing, visual baselines, precompile inventory, or fallback/diagnostic behavior.
 
 Phase 20 is PASS. The current active next phase is Phase 21: Shader Production Quality Gate from `docs/abeto-messenger-development-plan.md`. Use `docs/phase-21-shader-production-quality-gate-goal-mode-execution-guide.md` before implementation, and keep raw shader uniforms out of data, timeline, action, and editor contracts. Phase 21.5 remains blocked until Phase 21 is PASS and pushed.
+
+During Phase 21 and later shader work, use the "Shader Production Quality Checklist" in `docs/developer-guide.md`. New production materials or postprocess passes should not be accepted with editor-only evidence; they need compile smoke, visual regression coverage, fallback diagnostics, precompile consideration, and low-end baseline evidence appropriate to the change.
 
 ## Execution Budget
 
