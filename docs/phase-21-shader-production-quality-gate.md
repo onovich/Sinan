@@ -1,7 +1,7 @@
 # Phase 21 Shader Production Quality Gate
 
 Date: 2026-06-20
-Status: Design lock for Phase 21 execution.
+Status: PASS. Final report: `docs/phase-21-shader-production-quality-gate-final-report.md`.
 
 ## Baseline
 

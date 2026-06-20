@@ -345,6 +345,8 @@ Goal: make shader work reliable enough for future visual development and vertica
 
 Estimated rounds: 4.
 
+Status: PASS on 2026-06-20. Final report: `docs/phase-21-shader-production-quality-gate-final-report.md`.
+
 Execution: `docs/phase-21-shader-production-quality-gate-goal-mode-execution-guide.md` defines the goal-mode plan.
 
 Scope:
@@ -510,16 +512,16 @@ The Phase 17 goal-mode guide uses a 16-round budget: 12 implementation rounds, 3
 
 Shader integration update: before starting Phase 17, also read `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md` and `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`. Phase 17 prepares shader prerequisites through texture metadata and loader strategy, but it must not implement `MaterialRuntime`, `ShaderMaterial`, material timeline tracks, or postprocessing.
 
-Phase 20 is PASS. `docs/phase-20-shader-globals-and-postprocessing-ramp-final-report.md` records the final validation and push evidence. The next goal should be Phase 21: Shader Production Quality Gate.
+Phase 21 is PASS. `docs/phase-21-shader-production-quality-gate-final-report.md` records the final validation and push evidence. The next goal should be Phase 21.5: Engine Maturity External Contract Gate.
 
 ```txt
-Complete Phase 21 from docs/abeto-messenger-development-plan.md: Shader Production Quality Gate.
+Complete Phase 21.5 from docs/abeto-messenger-development-plan.md: Engine Maturity External Contract Gate.
 ```
 
-Use `docs/phase-21-shader-production-quality-gate-goal-mode-execution-guide.md` before implementation. Phase 21 should build on the Phase 20 shader globals, second material, lifecycle diagnostics, and postprocessing public contract while keeping shader production quality work inside runtime adapter boundaries.
+Use `docs/phase-21-5-engine-maturity-external-infrastructure-contract-gate-goal-mode-execution-guide.md` before implementation. Phase 21.5 should create Sinan-owned RFCs, adapter boundary policy, POC briefs, mature dependency evaluation templates, and compatibility matrix documents before Phase 22.
 
-Start only after confirming `docs/phase-20-shader-globals-and-postprocessing-ramp-final-report.md` is PASS and pushed. Phase 21 must continue to keep raw uniforms out of data, timeline, action, and editor contracts.
+Start only after confirming `docs/phase-21-shader-production-quality-gate-final-report.md` is PASS and pushed. Phase 21.5 must remain a contract/documentation gate and must not implement LOD, input, physics, Runtime UI, audio, narrative importers, real external adapters, or runtime dependency integrations.
 
-Before starting Phase 21, re-read `AGENTS.md`, the main architecture guide, `docs/engine-positioning-architecture-adjustment-plan.md`, the Phase 18, Phase 18.5, Phase 19, and Phase 20 final reports, both Web3D Shader GLSL MVP docs, and the current runtime/editor architecture.
+Before starting Phase 21.5, re-read `AGENTS.md`, the main architecture guide, `docs/engine-positioning-architecture-adjustment-plan.md`, the Phase 18, Phase 18.5, Phase 19, Phase 20, and Phase 21 final reports, both Web3D Shader GLSL MVP docs, and the current runtime/editor architecture.
 
-After Phase 21 is PASS and pushed, use `docs/phase-21-5-engine-maturity-external-infrastructure-contract-gate-goal-mode-execution-guide.md` before starting Phase 22. Phase 21.5 is a contract gate for external infrastructure and mature dependency sourcing; it must not implement LOD, input, physics, Runtime UI, audio, narrative importers, or real external adapters.
+After Phase 21.5 is PASS and pushed, Phase 22 LOD, Instancing, And Vegetation may start. Phase 22 remains blocked until Phase 21.5 produces its PASS final report and pushed commits.
