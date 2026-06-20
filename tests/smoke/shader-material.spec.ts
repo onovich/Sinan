@@ -17,6 +17,19 @@ interface DissolveShaderSmokeResult extends ShaderCompileSmokeResult {
   visiblePixel: readonly [number, number, number, number];
 }
 
+interface ShaderGlobalsSmokeResult extends ShaderCompileSmokeResult {
+  baselinePixel: readonly [number, number, number, number];
+  globalUpdateOk: boolean;
+  memory: {
+    geometries: number;
+    textures: number;
+  };
+  timePixel: readonly [number, number, number, number];
+  timePixelDelta: number;
+  viewportPixel: readonly [number, number, number, number];
+  viewportPixelDelta: number;
+}
+
 test('S0 debug ShaderMaterial compiles in Chromium', async ({ page }) => {
   const browserErrors = collectBrowserErrors(page);
 
@@ -67,6 +80,38 @@ test('production gate dissolve ShaderMaterial compiles and changes pixels', asyn
   expect(result.programCount ?? 0).toBeGreaterThan(0);
   expect(result.visiblePixel[3]).toBe(255);
   expect(result.pixelDelta).toBeGreaterThan(20);
+  expect(browserErrors).toEqual([]);
+});
+
+test('debug ShaderMaterial responds to shader globals in Chromium', async ({ page }) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/');
+  const result = await page.evaluate(async (): Promise<ShaderGlobalsSmokeResult> => {
+    const fixtureUrl = '/tests/smoke/shaderCompileFixture.ts';
+    const fixture = (await import(/* @vite-ignore */ fixtureUrl)) as {
+      renderDebugUvGradientWithShaderGlobals: () => Promise<ShaderGlobalsSmokeResult>;
+    };
+
+    return fixture.renderDebugUvGradientWithShaderGlobals();
+  });
+
+  expect(result).toMatchObject({
+    compileAsyncUsed: true,
+    fragmentShaderPath: 'src/shaders/materials/debug/debug-uv-gradient.frag.glsl',
+    globalUpdateOk: true,
+    materialId: 'debug.uv-gradient',
+    materialName: 'material:debug.uv-gradient',
+    ok: true,
+    vertexShaderPath: 'src/shaders/materials/debug/debug-uv-gradient.vert.glsl',
+  });
+  expect(result.programCount ?? 0).toBeGreaterThan(0);
+  expect(result.memory.geometries).toBeGreaterThan(0);
+  expect(result.timePixelDelta).toBeGreaterThan(8);
+  expect(result.viewportPixelDelta).toBeGreaterThan(8);
+  expect(result.baselinePixel[3]).toBe(255);
+  expect(result.timePixel[3]).toBe(255);
+  expect(result.viewportPixel[3]).toBe(255);
   expect(browserErrors).toEqual([]);
 });
 

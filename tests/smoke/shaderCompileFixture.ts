@@ -24,6 +24,19 @@ export interface DissolveShaderSmokeResult extends ShaderCompileSmokeResult {
   visiblePixel: readonly [number, number, number, number];
 }
 
+export interface ShaderGlobalsSmokeResult extends ShaderCompileSmokeResult {
+  baselinePixel: readonly [number, number, number, number];
+  globalUpdateOk: boolean;
+  memory: {
+    geometries: number;
+    textures: number;
+  };
+  timePixel: readonly [number, number, number, number];
+  timePixelDelta: number;
+  viewportPixel: readonly [number, number, number, number];
+  viewportPixelDelta: number;
+}
+
 export async function compileDebugUvGradientMaterial(): Promise<ShaderCompileSmokeResult> {
   const canvas = document.createElement('canvas');
   canvas.width = 64;
@@ -157,6 +170,104 @@ export async function compileGateDissolveMaterial(): Promise<DissolveShaderSmoke
       runtimeParameterOk: parameterResult.ok,
       vertexShaderPath: 'src/shaders/materials/story/gate-dissolve.vert.glsl',
       visiblePixel,
+    };
+  } finally {
+    materialRuntime.disposeEntityMaterials(target.entityId);
+    geometry.dispose();
+    originalMaterial.dispose();
+    renderer.dispose();
+    canvas.remove();
+  }
+}
+
+export async function renderDebugUvGradientWithShaderGlobals(): Promise<ShaderGlobalsSmokeResult> {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  document.body.append(canvas);
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: false,
+    preserveDrawingBuffer: true,
+  });
+  renderer.debug.checkShaderErrors = true;
+  renderer.setClearColor(0x000000, 1);
+  renderer.setSize(64, 64, false);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+  camera.position.z = 2;
+  const geometry = new THREE.PlaneGeometry(1.8, 1.8);
+  const originalMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  const mesh = new THREE.Mesh(geometry, originalMaterial);
+  const materialRuntime = new ThreeMaterialRuntime();
+  const target = { entityId: 'switch_a', slot: 'main' };
+  scene.add(mesh);
+  materialRuntime.bindEntityObject(target.entityId, mesh);
+
+  const applyResult = materialRuntime.applyMaterial(target, DEBUG_UV_GRADIENT_MATERIAL_ID, {
+    baseColor: '#000000',
+    accentColor: '#ffffff',
+    strength: 1,
+    uvScale: [1, 1],
+  });
+
+  if (!applyResult.ok) {
+    throw new Error(applyResult.errors.map((error) => error.message).join('; '));
+  }
+
+  let compileAsyncUsed = false;
+
+  try {
+    if (typeof renderer.compileAsync === 'function') {
+      compileAsyncUsed = true;
+      await renderer.compileAsync(scene, camera);
+    } else {
+      renderer.compile(scene, camera);
+    }
+
+    renderer.render(scene, camera);
+    const baselinePixel = readCenterPixel(renderer);
+
+    materialRuntime.setShaderGlobals({
+      elapsedSeconds: Math.PI / 4,
+      deltaSeconds: 0.016,
+      viewportSize: [64, 64],
+    });
+    renderer.render(scene, camera);
+    const timePixel = readCenterPixel(renderer);
+
+    materialRuntime.setShaderGlobals({
+      elapsedSeconds: 0,
+      deltaSeconds: 0.016,
+      viewportSize: [128, 64],
+    });
+    renderer.render(scene, camera);
+    const viewportPixel = readCenterPixel(renderer);
+
+    const timePixelDelta = getPixelDelta(baselinePixel, timePixel);
+    const viewportPixelDelta = getPixelDelta(baselinePixel, viewportPixel);
+
+    return {
+      baselinePixel,
+      compileAsyncUsed,
+      fragmentShaderPath: 'src/shaders/materials/debug/debug-uv-gradient.frag.glsl',
+      globalUpdateOk: timePixelDelta > 8 && viewportPixelDelta > 8,
+      materialId: DEBUG_UV_GRADIENT_MATERIAL_ID,
+      materialName: (mesh.material as THREE.Material).name,
+      memory: {
+        geometries: renderer.info.memory.geometries,
+        textures: renderer.info.memory.textures,
+      },
+      ok: true,
+      programCount: renderer.info.programs?.length ?? null,
+      timePixel,
+      timePixelDelta,
+      vertexShaderPath: 'src/shaders/materials/debug/debug-uv-gradient.vert.glsl',
+      viewportPixel,
+      viewportPixelDelta,
     };
   } finally {
     materialRuntime.disposeEntityMaterials(target.entityId);
