@@ -1,8 +1,14 @@
-# Mature Dependency Final Readiness Report
+# Mature Dependency Spikes Final Readiness Report
 
 Date: 2026-06-20
 Worktree: `D:\LabProjects\Sinan-MatureDependencySpikes`
 Branch: `codex/mature-dependency-spikes`
+
+## Status
+
+PASS.
+
+The mature dependency spikes goal completed in an isolated worktree and produced decision material only. No candidate package was promoted to a Sinan mainline hard dependency.
 
 ## 1. Scope Result
 
@@ -21,6 +27,18 @@ No root `package.json`, root lockfile, Vite config, TS config, `src/**`, `data/*
 - Vite production bundle warning: main chunk was larger than 500 kB. Main spike chunk was 2,375,080 bytes; recast WASM compat chunk was 726,299 bytes.
 - Playwright browser smoke: blocked. Playwright 1.61 expected Chromium 1228. Existing cache had older Chromium 1217, and `playwright install chromium` timed out after 304s.
 
+## Candidate Summary
+
+| Candidate | Status | Tested environments | Main risk | Recommendation |
+| --- | --- | --- | --- | --- |
+| Rapier JS | accept-for-adapter-spike | Node, Vitest, Vite build | Base package WASM/ESM policy; compat bundle size | Define PhysicsAdapter and WASM distribution policy before integration |
+| Web Audio API | accept-for-adapter-spike | Vitest fake AudioContext, Vite build | Real browser unlock/autoplay policy still needs browser smoke | Use as low-level AudioSystem backend behind Sinan-owned contract |
+| Dexie / IndexedDB | accept-for-adapter-spike | Node with fake-indexeddb, Vitest, Vite build | Browser quota/persistence diagnostics | Use for cache/draft/save snapshots only |
+| glTF Transform / meshoptimizer | accept-for-adapter-spike | Node, Vitest, fixture read/write/report | Offline output policy; KTX2/Basis/Draco deferred | Use for offline asset optimization/report pipeline |
+| Spector.js + Performance API | dev-only | Vitest Performance API, Vite build guarded dynamic import | Production bundle contamination if guard is removed | Keep dev-only behind feature flag and dynamic import |
+| Comlink / Web Workers | accept-for-adapter-spike | Node worker_threads, Vitest, Vite worker bundle | Worker lifecycle/cancellation/diagnostic policy | Use as WorkerTaskAdapter RPC infrastructure |
+| recast-navigation-js | hold-for-phase-21-5-rfc | Node, Vitest, Vite build | WASM chunk size and NavigationAdapter policy | Hold until Phase 21.5 navigation RFC |
+
 ## 3. Stage Completion
 
 | Stage | Commit | Result |
@@ -32,7 +50,8 @@ No root `package.json`, root lockfile, Vite config, TS config, `src/**`, `data/*
 | 4 | `52082dc` | Web Audio and Dexie smoke/reports |
 | 5 | `99a773f` | glTF Transform fixture/smoke/report |
 | 6 | `0bf39de` | Diagnostics, worker, and navigation smoke/reports |
-| 7 | this final round | Final readiness report and README |
+| 7 | `86a5459` | Final readiness report and README |
+| Final reconciliation | this final commit | Goal-mode PASS template, final validation, and handoff |
 
 ## 4. Decision Matrix
 
@@ -80,3 +99,50 @@ No evaluated candidate is rejected in this run.
 ## 10. Recommended Next Step
 
 Use these reports as Phase 21.5 input. The next implementation guide should define adapter contracts before any candidate package is introduced to Sinan mainline runtime.
+
+## Architecture Boundaries
+
+- Root package/config modified: no.
+- `src/**` modified: no.
+- `data/**` modified: no.
+- `tests/**` modified: no.
+- `public/**` modified: no.
+- `.codex/**` modified: no.
+- Phase 20/21 touched: no.
+- Port `5174` used: no.
+- Candidate packages added to Sinan root dependencies: no.
+- Candidate package code paths restricted to `spikes/mature-dependencies/**`: yes.
+
+## Blockers
+
+- Playwright browser automation remained blocked because Playwright 1.61 required Chromium 1228 and `playwright install chromium` timed out after 304 seconds.
+- This does not block the goal because Node/Vitest/Vite validation passed, and the browser automation gap is explicitly recorded for Phase 21.5 environment policy.
+
+## Reports
+
+- `dependency-installation-audit.md`
+- `rapier-evaluation.md`
+- `web-audio-evaluation.md`
+- `dexie-evaluation.md`
+- `gltf-transform-evaluation.md`
+- `spector-evaluation.md`
+- `comlink-worker-evaluation.md`
+- `recast-navigation-evaluation.md`
+
+## Commits And Push
+
+All listed commits were pushed to `origin/codex/mature-dependency-spikes`:
+
+- `35735c0` docs: start mature dependency spike workspace
+- `6ef4e06` spike: scaffold mature dependency package
+- `e31159c` spike: audit mature dependency installation
+- `9bdd7bd` spike: evaluate rapier physics candidate
+- `66bdd26` docs: trim rapier evaluation whitespace
+- `52082dc` spike: evaluate web audio and dexie candidates
+- `99a773f` spike: evaluate gltf transform pipeline
+- `0bf39de` spike: evaluate diagnostics worker and navigation candidates
+- `86a5459` docs: finalize mature dependency readiness report
+
+## Handoff
+
+This goal produces decision material only. Future Sinan integration requires Phase 21.5 RFC / adapter policy / compatibility matrix and a separate implementation guide.
