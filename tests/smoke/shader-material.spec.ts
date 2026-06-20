@@ -47,6 +47,14 @@ interface PostProcessVisualRegressionSmokeResult {
   ok: boolean;
 }
 
+interface ShaderFallbackDiagnosticsSmokeResult {
+  diagnosticMessages: readonly string[];
+  fallbackMaterialName: string;
+  fallbackPixel: readonly [number, number, number, number];
+  fallbackVisible: boolean;
+  ok: boolean;
+}
+
 interface ShaderLifecycleResourceSmokeResult {
   finalProgramCount: number | null;
   finalRuntimeBindingCount: number;
@@ -213,6 +221,38 @@ test('production shader materials match deterministic visual baselines', async (
   expect(result.fixtureCount).toBe(3);
   expect(result.issues).toEqual([]);
   expect(result.ok).toBe(true);
+  expect(browserErrors).toEqual([]);
+});
+
+test('shader fallback path renders visibly and reports structured diagnostics', async ({
+  page,
+}) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/');
+  const result = await page.evaluate(async (): Promise<ShaderFallbackDiagnosticsSmokeResult> => {
+    const fixtureUrl = '/tests/smoke/shaderCompileFixture.ts';
+    const fixture = (await import(/* @vite-ignore */ fixtureUrl)) as {
+      renderShaderFallbackDiagnosticsSmoke: () => ShaderFallbackDiagnosticsSmokeResult;
+    };
+
+    return fixture.renderShaderFallbackDiagnosticsSmoke();
+  });
+
+  expect(result.ok).toBe(true);
+  expect(result.fallbackMaterialName).toBe('material:fallback-error');
+  expect(result.fallbackVisible).toBe(true);
+  expect(result.fallbackPixel[0]).toBeGreaterThan(200);
+  expect(result.fallbackPixel[1]).toBeLessThan(80);
+  expect(result.fallbackPixel[2]).toBeGreaterThan(200);
+  expect(result.diagnosticMessages).toHaveLength(1);
+  expect(result.diagnosticMessages[0]).toContain(
+    '[smoke.shader.fallback] material:story.missing code=missing_material stage=factory',
+  );
+  expect(result.diagnosticMessages[0]).toContain('entity=missing_shader_panel slot=main');
+  expect(result.diagnosticMessages[0]).toContain(
+    'message="Missing material definition "story.missing"."',
+  );
   expect(browserErrors).toEqual([]);
 });
 

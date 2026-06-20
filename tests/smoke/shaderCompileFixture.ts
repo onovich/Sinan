@@ -11,6 +11,10 @@ import {
 } from '../../src/runtime/postprocess';
 import { ThreeMaterialFactory } from '../../src/runtime/three/materials/ThreeMaterialFactory';
 import { ThreeMaterialRuntime } from '../../src/runtime/three/materials/ThreeMaterialRuntime';
+import {
+  createMaterialRuntimeDiagnostic,
+  formatShaderDiagnostic,
+} from '../../src/runtime/three/ShaderDiagnostics';
 import { ThreePostProcessRuntime } from '../../src/runtime/three/ThreePostProcessRuntime';
 import { postProcessVisualBaselines } from '../visual/postProcessVisualBaselines';
 import { shaderMaterialVisualBaselines } from '../visual/shaderMaterialVisualBaselines';
@@ -66,6 +70,14 @@ export interface PostProcessVisualRegressionSmokeResult {
   comparisons: readonly VisualFixtureComparison[];
   fixtureCount: number;
   issues: readonly string[];
+  ok: boolean;
+}
+
+export interface ShaderFallbackDiagnosticsSmokeResult {
+  diagnosticMessages: readonly string[];
+  fallbackMaterialName: string;
+  fallbackPixel: readonly [number, number, number, number];
+  fallbackVisible: boolean;
   ok: boolean;
 }
 
@@ -687,6 +699,63 @@ export function renderPostProcessVisualRegression(): PostProcessVisualRegression
     issues,
     ok: issues.length === 0,
   };
+}
+
+export function renderShaderFallbackDiagnosticsSmoke(): ShaderFallbackDiagnosticsSmokeResult {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  document.body.append(canvas);
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: false,
+    preserveDrawingBuffer: true,
+  });
+  renderer.debug.checkShaderErrors = true;
+  renderer.setClearColor(0x000000, 1);
+  renderer.setSize(64, 64, false);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+  camera.position.z = 2;
+  const geometry = new THREE.PlaneGeometry(1.8, 1.8);
+  const originalMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  const mesh = new THREE.Mesh(geometry, originalMaterial);
+  const materialRuntime = new ThreeMaterialRuntime();
+  const target = { entityId: 'missing_shader_panel', slot: 'main' };
+  scene.add(mesh);
+  materialRuntime.bindEntityObject(target.entityId, mesh);
+
+  const applyResult = materialRuntime.applyMaterial(target, 'story.missing');
+
+  try {
+    renderer.render(scene, camera);
+    const fallbackPixel = readCenterPixel(renderer);
+    const fallbackMaterialName = (mesh.material as THREE.Material).name;
+    const fallbackVisible =
+      fallbackPixel[0] > 200 && fallbackPixel[1] < 80 && fallbackPixel[2] > 200;
+    const diagnosticMessages = applyResult.errors.map((error) =>
+      formatShaderDiagnostic(
+        createMaterialRuntimeDiagnostic(error, 'smoke.shader.fallback', 'missing-material'),
+      ),
+    );
+
+    return {
+      diagnosticMessages,
+      fallbackMaterialName,
+      fallbackPixel,
+      fallbackVisible,
+      ok: !applyResult.ok && fallbackVisible && diagnosticMessages.length > 0,
+    };
+  } finally {
+    materialRuntime.disposeEntityMaterials(target.entityId);
+    geometry.dispose();
+    originalMaterial.dispose();
+    renderer.dispose();
+    canvas.remove();
+  }
 }
 
 async function renderMaterialVisualFixture(

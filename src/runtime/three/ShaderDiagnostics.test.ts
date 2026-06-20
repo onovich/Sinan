@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  createMaterialRuntimeDiagnostic,
+  createPostProcessValidationDiagnostic,
   createShaderDiagnostic,
   formatShaderDiagnostic,
   getMaterialShaderSourcePath,
@@ -62,5 +64,40 @@ describe('ShaderDiagnostics', () => {
       'src/shaders/materials/story/hologram-scanline.vert.glsl',
     );
     expect(getMaterialShaderSourcePath('missing.material', 'fragment')).toBeUndefined();
+  });
+
+  it('converts material runtime fallback errors into structured diagnostics', () => {
+    const diagnostic = createMaterialRuntimeDiagnostic(
+      {
+        code: 'missing_material',
+        materialId: 'story.missing',
+        message: 'Missing material definition "story.missing".',
+        target: {
+          entityId: 'gate_a',
+          slot: 'main',
+        },
+      },
+      'three.material.runtime',
+      'fallback-smoke',
+    );
+
+    expect(formatShaderDiagnostic({ ...diagnostic, threeRevision: '181-test' })).toBe(
+      '[three.material.runtime] material:story.missing code=missing_material stage=factory entity=gate_a slot=main fixture=fallback-smoke three=181-test message="Missing material definition "story.missing"."',
+    );
+  });
+
+  it('converts postprocess public-parameter issues into structured diagnostics', () => {
+    const diagnostic = createPostProcessValidationDiagnostic(
+      'cinematic.vignette',
+      {
+        path: 'parameters.uIntensity',
+        message: 'Unknown postprocess parameter "uIntensity" for effect "cinematic.vignette".',
+      },
+      'three.postprocess.runtime',
+    );
+
+    expect(formatShaderDiagnostic({ ...diagnostic, threeRevision: '181-test' })).toBe(
+      '[three.postprocess.runtime] postprocess:cinematic.vignette code=invalid_parameter stage=parameters parameter=uIntensity three=181-test message="Unknown postprocess parameter "uIntensity" for effect "cinematic.vignette"."',
+    );
   });
 });

@@ -1,5 +1,7 @@
 import { REVISION as THREE_REVISION } from 'three';
 
+import type { MaterialRuntimeError, MaterialValidationIssue } from '../materials';
+
 export type ShaderDiagnosticKind = 'material' | 'postprocess';
 
 export type ShaderDiagnosticStage =
@@ -106,12 +108,61 @@ export function getMaterialShaderSourcePath(
   return sources?.[stage];
 }
 
+export function createMaterialRuntimeDiagnostic(
+  error: MaterialRuntimeError,
+  runtimeContext: string,
+  fixtureName?: string,
+): ShaderDiagnostic {
+  return createShaderDiagnostic({
+    diagnosticCode: error.code,
+    fixtureName,
+    kind: 'material',
+    materialId: error.materialId,
+    message: error.message,
+    parameter: error.parameter,
+    runtimeContext,
+    stage: getMaterialErrorStage(error.code),
+    target: error.target,
+  });
+}
+
+export function createPostProcessValidationDiagnostic(
+  effectId: string,
+  issue: MaterialValidationIssue,
+  runtimeContext: string,
+  fixtureName?: string,
+): ShaderDiagnostic {
+  return createShaderDiagnostic({
+    diagnosticCode: issue.path === 'effectId' ? 'missing_postprocess_effect' : 'invalid_parameter',
+    effectId,
+    fixtureName,
+    kind: 'postprocess',
+    message: issue.message,
+    parameter: issue.path.startsWith('parameters.')
+      ? issue.path.slice('parameters.'.length)
+      : undefined,
+    runtimeContext,
+    stage: 'parameters',
+  });
+}
+
 function getDiagnosticSubject(diagnostic: ShaderDiagnostic): string {
   if (diagnostic.kind === 'postprocess') {
     return diagnostic.effectId ?? 'unknown';
   }
 
   return diagnostic.materialId ?? 'unknown';
+}
+
+function getMaterialErrorStage(code: string): ShaderDiagnosticStage {
+  if (code === 'invalid_parameter' || code === 'unsupported_slot') {
+    return 'parameters';
+  }
+  if (code === 'missing_material' || code === 'factory_exception') {
+    return 'factory';
+  }
+
+  return 'runtime';
 }
 
 const MATERIAL_SHADER_SOURCE_PATHS: Record<string, { fragment: string; vertex: string }> = {
