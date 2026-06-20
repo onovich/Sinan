@@ -83,6 +83,49 @@ describe('ThreeMaterialRuntime', () => {
     expect(cameraUniform).toEqual(new THREE.Vector3(4, 5, 6));
   });
 
+  it('keeps story shader materials owned per entity while globals update in place', () => {
+    const leftTarget = { entityId: 'left_switch', slot: 'main' };
+    const rightTarget = { entityId: 'right_switch', slot: 'main' };
+    const leftMesh = createMesh();
+    const rightMesh = createMesh();
+    const runtime = new ThreeMaterialRuntime();
+
+    runtime.bindEntityObject(leftTarget.entityId, leftMesh);
+    runtime.bindEntityObject(rightTarget.entityId, rightMesh);
+    runtime.applyMaterial(leftTarget, STORY_HOLOGRAM_SCANLINE_MATERIAL_ID, {
+      intensity: 0.4,
+    });
+    runtime.applyMaterial(rightTarget, STORY_HOLOGRAM_SCANLINE_MATERIAL_ID, {
+      intensity: 0.9,
+    });
+
+    const leftMaterial = leftMesh.material as THREE.ShaderMaterial;
+    const rightMaterial = rightMesh.material as THREE.ShaderMaterial;
+    expect(leftMaterial).not.toBe(rightMaterial);
+    expect(leftMaterial.uniforms.uIntensity.value).toBe(0.4);
+    expect(rightMaterial.uniforms.uIntensity.value).toBe(0.9);
+    expect(runtime.getLifecycleDiagnostics()).toEqual({
+      boundEntityCount: 2,
+      materialBindingCount: 2,
+      materialIds: [STORY_HOLOGRAM_SCANLINE_MATERIAL_ID, STORY_HOLOGRAM_SCANLINE_MATERIAL_ID],
+    });
+
+    runtime.setShaderGlobals({
+      elapsedSeconds: 1,
+      deltaSeconds: 0.016,
+      viewportSize: [64, 64],
+    });
+    runtime.setShaderGlobals({
+      elapsedSeconds: 2,
+      deltaSeconds: 0.016,
+      viewportSize: [64, 64],
+    });
+
+    expect(leftMesh.material).toBe(leftMaterial);
+    expect(rightMesh.material).toBe(rightMaterial);
+    expect(runtime.getLifecycleDiagnostics().materialBindingCount).toBe(2);
+  });
+
   it('sets and resets gate dissolve public parameters through Three uniforms', () => {
     const mesh = createMesh();
     const runtime = new ThreeMaterialRuntime();
@@ -245,6 +288,104 @@ describe('ThreeMaterialRuntime', () => {
         viewportSize: [64, 64],
       }),
     ).not.toThrow();
+  });
+
+  it('disposes previous owned materials on repeated apply', () => {
+    const originalMaterial = new THREE.MeshBasicMaterial({ color: 0x123456 });
+    const mesh: THREE.Mesh<THREE.BoxGeometry, THREE.Material> = new THREE.Mesh(
+      new THREE.BoxGeometry(),
+      originalMaterial,
+    );
+    const runtime = new ThreeMaterialRuntime();
+
+    runtime.bindEntityObject(target.entityId, mesh);
+    runtime.applyMaterial(target, DEBUG_UV_GRADIENT_MATERIAL_ID);
+
+    const firstMaterial = mesh.material as THREE.ShaderMaterial;
+    let firstDisposed = false;
+    firstMaterial.addEventListener('dispose', () => {
+      firstDisposed = true;
+    });
+
+    runtime.applyMaterial(target, STORY_GATE_DISSOLVE_MATERIAL_ID);
+
+    expect(firstDisposed).toBe(true);
+    expect(mesh.material).not.toBe(firstMaterial);
+    expect(runtime.getLifecycleDiagnostics()).toEqual({
+      boundEntityCount: 1,
+      materialBindingCount: 1,
+      materialIds: [STORY_GATE_DISSOLVE_MATERIAL_ID],
+    });
+
+    runtime.disposeEntityMaterials(target.entityId);
+
+    expect(mesh.material).toBe(originalMaterial);
+  });
+
+  it('restores previous scene object materials when an entity is rebound during reload', () => {
+    const firstMesh = createMesh();
+    const firstOriginalMaterial = firstMesh.material;
+    const secondMesh = createMesh();
+    const runtime = new ThreeMaterialRuntime();
+
+    runtime.bindEntityObject(target.entityId, firstMesh);
+    runtime.applyMaterial(target, DEBUG_UV_GRADIENT_MATERIAL_ID);
+
+    const firstOwnedMaterial = firstMesh.material as THREE.ShaderMaterial;
+    let firstOwnedDisposed = false;
+    firstOwnedMaterial.addEventListener('dispose', () => {
+      firstOwnedDisposed = true;
+    });
+
+    runtime.bindEntityObject(target.entityId, secondMesh);
+
+    expect(firstOwnedDisposed).toBe(true);
+    expect(firstMesh.material).toBe(firstOriginalMaterial);
+    expect(runtime.getLifecycleDiagnostics()).toEqual({
+      boundEntityCount: 1,
+      materialBindingCount: 0,
+      materialIds: [],
+    });
+
+    runtime.applyMaterial(target, STORY_GATE_DISSOLVE_MATERIAL_ID);
+
+    expect(secondMesh.material).toBeInstanceOf(THREE.ShaderMaterial);
+    expect(runtime.getLifecycleDiagnostics().materialBindingCount).toBe(1);
+  });
+
+  it('disposes owned fallback materials without disposing restored shared texture ownership', () => {
+    const texture = new THREE.Texture();
+    const originalMaterial = new THREE.MeshBasicMaterial({ map: texture });
+    const mesh: THREE.Mesh<THREE.BoxGeometry, THREE.Material> = new THREE.Mesh(
+      new THREE.BoxGeometry(),
+      originalMaterial,
+    );
+    const runtime = new ThreeMaterialRuntime();
+    let fallbackDisposed = false;
+    let originalMaterialDisposed = false;
+    let textureDisposed = false;
+    originalMaterial.addEventListener('dispose', () => {
+      originalMaterialDisposed = true;
+    });
+    texture.addEventListener('dispose', () => {
+      textureDisposed = true;
+    });
+
+    runtime.bindEntityObject(target.entityId, mesh);
+    runtime.applyMaterial(target, 'story.missing');
+    mesh.material.addEventListener('dispose', () => {
+      fallbackDisposed = true;
+    });
+
+    runtime.disposeEntityMaterials(target.entityId);
+
+    expect(fallbackDisposed).toBe(true);
+    expect(mesh.material).toBe(originalMaterial);
+    expect(originalMaterialDisposed).toBe(false);
+    expect(textureDisposed).toBe(false);
+
+    originalMaterial.dispose();
+    texture.dispose();
   });
 
   it('rejects unsupported slots without mutating the mesh', () => {

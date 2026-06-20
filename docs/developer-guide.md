@@ -345,6 +345,8 @@ Phase 19 still does not include shader globals such as `uTime`, postprocessing, 
 
 Phase 20 introduces `ShaderGlobals` as a renderer-neutral runtime input contract under `src/runtime/materials/**`. Public global names are semantic values such as `elapsedSeconds`, `deltaSeconds`, `viewportSize`, and optional `cameraPosition`; data JSON, timelines, actions, and editor authoring must not expose raw shader uniform names such as `uTime` or `uResolution`.
 
+Phase 20 material lifetime policy: Three shader materials are currently owned per entity and material slot because public parameters and shader globals mutate uniforms at runtime. Equal-parameter static material sharing is deferred until a future pooling policy can prove immutability; high-cardinality visual variation should use instancing or attributes in a later phase. `ThreeMaterialRuntime` restores original mesh materials on rebind/dispose and disposes only the shader/fallback materials it created, leaving original shared textures under their existing owner.
+
 ## Actions
 
 Current action types:

@@ -22,6 +22,12 @@ interface ThreeMaterialRuntimeOptions {
   materialRegistry?: MaterialRegistry;
 }
 
+export interface ThreeMaterialRuntimeLifecycleDiagnostics {
+  boundEntityCount: number;
+  materialBindingCount: number;
+  materialIds: readonly string[];
+}
+
 interface EntityObjectBinding {
   object: THREE.Object3D;
   originalMaterials: Map<THREE.Mesh, THREE.Material | THREE.Material[]>;
@@ -165,6 +171,14 @@ export class ThreeMaterialRuntime implements MaterialRuntime {
 
   getParameter(target: MaterialTarget, parameter: string): MaterialParameterValue | undefined {
     return this.materialBindings.get(getTargetKey(target))?.parameters.get(parameter);
+  }
+
+  getLifecycleDiagnostics(): ThreeMaterialRuntimeLifecycleDiagnostics {
+    return {
+      boundEntityCount: this.entityObjects.size,
+      materialBindingCount: this.materialBindings.size,
+      materialIds: Array.from(this.materialBindings.values(), (binding) => binding.materialId),
+    };
   }
 
   setShaderGlobals(globals: ShaderGlobals): void {
