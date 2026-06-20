@@ -32,3 +32,16 @@ export {
   validateMaterialParameterDefinition,
   validateMaterialParameterValue,
 } from './MaterialParameter';
+export type {
+  ShaderGlobalKey,
+  ShaderGlobals,
+  ShaderGlobalsInput,
+  ShaderGlobalsNormalizeOptions,
+} from './ShaderGlobals';
+export {
+  SHADER_GLOBAL_KEYS,
+  createDefaultShaderGlobals,
+  isPublicShaderGlobalName,
+  isShaderGlobalKey,
+  normalizeShaderGlobals,
+} from './ShaderGlobals';

@@ -343,6 +343,8 @@ When adding the next shader material:
 
 Phase 19 still does not include shader globals such as `uTime`, postprocessing, shader graph authoring, multi-slot material assignment, or a second production material. Those remain future-phase work.
 
+Phase 20 introduces `ShaderGlobals` as a renderer-neutral runtime input contract under `src/runtime/materials/**`. Public global names are semantic values such as `elapsedSeconds`, `deltaSeconds`, `viewportSize`, and optional `cameraPosition`; data JSON, timelines, actions, and editor authoring must not expose raw shader uniform names such as `uTime` or `uResolution`.
+
 ## Actions
 
 Current action types:
