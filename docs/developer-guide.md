@@ -448,6 +448,8 @@ Every production shader material or postprocess pass added after Phase 21 must s
 
 Do not approve a new production shader or postprocess path if it only renders visually once in the editor. It must be covered by compile, visual, diagnostics/fallback, precompile, and low-end evidence appropriate to its scope.
 
+The integrated guard for this checklist is `tests/quality/shaderProductionQualityGate.test.ts`. It checks that current production material and postprocess ids are represented by the precompile plan, deterministic visual baselines, browser smoke test titles, fallback diagnostics fixture, and low-end baseline fixture.
+
 ## Actions
 
 Current action types:

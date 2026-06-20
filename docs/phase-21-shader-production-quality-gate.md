@@ -152,6 +152,8 @@ Round 21.10 adds `runLowEndShaderBaselineSmoke` as the current local gate. It us
 
 Round 21.11 promotes the production shader checklist into `docs/developer-guide.md` and the post-MVP execution workflow. Future production materials or postprocess passes must provide the renderer-neutral public contract, Three-boundary implementation, browser compile smoke, deterministic visual fixture, fallback/diagnostic evidence, precompile consideration, and low-end baseline evidence appropriate to the change. Editor-only visual confirmation is not enough for a production shader gate.
 
+Round 21.12 adds `tests/quality/shaderProductionQualityGate.test.ts` as the integrated quality guard. It verifies that the current production material and postprocess ids are represented by the precompile plan, deterministic visual baselines, browser smoke fixtures, fallback diagnostics fixture, and low-end baseline fixture before the phase moves to final validation.
+
 ## Explicit Non-Scope
 
 Phase 21 does not implement:
