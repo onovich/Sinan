@@ -39,7 +39,7 @@ function sampleMaterialParameterValue(
   }
 
   let previous = keys[0];
-  let next = keys.find((key) => {
+  const next = keys.find((key) => {
     if (key.time <= timelineTime) {
       previous = key;
       return false;

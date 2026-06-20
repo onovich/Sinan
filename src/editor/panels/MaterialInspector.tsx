@@ -1,8 +1,5 @@
 import type { ComponentPayloadData } from '../../schemas/component.schema';
-import type {
-  RenderableMaterialSlotData,
-  RenderableMaterialSlotsData,
-} from '../../schemas/material.schema';
+import type { RenderableMaterialSlotData } from '../../schemas/material.schema';
 import {
   createDefaultMaterialRegistry,
   type MaterialDefinition,
@@ -11,12 +8,10 @@ import {
   type MaterialParameterValue,
   type MaterialValidationIssue,
 } from '../../runtime/materials';
-
-export interface MaterialInspectableRenderable {
-  model: string;
-  renderStyle?: unknown;
-  materials?: RenderableMaterialSlotsData;
-}
+import {
+  type MaterialInspectableRenderable,
+  updateRenderableMaterialParameter,
+} from './MaterialInspectorModel';
 
 export interface MaterialInspectorProps {
   entityId: string;
@@ -218,34 +213,6 @@ function MaterialParameterEditor({
   );
 }
 
-export function updateRenderableMaterialParameter(
-  renderable: MaterialInspectableRenderable,
-  slotName: string,
-  parameterName: string,
-  value: MaterialParameterValue,
-): ComponentPayloadData {
-  const materialSlots = renderable.materials ?? {};
-  const materialSlot = materialSlots[slotName];
-
-  if (!materialSlot) {
-    return { ...renderable };
-  }
-
-  return {
-    ...renderable,
-    materials: {
-      ...materialSlots,
-      [slotName]: {
-        ...materialSlot,
-        parameters: {
-          ...(materialSlot.parameters ?? {}),
-          [parameterName]: value,
-        },
-      },
-    },
-  };
-}
-
 function getMaterialSlotValidationIssues(
   materialSlot: RenderableMaterialSlotData,
   definition: MaterialDefinition | undefined,
@@ -304,7 +271,7 @@ function renderMaterialParameterInput(
 }
 
 function MaterialVectorInput({ length, value }: { length: 2 | 3; value: MaterialParameterValue }) {
-  const values = Array.isArray(value) ? value : [];
+  const values = isMaterialVectorValue(value) ? value : [];
 
   return (
     <fieldset className="material-vector-field">
@@ -357,7 +324,7 @@ function formatMaterialIssue(issue: MaterialValidationIssue): string {
 }
 
 function formatMaterialValue(value: MaterialParameterValue): string {
-  if (Array.isArray(value)) {
+  if (isMaterialVectorValue(value)) {
     return value.map((entry) => formatNumberInput(entry)).join(', ');
   }
 
@@ -382,6 +349,16 @@ function formatNumberInput(value: number): string {
 
 function formatAxis(index: number): string {
   return ['X', 'Y', 'Z'][index] ?? String(index + 1);
+}
+
+function isMaterialVectorValue(
+  value: MaterialParameterValue,
+): value is readonly [number, number] | readonly [number, number, number] {
+  return (
+    Array.isArray(value) &&
+    (value.length === 2 || value.length === 3) &&
+    value.every((entry): entry is number => typeof entry === 'number' && Number.isFinite(entry))
+  );
 }
 
 function readStrictNumber(formData: FormData, name: string): number {

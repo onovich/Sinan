@@ -9,7 +9,7 @@ import { InspectorPanel } from './InspectorPanel';
 import {
   type MaterialInspectableRenderable,
   updateRenderableMaterialParameter,
-} from './MaterialInspector';
+} from './MaterialInspectorModel';
 
 const transform: TransformData = {
   position: [0, 0, 0],

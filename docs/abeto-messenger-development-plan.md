@@ -77,22 +77,22 @@ Non-goals:
 
 ## Phase Summary
 
-| Phase | Name | Goal | Estimated Rounds |
-| --- | --- | --- | ---: |
-| Phase 14 | Release Candidate Finalization | Clean working tree, verify fresh checkout workflow, and close the current platform release gate | 1-2 |
-| Phase 15 | Abeto Scope Lock | Cleanly translate the gap plan into project scope, budgets, acceptance gates, and implementation entry points | 4 |
-| Phase 16 | Stylized Runtime Foundation | Add render style schema, palette-toon materials, outline/highlight, fog/color grade, and low-end toggles | 4 |
-| Phase 17 | Asset Budget And Compression | Add asset metadata, texture/colorSpace metadata, budget validation, asset reports, and compressed asset loading strategy | 4 |
-| Phase 18 | Shader GLSL Material Runtime Foundation | Add renderer-neutral MaterialDefinition/MaterialRuntime contracts, GLSL raw imports, Three ShaderMaterial backend, fallback materials, and browser compile tests | 6 |
-| Phase 18.5 | Engine Core Alignment | Add EngineSession, EngineLoop, minimal World, and EditorSessionBridge so Viewport stops acting as the engine root | 3 |
-| Phase 19 | Shader Dissolve And Material Timeline | Add the first story shader material, texture-backed dissolve, material.parameter timeline tracks, material.setParameter actions, and Material Inspector MVP | 6 |
-| Phase 20 | Shader Globals And Postprocessing Ramp | Add shared shader globals, a second material, resource sharing/lifecycle checks, and the first postprocessing runtime pass | 6 |
-| Phase 21 | Shader Production Quality Gate | Add shader visual regression, HMR/fallback/error diagnostics, precompile guidance, and mobile shader baseline | 4 |
-| Phase 22 | LOD, Instancing, And Vegetation | Add LOD runtime/schema, InstancedMesh scatter, vegetation data, and perf smoke checks | 5 |
-| Phase 23 | Compact Spherical World Prototype | Add cube-sphere projection, spherical placement/camera, player surface movement, and three readable regions | 6 |
-| Phase 24 | Delivery Gameplay Showcase | Add Showcase Mode, player controller, delivery jobs, route/target feedback, and 1-2 complete jobs | 6 |
-| Phase 25 | Multiplayer-lite Social Layer | Add local remote-player simulator, avatar/emote/stamp schema, and a small WebSocket room prototype | 5-6 |
-| Phase 26 | Vertical Slice RC Hardening | Lock performance budgets, mobile profile, perf smoke, docs, and final vertical-slice release checklist | 3 |
+| Phase      | Name                                    | Goal                                                                                                                                                             | Estimated Rounds |
+| ---------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------: |
+| Phase 14   | Release Candidate Finalization          | Clean working tree, verify fresh checkout workflow, and close the current platform release gate                                                                  |              1-2 |
+| Phase 15   | Abeto Scope Lock                        | Cleanly translate the gap plan into project scope, budgets, acceptance gates, and implementation entry points                                                    |                4 |
+| Phase 16   | Stylized Runtime Foundation             | Add render style schema, palette-toon materials, outline/highlight, fog/color grade, and low-end toggles                                                         |                4 |
+| Phase 17   | Asset Budget And Compression            | Add asset metadata, texture/colorSpace metadata, budget validation, asset reports, and compressed asset loading strategy                                         |                4 |
+| Phase 18   | Shader GLSL Material Runtime Foundation | Add renderer-neutral MaterialDefinition/MaterialRuntime contracts, GLSL raw imports, Three ShaderMaterial backend, fallback materials, and browser compile tests |                6 |
+| Phase 18.5 | Engine Core Alignment                   | Add EngineSession, EngineLoop, minimal World, and EditorSessionBridge so Viewport stops acting as the engine root                                                |                3 |
+| Phase 19   | Shader Dissolve And Material Timeline   | Add the first story shader material, texture-backed dissolve, material.parameter timeline tracks, material.setParameter actions, and Material Inspector MVP      |                6 |
+| Phase 20   | Shader Globals And Postprocessing Ramp  | Add shared shader globals, a second material, resource sharing/lifecycle checks, and the first postprocessing runtime pass                                       |                6 |
+| Phase 21   | Shader Production Quality Gate          | Add shader visual regression, HMR/fallback/error diagnostics, precompile guidance, and mobile shader baseline                                                    |                4 |
+| Phase 22   | LOD, Instancing, And Vegetation         | Add LOD runtime/schema, InstancedMesh scatter, vegetation data, and perf smoke checks                                                                            |                5 |
+| Phase 23   | Compact Spherical World Prototype       | Add cube-sphere projection, spherical placement/camera, player surface movement, and three readable regions                                                      |                6 |
+| Phase 24   | Delivery Gameplay Showcase              | Add Showcase Mode, player controller, delivery jobs, route/target feedback, and 1-2 complete jobs                                                                |                6 |
+| Phase 25   | Multiplayer-lite Social Layer           | Add local remote-player simulator, avatar/emote/stamp schema, and a small WebSocket room prototype                                                               |              5-6 |
+| Phase 26   | Vertical Slice RC Hardening             | Lock performance budgets, mobile profile, perf smoke, docs, and final vertical-slice release checklist                                                           |                3 |
 
 Core route without multiplayer, from the current accepted Phase 16 baseline onward: Phase 17 through Phase 24 plus Phase 26, about 49 rounds.
 
@@ -117,17 +117,17 @@ Full route with multiplayer-lite, from the current accepted Phase 16 baseline on
 
 Initial vertical-slice targets:
 
-| Metric | Desktop Target | Mobile Target |
-| --- | ---: | ---: |
-| Initial app and vendor JS gzip | <= 350 KB | <= 350 KB |
-| Initial 3D assets | <= 8 MB compressed | <= 5 MB compressed |
-| Total demo assets | <= 25 MB compressed | <= 15 MB compressed |
-| Visible draw calls | <= 180 | <= 100 |
-| Visible triangles | <= 250k | <= 100k |
-| Dynamic characters | <= 10 players + 12 NPC | <= 6 players + 8 NPC |
-| Texture memory | <= 128 MB | <= 64 MB |
-| Frame rate | 60 fps target | 30 fps minimum |
-| Pixel ratio | adaptive 1.0-2.0 | capped 1.0-1.5 |
+| Metric                         |         Desktop Target |        Mobile Target |
+| ------------------------------ | ---------------------: | -------------------: |
+| Initial app and vendor JS gzip |              <= 350 KB |            <= 350 KB |
+| Initial 3D assets              |     <= 8 MB compressed |   <= 5 MB compressed |
+| Total demo assets              |    <= 25 MB compressed |  <= 15 MB compressed |
+| Visible draw calls             |                 <= 180 |               <= 100 |
+| Visible triangles              |                <= 250k |              <= 100k |
+| Dynamic characters             | <= 10 players + 12 NPC | <= 6 players + 8 NPC |
+| Texture memory                 |              <= 128 MB |             <= 64 MB |
+| Frame rate                     |          60 fps target |       30 fps minimum |
+| Pixel ratio                    |       adaptive 1.0-2.0 |       capped 1.0-1.5 |
 
 ## Shader GLSL MVP Integration
 
@@ -146,13 +146,13 @@ Integrated decisions:
 
 Shader stage mapping:
 
-| Shader Stage | Roadmap Phase | Purpose |
-| --- | --- | --- |
-| S0 Infrastructure | Phase 18 | Material runtime contracts, `.glsl?raw`, Three ShaderMaterial backend, fallback, compile tests |
-| S1 First story material | Phase 19 | Dissolve material, material timeline/action integration, Material Inspector MVP |
-| S2 Globals and second material | Phase 20 | Shared shader globals, second material, material sharing/cloning, lifecycle tests |
-| S3 Postprocessing | Phase 20 | Initial `EffectComposer`/pass runtime and postprocess parameter path |
-| S4 Production quality | Phase 21 | Compile/visual regression, HMR/error handling, mobile and precompile baseline |
+| Shader Stage                   | Roadmap Phase | Purpose                                                                                        |
+| ------------------------------ | ------------- | ---------------------------------------------------------------------------------------------- |
+| S0 Infrastructure              | Phase 18      | Material runtime contracts, `.glsl?raw`, Three ShaderMaterial backend, fallback, compile tests |
+| S1 First story material        | Phase 19      | Dissolve material, material timeline/action integration, Material Inspector MVP                |
+| S2 Globals and second material | Phase 20      | Shared shader globals, second material, material sharing/cloning, lifecycle tests              |
+| S3 Postprocessing              | Phase 20      | Initial `EffectComposer`/pass runtime and postprocess parameter path                           |
+| S4 Production quality          | Phase 21      | Compile/visual regression, HMR/error handling, mobile and precompile baseline                  |
 
 ## Engine Positioning Integration
 
@@ -480,14 +480,14 @@ The Phase 17 goal-mode guide uses a 16-round budget: 12 implementation rounds, 3
 
 Shader integration update: before starting Phase 17, also read `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md` and `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`. Phase 17 prepares shader prerequisites through texture metadata and loader strategy, but it must not implement `MaterialRuntime`, `ShaderMaterial`, material timeline tracks, or postprocessing.
 
-Phase 18.5 is PASS. `docs/engine-positioning-architecture-adjustment-plan.md` inserted and completed a lightweight architecture checkpoint before story-material work. The next goal should be Phase 19: Shader Dissolve And Material Timeline.
+Phase 19 is PASS. `docs/phase-19-shader-dissolve-material-timeline-final-report.md` records the final validation and push evidence. The next goal should be Phase 20: Shader Globals And Postprocessing Ramp.
 
 ```txt
-Complete Phase 19 from docs/abeto-messenger-development-plan.md: Shader Dissolve And Material Timeline.
+Complete Phase 20 from docs/abeto-messenger-development-plan.md: Shader Globals And Postprocessing Ramp.
 ```
 
-Use `docs/phase-19-shader-dissolve-material-timeline-goal-mode-execution-guide.md` as the active goal-mode guide. It uses a 16-round budget: 12 implementation rounds, 3 buffer rounds, and 1 final validation/handoff round.
+Create or use a Phase 20 goal-mode guide before implementation. Phase 20 should build on the Phase 19 public material parameter path and keep shader globals/postprocessing inside runtime adapter boundaries.
 
-Start only after confirming `docs/phase-18-5-engine-core-alignment-final-report.md` is PASS and pushed. Phase 19 should use the new `EngineSession` and `EditorSessionBridge` route for material timeline/action integration.
+Start only after confirming `docs/phase-19-shader-dissolve-material-timeline-final-report.md` is PASS and pushed. Phase 20 must continue to keep raw uniforms out of data, timeline, action, and editor contracts.
 
-Before starting Phase 19, re-read `AGENTS.md`, the main architecture guide, `docs/engine-positioning-architecture-adjustment-plan.md`, the Phase 18 and Phase 18.5 final reports, and the current runtime/editor architecture.
+Before starting Phase 20, re-read `AGENTS.md`, the main architecture guide, `docs/engine-positioning-architecture-adjustment-plan.md`, the Phase 18, Phase 18.5, and Phase 19 final reports, both Web3D Shader GLSL MVP docs, and the current runtime/editor architecture.

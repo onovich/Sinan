@@ -20,16 +20,16 @@ One session round means one complete implementation checkpoint:
 
 ## Phase Summary
 
-| Phase | Name | Goal | Estimated Rounds |
-| --- | --- | --- | ---: |
-| Phase 8 | Real Asset Runtime | Replace placeholder rendering with a real GLB/glTF pipeline while keeping fallback behavior | 4 |
-| Phase 9 | Demo Visual Pass | Build a visually legible asset-backed demo room with lighting, helpers, and presentation affordances | 4 |
-| Phase 10 | Runtime Effects Integration | Make action/timeline effects visible and audible in runtime/editor preview | 4 |
-| Phase 11 | Editor UI/UX Redesign | Mature the editor shell, panels, toolbars, states, and interaction model | 5 |
-| Phase 12 | Authoring Workflow And Data Safety | Improve authoring flows, save-time validation, dirty-state tracking, migrations, and asset/reference hardening | 4 |
-| Phase 13 | Testing, Performance, And Boundaries | Expand browser automation, enforce architecture boundaries, and address build/runtime performance risks | 4 |
-| Phase 14 | Release Candidate Packaging | Prepare a documented, reproducible, demo-ready release candidate | 2 |
-| Historical optional track | Superseded Advanced Gameplay Layer | Former Rapier, character-control, or dialogue/quest direction; use only if explicitly requested outside the Abeto route | 4-6 |
+| Phase                     | Name                                 | Goal                                                                                                                    | Estimated Rounds |
+| ------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | ---------------: |
+| Phase 8                   | Real Asset Runtime                   | Replace placeholder rendering with a real GLB/glTF pipeline while keeping fallback behavior                             |                4 |
+| Phase 9                   | Demo Visual Pass                     | Build a visually legible asset-backed demo room with lighting, helpers, and presentation affordances                    |                4 |
+| Phase 10                  | Runtime Effects Integration          | Make action/timeline effects visible and audible in runtime/editor preview                                              |                4 |
+| Phase 11                  | Editor UI/UX Redesign                | Mature the editor shell, panels, toolbars, states, and interaction model                                                |                5 |
+| Phase 12                  | Authoring Workflow And Data Safety   | Improve authoring flows, save-time validation, dirty-state tracking, migrations, and asset/reference hardening          |                4 |
+| Phase 13                  | Testing, Performance, And Boundaries | Expand browser automation, enforce architecture boundaries, and address build/runtime performance risks                 |                4 |
+| Phase 14                  | Release Candidate Packaging          | Prepare a documented, reproducible, demo-ready release candidate                                                        |                2 |
+| Historical optional track | Superseded Advanced Gameplay Layer   | Former Rapier, character-control, or dialogue/quest direction; use only if explicitly requested outside the Abeto route |              4-6 |
 
 Recommended core path: Phase 8 through Phase 14. Phase 14 is accepted for the current release-candidate baseline.
 
@@ -41,9 +41,9 @@ With the superseded optional Phase 15: 31-33 rounds.
 
 After Phase 14, continue with `docs/abeto-messenger-development-plan.md` for the Messenger-like vertical-slice roadmap. The next planning handoff is `docs/phase-15-abeto-scope-lock-goal-mode-execution-guide.md`.
 
-Current route update: Phase 18.5 Engine Core Alignment is PASS. The active next checkpoint is Phase 19: Shader Dissolve And Material Timeline from `docs/phase-19-shader-dissolve-material-timeline-goal-mode-execution-guide.md` and `docs/abeto-messenger-development-plan.md`.
+Current route update: Phase 19 Shader Dissolve And Material Timeline is PASS. The active next checkpoint is Phase 20: Shader Globals And Postprocessing Ramp from `docs/abeto-messenger-development-plan.md`.
 
-Engine-positioning update: Phase 18.5 moved runtime orchestration from `src/editor/Viewport.tsx` into `EngineSession`/`EngineLoop` with a minimal renderer-neutral `World` and `EditorSessionBridge`.
+Engine-positioning update: Phase 18.5 moved runtime orchestration from `src/editor/Viewport.tsx` into `EngineSession`/`EngineLoop` with a minimal renderer-neutral `World` and `EditorSessionBridge`. Phase 19 then proved the material timeline/action/editor path on top of that engine root.
 
 Historical note: Phase 17 from `docs/phase-17-asset-budget-compression-goal-mode-execution-guide.md` prepared texture metadata and loader policy for the Shader GLSL MVP. Phase 18 is the first shader runtime implementation phase and should start by reading `AGENTS.md`, the main architecture guide, `docs/abeto-messenger-development-plan.md`, `docs/Web3D_Shader_GLSL_MVP_支持度评估与实施计划.md`, `docs/Web3D_Shader_研发方案与架构指南_GLSL_MVP.md`, and the Phase 17 final report.
 

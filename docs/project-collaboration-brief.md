@@ -26,7 +26,7 @@ Sinan 当前已经从文档/架构阶段推进到可运行的 Post-MVP 基线：
 - Shader 基础：Phase 18 已完成 renderer-neutral `MaterialRuntime`、GLSL raw import、Three ShaderMaterial backend、fallback 和 Chromium shader compile smoke。
 - 引擎根：Phase 18.5 已完成轻量 `EngineSession`、`EngineLoop`、`World` 和 `EditorSessionBridge`，编辑器不再直接拥有完整运行闭环。
 - 定位升级：当前产品定位已经从 Scene Director 升级为 Sinan Engine；渲染、物理、输入、UI 等模块将按 first-party engine systems 规划。
-- 下一阶段：Phase 19 计划推进 Shader Dissolve And Material Timeline，验证材质参数、Timeline、Action、Editor 与 EngineSession 的协作路径。
+- 下一阶段：Phase 20 计划推进 Shader Globals And Postprocessing Ramp，在 Phase 19 公共材质参数路径之上验证 shader globals、第二个材质、生命周期加固与首个受控 postprocessing runtime pass。
 
 当前项目可以作为合作方的真实集成测试场：它不是空白 demo，也还没有大到所有接口都定型，因此适合共同探索 adapter、schema、runtime hooks 和编辑器嵌入方式。
 
@@ -98,12 +98,12 @@ Sinan 的基本合作原则是：
 
 对输入控制、相机、资源加载、UI 这四类方向，我们建议如下：
 
-| 方向 | 建议分工 | Sinan 必须自研掌握 | 适合合作方提供 |
-| --- | --- | --- | --- |
-| 输入控制 | 核心自研，设备适配可合作 | `InputMap`、`InputAction`、editor/gameplay 输入路由、replay/test contract、与 World/Event 的语义映射 | mobile touch、gamepad、手势、虚拟摇杆、死区/灵敏度、组合键、跨浏览器输入细节 |
-| 相机模块 | 核心自研，高级 rig 可合作 | `cameraShots/*.json`、Virtual Camera、DirectorCameraSystem、Timeline camera track、camera restore/preview-safe 规则 | follow/rail/constraint/shake/collision avoidance、编辑器相机手感、路径预览、曲线工具 |
-| 资源加载 | 强烈建议混合，优先合作 | `assets.manifest.json`、asset schema、budget、ReferenceResolver、fallback policy、CI/report 规则 | GLB/glTF 加载优化、Draco/meshopt、KTX2/Basis、preload/cache/progressive loading、资源报告和优化建议 |
-| UI 框架 | 编辑器框架自研，组件/控件可合作 | Editor shell、panel ownership、command/undo/dirty/save、schema validation display、tool workflow | inspector 控件、timeline widget、dock/split pane、context menu、runtime HUD/dialogue 组件、可访问性/focus 细节 |
+| 方向     | 建议分工                        | Sinan 必须自研掌握                                                                                                  | 适合合作方提供                                                                                                 |
+| -------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| 输入控制 | 核心自研，设备适配可合作        | `InputMap`、`InputAction`、editor/gameplay 输入路由、replay/test contract、与 World/Event 的语义映射                | mobile touch、gamepad、手势、虚拟摇杆、死区/灵敏度、组合键、跨浏览器输入细节                                   |
+| 相机模块 | 核心自研，高级 rig 可合作       | `cameraShots/*.json`、Virtual Camera、DirectorCameraSystem、Timeline camera track、camera restore/preview-safe 规则 | follow/rail/constraint/shake/collision avoidance、编辑器相机手感、路径预览、曲线工具                           |
+| 资源加载 | 强烈建议混合，优先合作          | `assets.manifest.json`、asset schema、budget、ReferenceResolver、fallback policy、CI/report 规则                    | GLB/glTF 加载优化、Draco/meshopt、KTX2/Basis、preload/cache/progressive loading、资源报告和优化建议            |
+| UI 框架  | 编辑器框架自研，组件/控件可合作 | Editor shell、panel ownership、command/undo/dirty/save、schema validation display、tool workflow                    | inspector 控件、timeline widget、dock/split pane、context menu、runtime HUD/dialogue 组件、可访问性/focus 细节 |
 
 更具体地说：
 

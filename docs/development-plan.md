@@ -220,4 +220,4 @@ Current route update: Phase 17 is PASS. The active goal-mode guide is `docs/phas
 
 Historical note: Phase 17 from `docs/phase-17-asset-budget-compression-goal-mode-execution-guide.md` prepared asset, texture, and compression prerequisites for the Shader GLSL MVP; actual `MaterialRuntime` and GLSL work starts in Phase 18.
 
-Current engine-positioning update: Phase 18.5 is PASS. The project now has `EngineSession`, `EngineLoop`, minimal renderer-neutral `World`, and `EditorSessionBridge`, and `src/editor/Viewport.tsx` no longer owns the bulk of runtime orchestration. The next implementation phase is Phase 19: Shader Dissolve And Material Timeline, using `docs/phase-19-shader-dissolve-material-timeline-goal-mode-execution-guide.md` as the active goal-mode guide.
+Current shader route update: Phase 19 is PASS. The project now has a production `story.gate-dissolve` material, `material.parameter` timeline sampling, `material.setParameter` actions, Material Inspector MVP authoring, and smoke coverage for the material timeline editor workflow. The next implementation phase is Phase 20: Shader Globals And Postprocessing Ramp.

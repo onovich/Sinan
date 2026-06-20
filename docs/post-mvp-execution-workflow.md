@@ -21,7 +21,7 @@ Complete the core post-MVP roadmap for Sinan Scene Director, Phase 8 through Pha
 
 The earlier optional advanced-gameplay track is superseded by the Abeto route unless the user explicitly asks for Rapier, character-control, or dialogue/quest work outside that route.
 
-After Phase 14, the next product route is the Abeto Messenger-like vertical slice. Use `docs/abeto-messenger-development-plan.md` as the roadmap and phase-specific goal-mode guides. Phase 15 is a scope-lock and handoff phase, Phase 16 is Stylized Runtime Foundation, Phase 17 is Asset Budget And Compression, Phase 18 is Shader GLSL Material Runtime Foundation, Phase 18.5 is Engine Core Alignment, and Phase 19 is Shader Dissolve And Material Timeline. The Web3D Shader GLSL MVP docs are now integrated into this route: Phase 17 prepares texture metadata and loader policy, Phase 18 establishes the S0 material runtime foundation, Phase 18.5 establishes the engine/session/world root, Phase 19 proves a production story material through timeline/action/editor paths, and later LOD/world/gameplay phases move after the shader track.
+After Phase 14, the next product route is the Abeto Messenger-like vertical slice. Use `docs/abeto-messenger-development-plan.md` as the roadmap and phase-specific goal-mode guides. Phase 15 is a scope-lock and handoff phase, Phase 16 is Stylized Runtime Foundation, Phase 17 is Asset Budget And Compression, Phase 18 is Shader GLSL Material Runtime Foundation, Phase 18.5 is Engine Core Alignment, Phase 19 is Shader Dissolve And Material Timeline, and Phase 20 is Shader Globals And Postprocessing Ramp. The Web3D Shader GLSL MVP docs are now integrated into this route: Phase 17 prepares texture metadata and loader policy, Phase 18 establishes the S0 material runtime foundation, Phase 18.5 establishes the engine/session/world root, Phase 19 proves a production story material through timeline/action/editor paths, and Phase 20 should add shared shader globals, a second material, lifecycle hardening, and the first controlled postprocessing runtime pass.
 
 The next executor should start by reading `AGENTS.md`, the main architecture guide, the Abeto roadmap, both Web3D Shader GLSL MVP docs, and the active goal guide.
 
@@ -29,7 +29,7 @@ Routine validation now includes `npm run report-assets` through `.codex/project-
 
 Phase 18 adds a Chromium shader compile smoke under `npm run test:smoke`. Run smoke after changing `src/shaders/**`, `src/runtime/materials/**`, `src/runtime/three/materials/**`, renderable material data flow, or fallback/diagnostic behavior.
 
-Phase 18.5 is PASS. The current active goal-mode guide is `docs/phase-19-shader-dissolve-material-timeline-goal-mode-execution-guide.md`. Phase 19 should use the new `EngineSession`/`EditorSessionBridge` path for material timeline/action behavior instead of reintroducing runtime orchestration into `src/editor/Viewport.tsx`. The guide uses a 16-round budget: 12 implementation rounds, 3 buffer rounds, and 1 final validation/handoff round.
+Phase 19 is PASS. The current active next phase is Phase 20: Shader Globals And Postprocessing Ramp from `docs/abeto-messenger-development-plan.md`. Create or use a Phase 20 goal-mode guide before implementation, and keep raw shader uniforms out of data, timeline, action, and editor contracts.
 
 ## Execution Budget
 
