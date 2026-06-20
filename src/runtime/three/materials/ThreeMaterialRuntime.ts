@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import {
   DEBUG_UV_GRADIENT_MATERIAL_ID,
   STORY_GATE_DISSOLVE_MATERIAL_ID,
+  STORY_HOLOGRAM_SCANLINE_MATERIAL_ID,
   createDefaultMaterialRegistry,
   type MaterialParameterValue,
   type MaterialRegistry,
@@ -271,7 +272,8 @@ function applyParameterToMaterial(
 ): MaterialRuntimeError | undefined {
   if (
     binding.materialId !== DEBUG_UV_GRADIENT_MATERIAL_ID &&
-    binding.materialId !== STORY_GATE_DISSOLVE_MATERIAL_ID
+    binding.materialId !== STORY_GATE_DISSOLVE_MATERIAL_ID &&
+    binding.materialId !== STORY_HOLOGRAM_SCANLINE_MATERIAL_ID
   ) {
     return {
       code: 'unsupported_material_parameter',
@@ -318,6 +320,18 @@ function applyParameterToMaterial(
       return undefined;
     case 'noiseScale':
       binding.material.uniforms.uNoiseScale.value = value as number;
+      return undefined;
+    case 'intensity':
+      binding.material.uniforms.uIntensity.value = value as number;
+      return undefined;
+    case 'scanlineColor':
+      (binding.material.uniforms.uScanlineColor.value as THREE.Color).set(value as string);
+      return undefined;
+    case 'scanlineDensity':
+      binding.material.uniforms.uScanlineDensity.value = value as number;
+      return undefined;
+    case 'flickerStrength':
+      binding.material.uniforms.uFlickerStrength.value = value as number;
       return undefined;
     default:
       return {

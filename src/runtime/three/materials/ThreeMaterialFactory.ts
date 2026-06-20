@@ -3,6 +3,7 @@ import type * as THREE from 'three';
 import {
   DEBUG_UV_GRADIENT_MATERIAL_ID,
   STORY_GATE_DISSOLVE_MATERIAL_ID,
+  STORY_HOLOGRAM_SCANLINE_MATERIAL_ID,
   createDefaultMaterialRegistry,
   type MaterialDefinition,
   type MaterialParameterValue,
@@ -12,6 +13,7 @@ import {
 import { createDebugUvGradientMaterial } from './createDebugUvGradientMaterial';
 import { createFallbackMaterial } from './createFallbackMaterial';
 import { createGateDissolveMaterial } from './createGateDissolveMaterial';
+import { createHologramScanlineMaterial } from './createHologramScanlineMaterial';
 
 export type ThreeMaterialFactoryErrorCode =
   | 'missing_material'
@@ -108,6 +110,16 @@ export class ThreeMaterialFactory {
         edgeColor: requireString(values.edgeColor, 'edgeColor'),
         baseColor: requireString(values.baseColor, 'baseColor'),
         noiseScale: requireNumber(values.noiseScale, 'noiseScale'),
+      });
+    }
+
+    if (definition.id === STORY_HOLOGRAM_SCANLINE_MATERIAL_ID) {
+      return createHologramScanlineMaterial({
+        intensity: requireNumber(values.intensity, 'intensity'),
+        baseColor: requireString(values.baseColor, 'baseColor'),
+        scanlineColor: requireString(values.scanlineColor, 'scanlineColor'),
+        scanlineDensity: requireNumber(values.scanlineDensity, 'scanlineDensity'),
+        flickerStrength: requireNumber(values.flickerStrength, 'flickerStrength'),
       });
     }
 

@@ -1,7 +1,11 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 
-import { DEBUG_UV_GRADIENT_MATERIAL_ID, STORY_GATE_DISSOLVE_MATERIAL_ID } from '../../materials';
+import {
+  DEBUG_UV_GRADIENT_MATERIAL_ID,
+  STORY_GATE_DISSOLVE_MATERIAL_ID,
+  STORY_HOLOGRAM_SCANLINE_MATERIAL_ID,
+} from '../../materials';
 import { FALLBACK_MATERIAL_NAME } from './createFallbackMaterial';
 import { ThreeMaterialFactory } from './ThreeMaterialFactory';
 
@@ -91,6 +95,49 @@ describe('ThreeMaterialFactory', () => {
     expect(material.uniforms.uNoiseScale.value).toBe(8);
   });
 
+  it('creates the production hologram scanline ShaderMaterial from public parameters', () => {
+    const result = new ThreeMaterialFactory().createMaterial({
+      materialId: STORY_HOLOGRAM_SCANLINE_MATERIAL_ID,
+      parameters: {
+        intensity: 0.9,
+        baseColor: '#ffffff',
+        scanlineColor: '#111111',
+        scanlineDensity: 48,
+        flickerStrength: 0.2,
+      },
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.fallbackUsed).toBe(false);
+    expect(result.material).toBeInstanceOf(THREE.ShaderMaterial);
+    expect(result.material.name).toBe('material:story.hologram-scanline');
+
+    const material = result.material as THREE.ShaderMaterial;
+    expect(material.uniforms.uIntensity.value).toBe(0.9);
+    expect(material.uniforms.uBaseColor.value).toEqual(new THREE.Color('#ffffff'));
+    expect(material.uniforms.uScanlineColor.value).toEqual(new THREE.Color('#111111'));
+    expect(material.uniforms.uScanlineDensity.value).toBe(48);
+    expect(material.uniforms.uFlickerStrength.value).toBe(0.2);
+    expect(material.uniforms.uElapsedSeconds.value).toBe(0);
+    expect(material.transparent).toBe(true);
+    expect(material.fragmentShader).toContain('uScanlineDensity');
+    expect(material.vertexShader).toContain('vWorldPosition');
+  });
+
+  it('uses hologram scanline defaults when parameters are omitted', () => {
+    const result = new ThreeMaterialFactory().createMaterial({
+      materialId: STORY_HOLOGRAM_SCANLINE_MATERIAL_ID,
+    });
+    const material = result.material as THREE.ShaderMaterial;
+
+    expect(result.fallbackUsed).toBe(false);
+    expect(material.uniforms.uIntensity.value).toBe(0.75);
+    expect((material.uniforms.uBaseColor.value as THREE.Color).getHexString()).toBe('5aa7d6');
+    expect((material.uniforms.uScanlineColor.value as THREE.Color).getHexString()).toBe('ffcf70');
+    expect(material.uniforms.uScanlineDensity.value).toBe(36);
+    expect(material.uniforms.uFlickerStrength.value).toBe(0.12);
+  });
+
   it('creates a visible fallback for missing materials', () => {
     const result = new ThreeMaterialFactory().createMaterial({
       materialId: 'debug.missing',
@@ -144,6 +191,26 @@ describe('ThreeMaterialFactory', () => {
         materialId: STORY_GATE_DISSOLVE_MATERIAL_ID,
         parameter: 'progress',
         message: 'Number value 2 is above max 1.',
+      },
+    ]);
+  });
+
+  it('creates a visible fallback for invalid hologram scanline parameters', () => {
+    const result = new ThreeMaterialFactory().createMaterial({
+      materialId: STORY_HOLOGRAM_SCANLINE_MATERIAL_ID,
+      parameters: {
+        scanlineDensity: 128,
+      },
+    });
+
+    expect(result.fallbackUsed).toBe(true);
+    expect(result.material.name).toBe(FALLBACK_MATERIAL_NAME);
+    expect(result.errors).toEqual([
+      {
+        code: 'invalid_parameters',
+        materialId: STORY_HOLOGRAM_SCANLINE_MATERIAL_ID,
+        parameter: 'scanlineDensity',
+        message: 'Number value 128 is above max 96.',
       },
     ]);
   });

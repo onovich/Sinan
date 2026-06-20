@@ -1,7 +1,11 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 
-import { DEBUG_UV_GRADIENT_MATERIAL_ID, STORY_GATE_DISSOLVE_MATERIAL_ID } from '../../materials';
+import {
+  DEBUG_UV_GRADIENT_MATERIAL_ID,
+  STORY_GATE_DISSOLVE_MATERIAL_ID,
+  STORY_HOLOGRAM_SCANLINE_MATERIAL_ID,
+} from '../../materials';
 import { FALLBACK_MATERIAL_NAME } from './createFallbackMaterial';
 import { ThreeMaterialRuntime } from './ThreeMaterialRuntime';
 
@@ -106,6 +110,44 @@ describe('ThreeMaterialRuntime', () => {
     expect(runtime.resetParameter(target, 'progress')).toEqual({ ok: true, errors: [] });
     expect(material.uniforms.uProgress.value).toBe(0);
     expect(runtime.getParameter(target, 'progress')).toBe(0);
+  });
+
+  it('sets and resets hologram scanline public parameters through Three uniforms', () => {
+    const mesh = createMesh();
+    const runtime = new ThreeMaterialRuntime();
+
+    runtime.bindEntityObject(target.entityId, mesh);
+    runtime.applyMaterial(target, STORY_HOLOGRAM_SCANLINE_MATERIAL_ID, {
+      intensity: 0.8,
+      scanlineDensity: 42,
+    });
+
+    expect(runtime.setParameter(target, 'intensity', 0.4)).toEqual({ ok: true, errors: [] });
+    expect(runtime.setParameter(target, 'baseColor', '#111111')).toEqual({ ok: true, errors: [] });
+    expect(runtime.setParameter(target, 'scanlineColor', '#ffffff')).toEqual({
+      ok: true,
+      errors: [],
+    });
+    expect(runtime.setParameter(target, 'scanlineDensity', 64)).toEqual({
+      ok: true,
+      errors: [],
+    });
+    expect(runtime.setParameter(target, 'flickerStrength', 0.25)).toEqual({
+      ok: true,
+      errors: [],
+    });
+
+    const material = mesh.material as THREE.ShaderMaterial;
+    expect(material.uniforms.uIntensity.value).toBe(0.4);
+    expect((material.uniforms.uBaseColor.value as THREE.Color).getHexString()).toBe('111111');
+    expect((material.uniforms.uScanlineColor.value as THREE.Color).getHexString()).toBe('ffffff');
+    expect(material.uniforms.uScanlineDensity.value).toBe(64);
+    expect(material.uniforms.uFlickerStrength.value).toBe(0.25);
+    expect(runtime.getParameter(target, 'scanlineDensity')).toBe(64);
+
+    expect(runtime.resetParameter(target, 'scanlineDensity')).toEqual({ ok: true, errors: [] });
+    expect(material.uniforms.uScanlineDensity.value).toBe(36);
+    expect(runtime.getParameter(target, 'scanlineDensity')).toBe(36);
   });
 
   it('returns a deterministic error for missing material bindings', () => {
