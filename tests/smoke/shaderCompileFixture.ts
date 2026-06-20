@@ -12,6 +12,7 @@ import {
 import { ThreeMaterialFactory } from '../../src/runtime/three/materials/ThreeMaterialFactory';
 import { ThreeMaterialRuntime } from '../../src/runtime/three/materials/ThreeMaterialRuntime';
 import { ThreePostProcessRuntime } from '../../src/runtime/three/ThreePostProcessRuntime';
+import { postProcessVisualBaselines } from '../visual/postProcessVisualBaselines';
 import { shaderMaterialVisualBaselines } from '../visual/shaderMaterialVisualBaselines';
 import {
   compareVisualFixture,
@@ -55,6 +56,13 @@ export interface HologramScanlineShaderSmokeResult extends ShaderCompileSmokeRes
 }
 
 export interface ShaderMaterialVisualRegressionSmokeResult {
+  comparisons: readonly VisualFixtureComparison[];
+  fixtureCount: number;
+  issues: readonly string[];
+  ok: boolean;
+}
+
+export interface PostProcessVisualRegressionSmokeResult {
   comparisons: readonly VisualFixtureComparison[];
   fixtureCount: number;
   issues: readonly string[];
@@ -664,6 +672,23 @@ export function renderPostProcessVignetteSmoke(): PostProcessVignetteSmokeResult
   }
 }
 
+export function renderPostProcessVisualRegression(): PostProcessVisualRegressionSmokeResult {
+  const comparisons: VisualFixtureComparison[] = [];
+
+  for (const baseline of postProcessVisualBaselines) {
+    comparisons.push(renderPostProcessVisualFixture(baseline));
+  }
+
+  const issues = comparisons.flatMap((comparison) => comparison.issues);
+
+  return {
+    comparisons,
+    fixtureCount: comparisons.length,
+    issues,
+    ok: issues.length === 0,
+  };
+}
+
 async function renderMaterialVisualFixture(
   baseline: VisualFixtureBaseline,
 ): Promise<VisualFixtureComparison> {
@@ -731,6 +756,81 @@ async function renderMaterialVisualFixture(
     materialRuntime.disposeEntityMaterials(target.entityId);
     geometry.dispose();
     originalMaterial.dispose();
+    renderer.dispose();
+    canvas.remove();
+  }
+}
+
+function renderPostProcessVisualFixture(baseline: VisualFixtureBaseline): VisualFixtureComparison {
+  const canvas = document.createElement('canvas');
+  canvas.width = baseline.viewport.width;
+  canvas.height = baseline.viewport.height;
+  document.body.append(canvas);
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: false,
+    preserveDrawingBuffer: true,
+  });
+  renderer.debug.checkShaderErrors = true;
+  renderer.setClearColor(0x000000, 1);
+  renderer.setPixelRatio(baseline.viewport.pixelRatio ?? 1);
+  renderer.setSize(baseline.viewport.width, baseline.viewport.height, false);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+  camera.position.set(...baseline.camera.position);
+  camera.lookAt(...(baseline.camera.target ?? [0, 0, 0]));
+
+  const geometry = new THREE.PlaneGeometry(2, 2);
+  const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const mesh = new THREE.Mesh(geometry, material);
+  const postProcessRuntime = new ThreePostProcessRuntime();
+  const postProcessRegistry = createDefaultPostProcessRegistry();
+  const parameterIssues = postProcessRegistry.validateParameters(
+    baseline.target.id,
+    baseline.parameters,
+  );
+  const resolvedParameters = postProcessRegistry.resolveParameters(
+    baseline.target.id,
+    baseline.parameters,
+  );
+
+  if (parameterIssues.length > 0 || !resolvedParameters) {
+    throw new Error(parameterIssues.map((issue) => issue.message).join('; '));
+  }
+
+  scene.add(mesh);
+  postProcessRuntime.setVignette({
+    enabled: resolvedParameters.enabled === true,
+    intensity: resolvedParameters.intensity as number,
+    softness: resolvedParameters.softness as number,
+  });
+  postProcessRuntime.init({
+    camera,
+    enabled: true,
+    height: baseline.viewport.height,
+    pixelRatio: baseline.viewport.pixelRatio ?? 1,
+    renderer,
+    scene,
+    width: baseline.viewport.width,
+  });
+
+  try {
+    postProcessRuntime.render(() => renderer.render(scene, camera));
+
+    return compareVisualFixture(baseline, {
+      fixtureId: baseline.id,
+      samples: baseline.samples.map((sample) => ({
+        label: sample.label,
+        observed: readPixel(renderer, sample.point[0], sample.point[1]),
+      })),
+    });
+  } finally {
+    postProcessRuntime.dispose();
+    geometry.dispose();
+    material.dispose();
     renderer.dispose();
     canvas.remove();
   }

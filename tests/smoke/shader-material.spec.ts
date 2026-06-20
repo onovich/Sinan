@@ -41,6 +41,12 @@ interface ShaderMaterialVisualRegressionSmokeResult {
   ok: boolean;
 }
 
+interface PostProcessVisualRegressionSmokeResult {
+  fixtureCount: number;
+  issues: readonly string[];
+  ok: boolean;
+}
+
 interface ShaderLifecycleResourceSmokeResult {
   finalProgramCount: number | null;
   finalRuntimeBindingCount: number;
@@ -263,6 +269,25 @@ test('postprocess vignette pass changes edge pixels in Chromium', async ({ page 
   expect(result.cornerPixel[3]).toBe(255);
   expect(result.programCount ?? 0).toBeGreaterThan(0);
   expect(result.memory.geometries).toBeGreaterThan(0);
+  expect(browserErrors).toEqual([]);
+});
+
+test('postprocess vignette matches deterministic visual baselines', async ({ page }) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/');
+  const result = await page.evaluate(async (): Promise<PostProcessVisualRegressionSmokeResult> => {
+    const fixtureUrl = '/tests/smoke/shaderCompileFixture.ts';
+    const fixture = (await import(/* @vite-ignore */ fixtureUrl)) as {
+      renderPostProcessVisualRegression: () => PostProcessVisualRegressionSmokeResult;
+    };
+
+    return fixture.renderPostProcessVisualRegression();
+  });
+
+  expect(result.fixtureCount).toBe(2);
+  expect(result.issues).toEqual([]);
+  expect(result.ok).toBe(true);
   expect(browserErrors).toEqual([]);
 });
 
