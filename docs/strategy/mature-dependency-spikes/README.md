@@ -3,7 +3,7 @@
 Date: 2026-06-20
 Branch/worktree: `codex/mature-dependency-spikes` at `D:\LabProjects\Sinan-MatureDependencySpikes`
 
-This folder contains isolated evaluation reports for the first mature dependency spike batch. The spike package will live at:
+This folder contains isolated evaluation reports for the first mature dependency spike batch. The spike package lives at:
 
 ```txt
 spikes/mature-dependencies/
@@ -51,3 +51,35 @@ Commit boundary:
 - Allowed: `spikes/mature-dependencies/**`.
 - Allowed: `docs/strategy/mature-dependency-spikes/**`.
 - Optional only if required: `.gitignore`.
+
+Validation summary:
+
+- `npm --prefix spikes\mature-dependencies run check`: passed.
+- `git diff --check`: passed.
+- `git status --short --branch`: clean after final commit.
+- Vite browser build passed with a known large chunk warning from Rapier/recast evaluation bundles.
+- Playwright browser smoke remained blocked because Playwright 1.61 expected Chromium 1228 and browser install timed out after 304s.
+
+Candidate decisions:
+
+| Candidate | Decision |
+| --- | --- |
+| Rapier JS | accept-for-adapter-spike |
+| Web Audio API | accept-for-adapter-spike |
+| glTF Transform + meshoptimizer | accept-for-adapter-spike |
+| Dexie / IndexedDB | accept-for-adapter-spike |
+| Spector.js + Performance API | dev-only |
+| Web Workers + Comlink | accept-for-adapter-spike |
+| recast-navigation-js | hold-for-phase-21-5-rfc |
+
+Reports:
+
+- `dependency-installation-audit.md`
+- `rapier-evaluation.md`
+- `web-audio-evaluation.md`
+- `dexie-evaluation.md`
+- `gltf-transform-evaluation.md`
+- `spector-evaluation.md`
+- `comlink-worker-evaluation.md`
+- `recast-navigation-evaluation.md`
+- `final-readiness-report.md`
