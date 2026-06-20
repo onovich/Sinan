@@ -234,6 +234,7 @@ export function getTimelineTrackStart(track: TimelineTrackData): number {
     case 'camera.shot':
     case 'wait':
       return track.start;
+    case 'material.parameter':
     case 'property':
       return Math.min(...track.keys.map((key) => key.time));
   }

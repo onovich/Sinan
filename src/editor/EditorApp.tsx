@@ -2316,6 +2316,18 @@ function createDefaultTimelineTrack(
           { time: Math.min(1, timeline.duration), value: 1, ease: 'linear' },
         ],
       };
+    case 'material.parameter':
+      return {
+        id,
+        type: 'material.parameter',
+        target: entityId,
+        slot: 'main',
+        parameter: 'progress',
+        keys: [
+          { time: 0, value: 0, ease: 'linear' },
+          { time: Math.min(1, timeline.duration), value: 1, ease: 'linear' },
+        ],
+      };
     case 'subtitle':
       return {
         id,

@@ -67,6 +67,17 @@ describe('TimelineSchema', () => {
           ],
         },
         {
+          id: 'track_gate_dissolve_progress',
+          type: 'material.parameter',
+          target: 'gate_a',
+          slot: 'main',
+          parameter: 'progress',
+          keys: [
+            { time: 0.4, value: 0, ease: 'linear' },
+            { time: 2, value: 1 },
+          ],
+        },
+        {
           id: 'track_hold',
           type: 'wait',
           start: 3.5,
@@ -95,6 +106,26 @@ describe('TimelineSchema', () => {
               flag: 'bad',
               value: true,
             },
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it('rejects invalid material parameter timeline tracks', () => {
+    expect(() =>
+      TimelineSchema.parse({
+        schemaVersion: 1,
+        id: 'tl_bad_material',
+        duration: 1,
+        tracks: [
+          {
+            id: 'track_bad_material',
+            type: 'material.parameter',
+            target: 'gate_a',
+            slot: 'main',
+            parameter: 'uProgress',
+            keys: [],
           },
         ],
       }),

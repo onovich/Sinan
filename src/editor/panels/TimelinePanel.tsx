@@ -22,6 +22,8 @@ export type TimelineItemOperation = 'add' | 'update' | 'remove';
 
 type PropertyTimelineTrack = Extract<TimelineTrackData, { type: 'property' }>;
 type PropertyTimelineKey = PropertyTimelineTrack['keys'][number];
+type MaterialParameterTimelineTrack = Extract<TimelineTrackData, { type: 'material.parameter' }>;
+type MaterialParameterTimelineKey = MaterialParameterTimelineTrack['keys'][number];
 type TimelineDragMode = 'scrub' | 'move' | 'resize-left' | 'resize-right';
 
 interface TimelinePointerDrag {
@@ -1488,6 +1490,12 @@ function sortPropertyKeys(keys: readonly PropertyTimelineKey[]): PropertyTimelin
   return [...keys].sort((left, right) => left.time - right.time);
 }
 
+function sortMaterialParameterKeys(
+  keys: readonly MaterialParameterTimelineKey[],
+): MaterialParameterTimelineKey[] {
+  return [...keys].sort((left, right) => left.time - right.time);
+}
+
 function swapPropertyKeyTimes(
   keys: readonly PropertyTimelineKey[],
   leftIndex: number,
@@ -1532,6 +1540,10 @@ function parseActionPayload(
 }
 
 function formatPropertyValue(value: PropertyTimelineKey['value']): string {
+  return JSON.stringify(value);
+}
+
+function formatMaterialParameterValue(value: MaterialParameterTimelineKey['value']): string {
   return JSON.stringify(value);
 }
 
@@ -1618,6 +1630,20 @@ function moveTrackByDelta(
         })),
       };
     }
+    case 'material.parameter': {
+      const times = track.keys.map((key) => key.time);
+      const minTime = Math.min(...times);
+      const maxTime = Math.max(...times);
+      const safeDelta = clampNumber(deltaSeconds, -minTime, timelineDuration - maxTime);
+
+      return {
+        ...track,
+        keys: track.keys.map((key) => ({
+          ...key,
+          time: roundTimelineTime(key.time + safeDelta),
+        })),
+      };
+    }
   }
 }
 
@@ -1629,6 +1655,10 @@ function resizeTrackByDelta(
 ): TimelineTrackData {
   if (track.type === 'property') {
     return resizePropertyTrackByDelta(track, deltaSeconds, timelineDuration, edge);
+  }
+
+  if (track.type === 'material.parameter') {
+    return resizeMaterialParameterTrackByDelta(track, deltaSeconds, timelineDuration, edge);
   }
 
   if (!hasDuration(track)) {
@@ -1706,6 +1736,34 @@ function resizePropertyTrackByDelta(
   };
 }
 
+function resizeMaterialParameterTrackByDelta(
+  track: MaterialParameterTimelineTrack,
+  deltaSeconds: number,
+  timelineDuration: number,
+  edge: 'left' | 'right',
+): MaterialParameterTimelineTrack {
+  const sortedKeys = sortMaterialParameterKeys(track.keys);
+  const first = sortedKeys[0];
+  const last = sortedKeys[sortedKeys.length - 1];
+
+  if (!first || !last || first === last) {
+    return track;
+  }
+
+  const targetTime =
+    edge === 'left'
+      ? clampNumber(first.time + deltaSeconds, 0, last.time - 0.05)
+      : clampNumber(last.time + deltaSeconds, first.time + 0.05, timelineDuration);
+  const keyToUpdate = edge === 'left' ? first : last;
+
+  return {
+    ...track,
+    keys: track.keys.map((key) =>
+      key === keyToUpdate ? { ...key, time: roundTimelineTime(targetTime) } : key,
+    ),
+  };
+}
+
 function snapTimelineTrack(track: TimelineTrackData): TimelineTrackData {
   switch (track.type) {
     case 'action':
@@ -1731,6 +1789,11 @@ function snapTimelineTrack(track: TimelineTrackData): TimelineTrackData {
         ...track,
         keys: track.keys.map((key) => ({ ...key, time: snapTimelineTime(key.time) })),
       };
+    case 'material.parameter':
+      return {
+        ...track,
+        keys: track.keys.map((key) => ({ ...key, time: snapTimelineTime(key.time) })),
+      };
   }
 }
 
@@ -1750,7 +1813,7 @@ function getDraggedAssetId(event: DragEvent<HTMLElement>): string | undefined {
 }
 
 function isTrackResizable(track: TimelineTrackData): boolean {
-  return hasDuration(track) || track.type === 'property';
+  return hasDuration(track) || track.type === 'property' || track.type === 'material.parameter';
 }
 
 function roundTimelineTime(time: number): number {
@@ -1798,6 +1861,8 @@ function formatTrackTiming(track: TimelineTrackData): string {
       return `${track.start}s`;
     case 'property':
       return `${Math.min(...track.keys.map((key) => key.time))}s`;
+    case 'material.parameter':
+      return `${Math.min(...track.keys.map((key) => key.time))}s`;
   }
 }
 
@@ -1811,6 +1876,10 @@ function formatTrackBinding(track: TimelineTrackData): string {
       return `${track.shotId} / blend ${track.blendIn ?? 0}s - ${track.blendOut ?? 0}s`;
     case 'property':
       return `${track.target} / ${track.property} / ${formatPropertyKeyRange(track)}`;
+    case 'material.parameter':
+      return `${track.target} / ${track.slot}.${track.parameter} / ${formatMaterialParameterKeyRange(
+        track,
+      )}`;
     case 'sound':
       return `${track.soundId} @ ${track.time}s`;
     case 'subtitle':
@@ -1830,6 +1899,8 @@ function formatTrackImplementation(track: TimelineTrackData): string {
       return 'TimelinePanel -> DirectorCameraSystem';
     case 'property':
       return 'TimelinePanel -> PropertyTrackPlayer';
+    case 'material.parameter':
+      return 'TimelinePanel -> MaterialParameterTrackPlayer';
     case 'sound':
       return 'TimelinePanel -> AudioTrackPlayer';
     case 'subtitle':
@@ -1851,6 +1922,20 @@ function formatPropertyKeyRange(track: PropertyTimelineTrack): string {
   return `${formatPropertyValue(first.value)} -> ${formatPropertyValue(last.value)}`;
 }
 
+function formatMaterialParameterKeyRange(track: MaterialParameterTimelineTrack): string {
+  const sortedKeys = sortMaterialParameterKeys(track.keys);
+  const first = sortedKeys[0];
+  const last = sortedKeys[sortedKeys.length - 1];
+
+  if (!first || !last) {
+    return 'no keys';
+  }
+
+  return `${formatMaterialParameterValue(first.value)} -> ${formatMaterialParameterValue(
+    last.value,
+  )}`;
+}
+
 function formatTrackClipTitle(track: TimelineTrackData): string {
   switch (track.type) {
     case 'action':
@@ -1861,6 +1946,8 @@ function formatTrackClipTitle(track: TimelineTrackData): string {
       return track.id;
     case 'property':
       return track.property;
+    case 'material.parameter':
+      return track.parameter;
     case 'sound':
       return track.soundId;
     case 'subtitle':
@@ -1894,6 +1981,8 @@ function getTrackStartTime(track: TimelineTrackData): number {
       return track.start;
     case 'property':
       return Math.min(...track.keys.map((key) => key.time));
+    case 'material.parameter':
+      return Math.min(...track.keys.map((key) => key.time));
   }
 }
 
@@ -1903,6 +1992,12 @@ function getTrackDuration(track: TimelineTrackData): number {
   }
 
   if (track.type === 'property') {
+    const times = track.keys.map((key) => key.time);
+
+    return Math.max(0.18, Math.max(...times) - Math.min(...times));
+  }
+
+  if (track.type === 'material.parameter') {
     const times = track.keys.map((key) => key.time);
 
     return Math.max(0.18, Math.max(...times) - Math.min(...times));
@@ -1929,6 +2024,8 @@ function getTrackTime(track: TimelineTrackData): number {
       return track.start;
     case 'property':
       return Math.min(...track.keys.map((key) => key.time));
+    case 'material.parameter':
+      return Math.min(...track.keys.map((key) => key.time));
   }
 }
 
@@ -1943,6 +2040,18 @@ function updateTrackTime(track: TimelineTrackData, time: number): TimelineTrackD
     case 'wait':
       return { ...track, start: time };
     case 'property': {
+      const firstKeyTime = Math.min(...track.keys.map((key) => key.time));
+      const delta = time - firstKeyTime;
+
+      return {
+        ...track,
+        keys: track.keys.map((key) => ({
+          ...key,
+          time: Math.max(0, Math.round((key.time + delta) * 100) / 100),
+        })),
+      };
+    }
+    case 'material.parameter': {
       const firstKeyTime = Math.min(...track.keys.map((key) => key.time));
       const delta = time - firstKeyTime;
 

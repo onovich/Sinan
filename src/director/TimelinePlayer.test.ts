@@ -31,6 +31,17 @@ const timeline: TimelineData = {
       entityId: 'gate_a',
       clip: 'Open',
     },
+    {
+      id: 'track_material_progress',
+      type: 'material.parameter',
+      target: 'gate_a',
+      slot: 'main',
+      parameter: 'progress',
+      keys: [
+        { time: 0.25, value: 0 },
+        { time: 2, value: 1 },
+      ],
+    },
   ],
 };
 
@@ -38,6 +49,7 @@ describe('TimelinePlayer', () => {
   it('sorts tracks by start time and id', () => {
     expect(sortTimelineTracks(timeline.tracks).map((track) => track.id)).toEqual([
       'track_start',
+      'track_material_progress',
       'track_anim',
       'track_late',
     ]);
@@ -58,11 +70,11 @@ describe('TimelinePlayer', () => {
     player.update(0.75);
     player.update(3.5);
 
-    expect(reached).toEqual(['track_start', 'track_anim', 'track_late']);
+    expect(reached).toEqual(['track_start', 'track_material_progress', 'track_anim', 'track_late']);
     expect(player.getState('tl_open_gate')).toMatchObject({
       status: 'stopped',
       time: 4,
-      cursor: 3,
+      cursor: 4,
     });
     expect(finished).toEqual(['tl_open_gate']);
   });
@@ -105,7 +117,7 @@ describe('TimelinePlayer', () => {
     expect(reached).toEqual(['track_anim', 'track_late']);
     expect(player.getState('tl_open_gate')).toMatchObject({
       time: 2.1,
-      cursor: 3,
+      cursor: 4,
     });
   });
 

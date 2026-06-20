@@ -2,6 +2,11 @@ import { z } from 'zod';
 
 import { ActionSchema } from './action.schema';
 import {
+  MaterialParameterNameSchema,
+  MaterialParameterValueSchema,
+  MaterialSlotNameSchema,
+} from './material.schema';
+import {
   AssetIdSchema,
   CameraShotIdSchema,
   DisplayNameSchema,
@@ -78,6 +83,25 @@ export const PropertyTimelineTrackSchema = z
   })
   .strict();
 
+export const MaterialParameterTimelineKeySchema = z
+  .object({
+    time: TimelineTimeSchema,
+    value: MaterialParameterValueSchema,
+    ease: EaseSchema,
+  })
+  .strict();
+
+export const MaterialParameterTimelineTrackSchema = z
+  .object({
+    id: TrackIdSchema,
+    type: z.literal('material.parameter'),
+    target: EntityIdSchema,
+    slot: MaterialSlotNameSchema,
+    parameter: MaterialParameterNameSchema,
+    keys: z.array(MaterialParameterTimelineKeySchema).min(1),
+  })
+  .strict();
+
 export const WaitTimelineTrackSchema = z
   .object({
     id: TrackIdSchema,
@@ -111,6 +135,7 @@ export const TimelineTrackSchema = z.discriminatedUnion('type', [
   ActionTimelineTrackSchema,
   AnimationPlayTimelineTrackSchema,
   CameraShotTimelineTrackSchema,
+  MaterialParameterTimelineTrackSchema,
   PropertyTimelineTrackSchema,
   WaitTimelineTrackSchema,
   SubtitleTimelineTrackSchema,
