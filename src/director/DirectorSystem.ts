@@ -8,6 +8,10 @@ import { AnimationTrackPlayer } from './AnimationTrackPlayer';
 import { AudioTrackPlayer } from './AudioTrackPlayer';
 import { CameraShotTrackPlayer } from './CameraShotTrackPlayer';
 import { DirectorCameraSystem } from './DirectorCameraSystem';
+import {
+  MaterialParameterTrackPlayer,
+  type MaterialParameterTrackSample,
+} from './MaterialParameterTrackPlayer';
 import { PropertyTrackPlayer, type PropertyTrackSample } from './PropertyTrackPlayer';
 import { SubtitleTrackPlayer } from './SubtitleTrackPlayer';
 import {
@@ -28,9 +32,11 @@ export class DirectorSystem {
   private readonly animationTrackPlayer = new AnimationTrackPlayer();
   private readonly audioTrackPlayer = new AudioTrackPlayer();
   private readonly cameraShotTrackPlayer = new CameraShotTrackPlayer();
+  private readonly materialParameterTrackPlayer = new MaterialParameterTrackPlayer();
   private readonly propertyTrackPlayer = new PropertyTrackPlayer();
   private readonly subtitleTrackPlayer = new SubtitleTrackPlayer();
   private activeContext: DirectorSystemContext | undefined;
+  private lastMaterialParameterSamples: MaterialParameterTrackSample[] = [];
   private lastPropertySamples: PropertyTrackSample[] = [];
   private lastFinishedEventIds: string[] = [];
 
@@ -54,12 +60,14 @@ export class DirectorSystem {
     this.processTimelineCommands(context.directorCommands);
     this.timelinePlayer.update(dt);
     this.lastPropertySamples = this.samplePlayingProperties();
+    this.lastMaterialParameterSamples = this.samplePlayingMaterialParameters(context);
     this.activeContext = undefined;
   }
 
   scrub(timelineId: string, time: number, context: DirectorSystemContext): void {
     const timeline = this.getTimeline(timelineId);
     this.timelinePlayer.scrub(timelineId, time);
+    this.lastMaterialParameterSamples = [];
     this.lastPropertySamples = [];
 
     for (const track of timeline.tracks) {
@@ -97,6 +105,10 @@ export class DirectorSystem {
 
   getLastPropertySamples(): readonly PropertyTrackSample[] {
     return this.lastPropertySamples;
+  }
+
+  getLastMaterialParameterSamples(): readonly MaterialParameterTrackSample[] {
+    return this.lastMaterialParameterSamples;
   }
 
   getLastFinishedEventIds(): readonly string[] {
@@ -152,6 +164,7 @@ export class DirectorSystem {
         this.subtitleTrackPlayer.play(track, context);
         break;
       case 'property':
+      case 'material.parameter':
       case 'wait':
         break;
     }
@@ -200,6 +213,13 @@ export class DirectorSystem {
           this.propertyTrackPlayer.sample(track, timelineTime),
         ];
         break;
+      case 'material.parameter': {
+        const sample = this.materialParameterTrackPlayer.sample(track, timelineTime);
+
+        this.lastMaterialParameterSamples = [...this.lastMaterialParameterSamples, sample];
+        applyMaterialParameterSample(sample, context);
+        break;
+      }
       case 'subtitle':
         this.subtitleTrackPlayer.scrub(track, context, timelineTime);
         break;
@@ -241,6 +261,33 @@ export class DirectorSystem {
     return samples;
   }
 
+  private samplePlayingMaterialParameters(
+    context: DirectorSystemContext,
+  ): MaterialParameterTrackSample[] {
+    const samples: MaterialParameterTrackSample[] = [];
+
+    for (const state of this.timelinePlayer.getStates()) {
+      if (state.status !== 'playing') {
+        continue;
+      }
+
+      const timeline = this.getTimeline(state.timelineId);
+
+      for (const track of timeline.tracks) {
+        if (track.type !== 'material.parameter') {
+          continue;
+        }
+
+        const sample = this.materialParameterTrackPlayer.sample(track, state.time);
+
+        samples.push(sample);
+        applyMaterialParameterSample(sample, context);
+      }
+    }
+
+    return samples;
+  }
+
   private getTimeline(timelineId: string): TimelineData {
     const timeline = this.timelines[timelineId];
 
@@ -268,6 +315,18 @@ export class DirectorSystem {
 
     new DirectorCameraSystem(context.runtime).applyShot(shot, shotTime);
   }
+}
+
+function applyMaterialParameterSample(
+  sample: MaterialParameterTrackSample,
+  context: DirectorSystemContext,
+): void {
+  context.runtime?.setMaterialParameter?.({
+    entityId: sample.target,
+    slot: sample.slot,
+    parameter: sample.parameter,
+    value: sample.value,
+  });
 }
 
 function clampTrackTime(time: number, duration: number): number {

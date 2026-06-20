@@ -98,6 +98,13 @@ export type RuntimeRenderableMaterialSlots = Readonly<
   Record<string, RuntimeRenderableMaterialSlot>
 >;
 
+export interface RuntimeMaterialParameterUpdate {
+  entityId: string;
+  slot: string;
+  parameter: string;
+  value: MaterialParameterValue;
+}
+
 export interface RuntimePalette {
   id: string;
   tones: Record<string, string>;

@@ -113,6 +113,30 @@ describe('EngineSession', () => {
     expect(() => session.step(0.016)).toThrow('EngineSession has been disposed.');
   });
 
+  it('delegates material parameter updates through the runtime', () => {
+    const calls: unknown[] = [];
+    const session = new EngineSession({ runtime: createRuntimeProbe(calls) });
+
+    session.setMaterialParameter({
+      entityId: 'gate_a',
+      slot: 'main',
+      parameter: 'progress',
+      value: 0.5,
+    });
+
+    expect(calls).toEqual([
+      {
+        type: 'setMaterialParameter',
+        update: {
+          entityId: 'gate_a',
+          slot: 'main',
+          parameter: 'progress',
+          value: 0.5,
+        },
+      },
+    ]);
+  });
+
   it('syncs trigger debug helpers from renderer-neutral collider data', async () => {
     const calls: unknown[] = [];
     const session = new EngineSession({ runtime: createRuntimeProbe(calls) });
@@ -177,6 +201,9 @@ function createRuntimeProbe(calls: unknown[]): WebRuntime {
       materials: RuntimeRenderableMaterialSlots | undefined,
     ) => {
       calls.push({ type: 'setRenderableMaterials', entityId, materials });
+    },
+    setMaterialParameter: (update) => {
+      calls.push({ type: 'setMaterialParameter', update });
     },
     setStyleQualityProfile: (profile: RuntimeStyleQualityProfile) => {
       calls.push({ type: 'styleQuality', profile });

@@ -9,6 +9,7 @@ import type {
   RuntimeAnimationTimeOptions,
   RuntimeCameraPose,
   RuntimeDebugAabb,
+  RuntimeMaterialParameterUpdate,
   RuntimeRenderEnvironmentStyle,
   RuntimeRenderableMaterialSlots,
   RuntimeRenderStyle,
@@ -38,6 +39,7 @@ export interface WebRuntime {
     entityId: string,
     materials: RuntimeRenderableMaterialSlots | undefined,
   ): void;
+  setMaterialParameter?(update: RuntimeMaterialParameterUpdate): void;
   setRenderEnvironment?(environment: RuntimeRenderEnvironmentStyle | undefined): void;
   setStyleQualityProfile?(profile: RuntimeStyleQualityProfile): void;
   setSelectedEntity?(entityId: string | undefined): void;

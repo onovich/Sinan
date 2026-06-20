@@ -1,5 +1,6 @@
 import type { EngineSession } from '../engine/EngineSession';
 import type {
+  RuntimeMaterialParameterUpdate,
   RuntimeTransform,
   TransformGizmoCallbacks,
   TransformGizmoMode,
@@ -79,6 +80,10 @@ export class EditorSessionBridge {
 
   setSelectedEntity(entityId: string | undefined): void {
     this.session.setSelectedEntity(entityId);
+  }
+
+  setMaterialParameter(update: RuntimeMaterialParameterUpdate): void {
+    this.session.setMaterialParameter(update);
   }
 
   setTriggerDebugVisible(visible: boolean): void {

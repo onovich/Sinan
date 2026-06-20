@@ -6,6 +6,7 @@ import {
 } from '../data/projectDataSelectors';
 import type {
   RuntimeDebugAabb,
+  RuntimeMaterialParameterUpdate,
   RuntimePalette,
   RuntimeRenderEnvironmentStyle,
   RuntimeRenderStyle,
@@ -165,6 +166,11 @@ export class EngineSession {
   setSelectedEntity(entityId: string | undefined): void {
     this.ensureActive();
     this.options.runtime.setSelectedEntity?.(entityId);
+  }
+
+  setMaterialParameter(update: RuntimeMaterialParameterUpdate): void {
+    this.ensureActive();
+    this.options.runtime.setMaterialParameter?.(update);
   }
 
   setTriggerDebugVisible(visible: boolean): void {

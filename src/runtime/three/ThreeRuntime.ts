@@ -9,6 +9,7 @@ import type {
   RuntimeAnimationTimeOptions,
   RuntimeCameraPose,
   RuntimeDebugAabb,
+  RuntimeMaterialParameterUpdate,
   RuntimeRenderEnvironmentStyle,
   RuntimeRenderableMaterialSlots,
   RuntimeRenderStyle,
@@ -468,6 +469,18 @@ export class ThreeRuntime implements WebRuntime {
       for (const error of result.errors) {
         this.logger.warn(error.message);
       }
+    }
+  }
+
+  setMaterialParameter(update: RuntimeMaterialParameterUpdate): void {
+    const result = this.materialRuntime.setParameter(
+      { entityId: update.entityId, slot: update.slot },
+      update.parameter,
+      update.value,
+    );
+
+    for (const error of result.errors) {
+      this.logger.warn(error.message);
     }
   }
 

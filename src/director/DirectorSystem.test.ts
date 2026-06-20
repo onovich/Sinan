@@ -120,6 +120,98 @@ describe('DirectorSystem', () => {
       ]),
     );
   });
+
+  it('drives material parameter tracks during playback and scrub', () => {
+    const runtimeCalls: string[] = [];
+    const cameraPoses: RuntimeCameraPose[] = [];
+    const context = createDirectorContext(createRuntimeMock(runtimeCalls, cameraPoses));
+    const timeline: TimelineData = {
+      schemaVersion: 1,
+      id: 'tl_material',
+      duration: 2,
+      tracks: [
+        {
+          id: 'track_gate_dissolve_progress',
+          type: 'material.parameter',
+          target: 'gate_a',
+          slot: 'main',
+          parameter: 'progress',
+          keys: [
+            { time: 0, value: 0 },
+            { time: 2, value: 1 },
+          ],
+        },
+      ],
+    };
+    const director = new DirectorSystem(createTimelineLookup(timeline));
+
+    director.playTimeline('tl_material');
+    director.update(1, context);
+    director.update(0.5, context);
+
+    expect(runtimeCalls).toEqual([
+      'material gate_a main progress 0.5',
+      'material gate_a main progress 0.75',
+    ]);
+    expect(director.getLastMaterialParameterSamples()).toEqual([
+      {
+        target: 'gate_a',
+        slot: 'main',
+        parameter: 'progress',
+        value: 0.75,
+      },
+    ]);
+
+    runtimeCalls.length = 0;
+    director.scrub('tl_material', 0.4, context);
+
+    expect(runtimeCalls).toEqual(['material gate_a main progress 0.2']);
+    expect(director.getLastMaterialParameterSamples()).toEqual([
+      {
+        target: 'gate_a',
+        slot: 'main',
+        parameter: 'progress',
+        value: 0.2,
+      },
+    ]);
+  });
+
+  it('keeps material parameter sampling deterministic without a runtime binding', () => {
+    const timeline: TimelineData = {
+      schemaVersion: 1,
+      id: 'tl_material',
+      duration: 1,
+      tracks: [
+        {
+          id: 'track_missing_gate',
+          type: 'material.parameter',
+          target: 'missing_gate',
+          slot: 'main',
+          parameter: 'progress',
+          keys: [
+            { time: 0, value: 0 },
+            { time: 1, value: 1 },
+          ],
+        },
+      ],
+    };
+    const director = new DirectorSystem(createTimelineLookup(timeline));
+    const context: DirectorSystemContext = {
+      state: createEventRuntimeState(),
+      directorCommands: [],
+    };
+
+    director.scrub('tl_material', 0.5, context);
+
+    expect(director.getLastMaterialParameterSamples()).toEqual([
+      {
+        target: 'missing_gate',
+        slot: 'main',
+        parameter: 'progress',
+        value: 0.5,
+      },
+    ]);
+  });
 });
 
 function createTimelineLookup(timeline: TimelineData): Record<string, TimelineData> {
@@ -162,6 +254,11 @@ function createRuntimeMock(calls: string[], cameraPoses: RuntimeCameraPose[]): W
       cameraPoses.push(pose);
     },
     setDebugAabb: () => undefined,
+    setMaterialParameter: (update) => {
+      calls.push(
+        `material ${update.entityId} ${update.slot} ${update.parameter} ${String(update.value)}`,
+      );
+    },
     pick: () => null,
     attachTransformGizmo: () => undefined,
     detachTransformGizmo: () => undefined,
