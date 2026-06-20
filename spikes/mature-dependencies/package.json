@@ -1,0 +1,42 @@
+{
+  "name": "sinan-mature-dependency-spikes",
+  "version": "1.0.0",
+  "description": "Isolated mature dependency spikes for Sinan adapter evaluation.",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "vite build",
+    "check": "npm run typecheck && npm run test && npm run build",
+    "dev": "vite --host 127.0.0.1"
+  },
+  "keywords": [
+    "sinan",
+    "spike",
+    "adapter"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "playwright": "^1.61.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d": "^0.19.3",
+    "@dimforge/rapier3d-compat": "^0.19.3",
+    "@gltf-transform/cli": "^4.4.0",
+    "@gltf-transform/core": "^4.4.0",
+    "@gltf-transform/extensions": "^4.4.0",
+    "@gltf-transform/functions": "^4.4.0",
+    "comlink": "^4.4.2",
+    "dexie": "^4.4.4",
+    "fake-indexeddb": "^6.2.5",
+    "meshoptimizer": "^1.1.1",
+    "recast-navigation": "^0.43.1",
+    "spectorjs": "^0.9.30"
+  }
+}
