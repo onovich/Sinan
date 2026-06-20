@@ -88,15 +88,16 @@ Non-goals:
 | Phase 19   | Shader Dissolve And Material Timeline   | Add the first story shader material, texture-backed dissolve, material.parameter timeline tracks, material.setParameter actions, and Material Inspector MVP      |                6 |
 | Phase 20   | Shader Globals And Postprocessing Ramp  | Add shared shader globals, a second material, resource sharing/lifecycle checks, and the first postprocessing runtime pass                                       |                6 |
 | Phase 21   | Shader Production Quality Gate          | Add shader visual regression, HMR/fallback/error diagnostics, precompile guidance, and mobile shader baseline                                                    |                4 |
+| Phase 21.5 | Engine Maturity External Contract Gate  | Add Sinan-owned RFCs, adapter boundary policy, POC briefs, mature dependency evaluation templates, and compatibility matrix before external infrastructure work    |                6 |
 | Phase 22   | LOD, Instancing, And Vegetation         | Add LOD runtime/schema, InstancedMesh scatter, vegetation data, and perf smoke checks                                                                            |                5 |
 | Phase 23   | Compact Spherical World Prototype       | Add cube-sphere projection, spherical placement/camera, player surface movement, and three readable regions                                                      |                6 |
 | Phase 24   | Delivery Gameplay Showcase              | Add Showcase Mode, player controller, delivery jobs, route/target feedback, and 1-2 complete jobs                                                                |                6 |
 | Phase 25   | Multiplayer-lite Social Layer           | Add local remote-player simulator, avatar/emote/stamp schema, and a small WebSocket room prototype                                                               |              5-6 |
 | Phase 26   | Vertical Slice RC Hardening             | Lock performance budgets, mobile profile, perf smoke, docs, and final vertical-slice release checklist                                                           |                3 |
 
-Core route without multiplayer, from the current accepted Phase 16 baseline onward: Phase 17 through Phase 24 plus Phase 26, about 49 rounds.
+Core route without multiplayer, from the current accepted Phase 16 baseline onward: Phase 17 through Phase 24 plus Phase 26, about 55 rounds.
 
-Full route with multiplayer-lite, from the current accepted Phase 16 baseline onward: Phase 17 through Phase 26, about 54-55 rounds.
+Full route with multiplayer-lite, from the current accepted Phase 16 baseline onward: Phase 17 through Phase 26, about 60-61 rounds.
 
 ## Non-Negotiable Rules
 
@@ -320,6 +321,8 @@ Goal: make shader behavior reusable across the runtime and add the first control
 
 Estimated rounds: 6.
 
+Execution: `docs/phase-20-shader-globals-and-postprocessing-ramp-goal-mode-execution-guide.md` defines the goal-mode plan.
+
 Scope:
 
 - Add a renderer-neutral `ShaderGlobals` contract for values such as time, delta time, viewport size, and optional world/player signals.
@@ -355,6 +358,31 @@ Acceptance:
 - Production shaders have compile tests, visual fixtures, and documented fallback behavior.
 - Shader error messages identify material id, shader stage, source file, and affected entity or slot when practical.
 - Mobile/low-end shader guidance is recorded before LOD/world/gameplay phases depend on it.
+
+## Phase 21.5: Engine Maturity And External Infrastructure Contract Gate
+
+Goal: convert the external infrastructure cooperation strategy and mature-engine gap analysis into Sinan-owned contracts before LOD, instancing, spherical world, gameplay input, physics, Runtime UI, audio, and narrative authoring work start depending on external systems.
+
+Estimated rounds: 6.
+
+Execution: `docs/phase-21-5-engine-maturity-external-infrastructure-contract-gate-goal-mode-execution-guide.md` defines the goal-mode plan.
+
+Scope:
+
+- Review and align RFC-001 through RFC-004 for assets, input, Runtime UI, and camera.
+- Add RFC-005 Narrative / Inscape Bridge Boundary.
+- Add RFC-006 Physics Adapter Boundary.
+- Add RFC-007 Audio System Boundary.
+- Define adapter boundary policy for future `src/assets/adapters/**`, `src/input/adapters/**`, `src/camera/adapters/**`, `src/ui/adapters/**`, `src/physics/adapters/**`, `src/audio/adapters/**`, and `src/narrative/adapters/**`.
+- Add partner POC brief, mature dependency evaluation, and compatibility matrix templates.
+- Update roadmap entry points and produce a Phase 21.5 final report.
+
+Acceptance:
+
+- Sinan-owned RFCs and templates exist before external infrastructure enters implementation phases.
+- Future early partners and mature dependencies are evaluated through adapter, fallback, validation, and compatibility gates.
+- No external dependency is installed and no runtime adapter is implemented in Phase 21.5.
+- Phase 22 remains the next implementation phase after this contract gate passes.
 
 ## Phase 22: LOD, Instancing, And Vegetation
 
@@ -486,8 +514,10 @@ Phase 19 is PASS. `docs/phase-19-shader-dissolve-material-timeline-final-report.
 Complete Phase 20 from docs/abeto-messenger-development-plan.md: Shader Globals And Postprocessing Ramp.
 ```
 
-Create or use a Phase 20 goal-mode guide before implementation. Phase 20 should build on the Phase 19 public material parameter path and keep shader globals/postprocessing inside runtime adapter boundaries.
+Use `docs/phase-20-shader-globals-and-postprocessing-ramp-goal-mode-execution-guide.md` before implementation. Phase 20 should build on the Phase 19 public material parameter path and keep shader globals/postprocessing inside runtime adapter boundaries.
 
 Start only after confirming `docs/phase-19-shader-dissolve-material-timeline-final-report.md` is PASS and pushed. Phase 20 must continue to keep raw uniforms out of data, timeline, action, and editor contracts.
 
 Before starting Phase 20, re-read `AGENTS.md`, the main architecture guide, `docs/engine-positioning-architecture-adjustment-plan.md`, the Phase 18, Phase 18.5, and Phase 19 final reports, both Web3D Shader GLSL MVP docs, and the current runtime/editor architecture.
+
+After Phase 21 is PASS and pushed, use `docs/phase-21-5-engine-maturity-external-infrastructure-contract-gate-goal-mode-execution-guide.md` before starting Phase 22. Phase 21.5 is a contract gate for external infrastructure and mature dependency sourcing; it must not implement LOD, input, physics, Runtime UI, audio, narrative importers, or real external adapters.
