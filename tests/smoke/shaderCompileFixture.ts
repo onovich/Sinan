@@ -12,6 +12,12 @@ import {
 import { ThreeMaterialFactory } from '../../src/runtime/three/materials/ThreeMaterialFactory';
 import { ThreeMaterialRuntime } from '../../src/runtime/three/materials/ThreeMaterialRuntime';
 import { ThreePostProcessRuntime } from '../../src/runtime/three/ThreePostProcessRuntime';
+import { shaderMaterialVisualBaselines } from '../visual/shaderMaterialVisualBaselines';
+import {
+  compareVisualFixture,
+  type VisualFixtureComparison,
+  type VisualFixtureBaseline,
+} from '../visual/shaderVisualRegression';
 
 export interface ShaderCompileSmokeResult {
   compileAsyncUsed: boolean;
@@ -46,6 +52,13 @@ export interface ShaderGlobalsSmokeResult extends ShaderCompileSmokeResult {
 
 export interface HologramScanlineShaderSmokeResult extends ShaderCompileSmokeResult {
   visiblePixel: readonly [number, number, number, number];
+}
+
+export interface ShaderMaterialVisualRegressionSmokeResult {
+  comparisons: readonly VisualFixtureComparison[];
+  fixtureCount: number;
+  issues: readonly string[];
+  ok: boolean;
 }
 
 export interface ShaderLifecycleResourceSmokeResult {
@@ -403,6 +416,23 @@ export async function compileHologramScanlineMaterial(): Promise<HologramScanlin
   }
 }
 
+export async function renderProductionMaterialVisualRegression(): Promise<ShaderMaterialVisualRegressionSmokeResult> {
+  const comparisons: VisualFixtureComparison[] = [];
+
+  for (const baseline of shaderMaterialVisualBaselines) {
+    comparisons.push(await renderMaterialVisualFixture(baseline));
+  }
+
+  const issues = comparisons.flatMap((comparison) => comparison.issues);
+
+  return {
+    comparisons,
+    fixtureCount: comparisons.length,
+    issues,
+    ok: issues.length === 0,
+  };
+}
+
 export function runShaderMaterialLifecycleResourceSmoke(): ShaderLifecycleResourceSmokeResult {
   const canvas = document.createElement('canvas');
   canvas.width = 64;
@@ -629,6 +659,78 @@ export function renderPostProcessVignetteSmoke(): PostProcessVignetteSmokeResult
     postProcessRuntime.dispose();
     geometry.dispose();
     material.dispose();
+    renderer.dispose();
+    canvas.remove();
+  }
+}
+
+async function renderMaterialVisualFixture(
+  baseline: VisualFixtureBaseline,
+): Promise<VisualFixtureComparison> {
+  const canvas = document.createElement('canvas');
+  canvas.width = baseline.viewport.width;
+  canvas.height = baseline.viewport.height;
+  document.body.append(canvas);
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: false,
+    preserveDrawingBuffer: true,
+  });
+  renderer.debug.checkShaderErrors = true;
+  renderer.setClearColor(0x000000, 1);
+  renderer.setPixelRatio(baseline.viewport.pixelRatio ?? 1);
+  renderer.setSize(baseline.viewport.width, baseline.viewport.height, false);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+  camera.position.set(...baseline.camera.position);
+  camera.lookAt(...(baseline.camera.target ?? [0, 0, 0]));
+
+  const geometry = new THREE.PlaneGeometry(1.8, 1.8);
+  const originalMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  const mesh = new THREE.Mesh(geometry, originalMaterial);
+  const materialRuntime = new ThreeMaterialRuntime();
+  const target = { entityId: baseline.id, slot: 'main' };
+
+  scene.add(mesh);
+  materialRuntime.bindEntityObject(target.entityId, mesh);
+
+  const applyResult = materialRuntime.applyMaterial(
+    target,
+    baseline.target.id,
+    baseline.parameters,
+  );
+
+  if (!applyResult.ok) {
+    throw new Error(applyResult.errors.map((error) => error.message).join('; '));
+  }
+
+  if (baseline.shaderGlobals) {
+    materialRuntime.setShaderGlobals(baseline.shaderGlobals);
+  }
+
+  try {
+    if (typeof renderer.compileAsync === 'function') {
+      await renderer.compileAsync(scene, camera);
+    } else {
+      renderer.compile(scene, camera);
+    }
+
+    renderer.render(scene, camera);
+
+    return compareVisualFixture(baseline, {
+      fixtureId: baseline.id,
+      samples: baseline.samples.map((sample) => ({
+        label: sample.label,
+        observed: readPixel(renderer, sample.point[0], sample.point[1]),
+      })),
+    });
+  } finally {
+    materialRuntime.disposeEntityMaterials(target.entityId);
+    geometry.dispose();
+    originalMaterial.dispose();
     renderer.dispose();
     canvas.remove();
   }

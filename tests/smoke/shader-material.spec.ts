@@ -35,6 +35,12 @@ interface HologramScanlineShaderSmokeResult extends ShaderCompileSmokeResult {
   visiblePixel: readonly [number, number, number, number];
 }
 
+interface ShaderMaterialVisualRegressionSmokeResult {
+  fixtureCount: number;
+  issues: readonly string[];
+  ok: boolean;
+}
+
 interface ShaderLifecycleResourceSmokeResult {
   finalProgramCount: number | null;
   finalRuntimeBindingCount: number;
@@ -180,6 +186,27 @@ test('production hologram scanline ShaderMaterial compiles in Chromium', async (
   });
   expect(result.programCount ?? 0).toBeGreaterThan(0);
   expect(result.visiblePixel[3]).toBe(255);
+  expect(browserErrors).toEqual([]);
+});
+
+test('production shader materials match deterministic visual baselines', async ({ page }) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/');
+  const result = await page.evaluate(
+    async (): Promise<ShaderMaterialVisualRegressionSmokeResult> => {
+      const fixtureUrl = '/tests/smoke/shaderCompileFixture.ts';
+      const fixture = (await import(/* @vite-ignore */ fixtureUrl)) as {
+        renderProductionMaterialVisualRegression: () => Promise<ShaderMaterialVisualRegressionSmokeResult>;
+      };
+
+      return fixture.renderProductionMaterialVisualRegression();
+    },
+  );
+
+  expect(result.fixtureCount).toBe(3);
+  expect(result.issues).toEqual([]);
+  expect(result.ok).toBe(true);
   expect(browserErrors).toEqual([]);
 });
 
