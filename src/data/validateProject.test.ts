@@ -6,7 +6,7 @@ import type { LevelData } from '../schemas/level.schema';
 import type { PaletteData } from '../schemas/palette.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 import type { TimelineData } from '../schemas/timeline.schema';
-import type { MaterialDefinition } from '../runtime/materials';
+import { STORY_GATE_DISSOLVE_MATERIAL_ID, type MaterialDefinition } from '../runtime/materials';
 import { MaterialRegistry } from '../runtime/materials';
 import { validateProject } from './validateProject';
 
@@ -677,6 +677,40 @@ describe('validateProject', () => {
         levels: [materialLevel],
       }).issues,
     ).toEqual([]);
+
+    const dissolveLevel: LevelData = {
+      ...level,
+      entities: [
+        {
+          ...level.entities[0],
+          components: {
+            Renderable: {
+              model: 'model.switch_wall',
+              materials: {
+                main: {
+                  materialId: STORY_GATE_DISSOLVE_MATERIAL_ID,
+                  parameters: {
+                    progress: 0.25,
+                    edgeWidth: 0.08,
+                    edgeColor: '#ffcf70',
+                    baseColor: '#9b6a3c',
+                    noiseScale: 8,
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    };
+
+    expect(
+      validateProject({
+        assets,
+        prefabs: [switchPrefab],
+        levels: [dissolveLevel],
+      }).issues,
+    ).toEqual([]);
   });
 
   it('reports invalid renderable material ids, slots, and parameters', () => {
@@ -705,6 +739,26 @@ describe('validateProject', () => {
             },
           },
         },
+        {
+          id: 'switch_b',
+          prefab: 'switch_wall',
+          transform: level.entities[0].transform,
+          components: {
+            Renderable: {
+              model: 'model.switch_wall',
+              materials: {
+                main: {
+                  materialId: STORY_GATE_DISSOLVE_MATERIAL_ID,
+                  parameters: {
+                    progress: 'high',
+                    edgeColor: 'warm',
+                    uProgress: 0.5,
+                  },
+                },
+              },
+            },
+          },
+        },
       ],
     };
 
@@ -727,6 +781,18 @@ describe('validateProject', () => {
         expect.objectContaining({
           path: 'data/levels/level_01.json.entities.switch_a.components.Renderable.materials.rim.parameters.rawUniform',
           message: 'Unknown material parameter "rawUniform" for material "debug.uv-gradient".',
+        }),
+        expect.objectContaining({
+          path: 'data/levels/level_01.json.entities.switch_b.components.Renderable.materials.main.parameters.progress',
+          message: 'Expected finite number.',
+        }),
+        expect.objectContaining({
+          path: 'data/levels/level_01.json.entities.switch_b.components.Renderable.materials.main.parameters.edgeColor',
+          message: 'Expected hex color string.',
+        }),
+        expect.objectContaining({
+          path: 'data/levels/level_01.json.entities.switch_b.components.Renderable.materials.main.parameters.uProgress',
+          message: `Unknown material parameter "uProgress" for material "${STORY_GATE_DISSOLVE_MATERIAL_ID}".`,
         }),
       ]),
     );

@@ -77,6 +77,21 @@
         "scale": [1, 1, 1]
       },
       "components": {
+        "Renderable": {
+          "model": "model.door_wood",
+          "materials": {
+            "main": {
+              "materialId": "story.gate-dissolve",
+              "parameters": {
+                "progress": 0,
+                "edgeWidth": 0.08,
+                "edgeColor": "#ffcf70",
+                "baseColor": "#9b6a3c",
+                "noiseScale": 8
+              }
+            }
+          }
+        },
         "Door": {
           "locked": true,
           "requiredKey": "gate_key",
