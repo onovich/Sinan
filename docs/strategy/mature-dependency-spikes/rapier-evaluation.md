@@ -80,4 +80,3 @@ Sinan PhysicsAdapter contract
 ## 7. Recommendation
 
 Proceed to a future adapter spike. Do not wire Rapier into mainline runtime until WASM distribution, async init, and adapter contract decisions are written down.
-
