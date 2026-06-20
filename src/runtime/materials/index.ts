@@ -3,8 +3,10 @@ export { isMaterialDefinitionId, validateMaterialDefinition } from './MaterialDe
 export {
   BUILT_IN_MATERIAL_DEFINITIONS,
   DEBUG_UV_GRADIENT_MATERIAL_ID,
+  STORY_GATE_DISSOLVE_MATERIAL_ID,
   createDefaultMaterialRegistry,
   debugUvGradientMaterialDefinition,
+  storyGateDissolveMaterialDefinition,
 } from './BuiltInMaterials';
 export { MaterialRegistry, MaterialRegistryError } from './MaterialRegistry';
 export type {
