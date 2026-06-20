@@ -7,6 +7,7 @@ import {
   type TypedConditionType,
 } from '../../schemas/condition.schema';
 import { EventSchema, type EventData } from '../../schemas/event.schema';
+import type { MaterialParameterValueData } from '../../schemas/material.schema';
 import type { TransformData } from '../../schemas/transform.schema';
 import { ConditionSystem } from '../../events/ConditionSystem';
 import type { EventRuntimeState } from '../../events/types';
@@ -40,6 +41,7 @@ const ACTION_TYPES: ActionData['type'][] = [
   'timeline.stop',
   'camera.playShot',
   'sound.play',
+  'material.setParameter',
   'subtitle.show',
   'entity.setVisible',
   'entity.setEnabled',
@@ -816,6 +818,38 @@ function renderActionFields({
           onChange={(soundId) => onUpdate({ ...action, soundId })}
         />
       );
+    case 'material.setParameter':
+      return (
+        <>
+          <div className="form-grid">
+            <SelectField
+              label="Entity"
+              value={action.entityId}
+              options={entityIds}
+              onChange={(entityId) => onUpdate({ ...action, entityId })}
+            />
+            <TextField
+              label="Slot"
+              value={action.slot}
+              onChange={(slot) => onUpdate({ ...action, slot })}
+            />
+          </div>
+          <div className="form-grid">
+            <TextField
+              label="Parameter"
+              value={action.parameter}
+              onChange={(parameter) => onUpdate({ ...action, parameter })}
+            />
+            <TextField
+              label="Value"
+              value={formatMaterialParameterValue(action.value)}
+              onChange={(value) =>
+                onUpdate({ ...action, value: parseMaterialParameterValue(value) })
+              }
+            />
+          </div>
+        </>
+      );
     case 'subtitle.show':
       return (
         <>
@@ -1304,6 +1338,8 @@ function createDefaultAction(
       return { type, shotId: firstOrFallback(options.cameraShotIds, 'cam_gate_reveal') };
     case 'sound.play':
       return { type, soundId: firstOrFallback(options.soundAssetIds, 'audio.switch_click') };
+    case 'material.setParameter':
+      return { type, entityId, slot: 'main', parameter: 'progress', value: 0 };
     case 'subtitle.show':
       return { type, text: 'Gate open.', duration: 2 };
     case 'entity.setVisible':
@@ -1578,6 +1614,48 @@ function parseEditableValue(value: string): boolean | string | number {
 
 function formatEditableValue(value: boolean | string | number): string {
   return String(value);
+}
+
+function parseMaterialParameterValue(value: string): MaterialParameterValueData {
+  const trimmed = value.trim();
+
+  if (trimmed === 'null') {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+
+    if (
+      parsed === null ||
+      typeof parsed === 'boolean' ||
+      typeof parsed === 'number' ||
+      typeof parsed === 'string' ||
+      isNumberTuple(parsed, 2) ||
+      isNumberTuple(parsed, 3)
+    ) {
+      return parsed;
+    }
+  } catch {
+    return parseEditableValue(value);
+  }
+
+  return value;
+}
+
+function formatMaterialParameterValue(value: MaterialParameterValueData): string {
+  return Array.isArray(value) || value === null ? JSON.stringify(value) : String(value);
+}
+
+function isNumberTuple(
+  value: unknown,
+  length: 2 | 3,
+): value is [number, number] | [number, number, number] {
+  return (
+    Array.isArray(value) &&
+    value.length === length &&
+    value.every((entry) => typeof entry === 'number' && Number.isFinite(entry))
+  );
 }
 
 function toVec3(

@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
 import { AssetIdSchema, CameraShotIdSchema, EntityIdSchema, StableIdSchema } from './common.schema';
+import {
+  MaterialParameterNameSchema,
+  MaterialParameterValueSchema,
+  MaterialSlotNameSchema,
+} from './material.schema';
 import { TimelineIdSchema } from './common.schema';
 import { TransformSchema } from './transform.schema';
 
@@ -120,6 +125,16 @@ export const SoundPlayActionSchema = z
   })
   .strict();
 
+export const MaterialSetParameterActionSchema = z
+  .object({
+    type: z.literal('material.setParameter'),
+    entityId: EntityIdSchema,
+    slot: MaterialSlotNameSchema,
+    parameter: MaterialParameterNameSchema,
+    value: MaterialParameterValueSchema,
+  })
+  .strict();
+
 export const SubtitleShowActionSchema = z
   .object({
     type: z.literal('subtitle.show'),
@@ -153,6 +168,7 @@ export const ActionSchema = z.discriminatedUnion('type', [
   AnimationPlayActionSchema,
   AnimationStopActionSchema,
   SoundPlayActionSchema,
+  MaterialSetParameterActionSchema,
   SubtitleShowActionSchema,
   FunctionCallActionSchema,
 ]);

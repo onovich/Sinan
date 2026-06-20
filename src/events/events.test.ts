@@ -85,6 +85,7 @@ describe('ActionSystem', () => {
     const visibleCalls: Array<[string, boolean]> = [];
     const transformCalls: Array<[string, readonly number[]]> = [];
     const animationCalls: string[] = [];
+    const materialCalls: string[] = [];
     const customCalls: Array<Readonly<Record<string, unknown>>> = [];
     const registry = createDefaultActionRegistry();
     registry.registerCustomFunction('debug.mark', (params, actionContext) => {
@@ -105,6 +106,11 @@ describe('ActionSystem', () => {
         },
         stopAnimation: (options) => {
           animationCalls.push(`stop ${options.entityId} ${options.clip ?? '*'}`);
+        },
+        setMaterialParameter: (update) => {
+          materialCalls.push(
+            `${update.entityId} ${update.slot} ${update.parameter} ${String(update.value)}`,
+          );
         },
       },
       directorCommands: [],
@@ -140,6 +146,13 @@ describe('ActionSystem', () => {
         { type: 'animation.play', entityId: 'gate_a', clip: 'Open' },
         { type: 'animation.stop', entityId: 'gate_a', clip: 'Open' },
         { type: 'sound.play', soundId: 'audio.switch_click' },
+        {
+          type: 'material.setParameter',
+          entityId: 'gate_a',
+          slot: 'main',
+          parameter: 'progress',
+          value: 0.5,
+        },
         { type: 'subtitle.show', text: 'Gate open.', duration: 2 },
         { type: 'timeline.play', timelineId: 'tl_open_gate' },
         { type: 'function.call', name: 'debug.mark', params: { source: 'test' } },
@@ -157,6 +170,7 @@ describe('ActionSystem', () => {
     expect(visibleCalls).toEqual([['gate_a', false]]);
     expect(transformCalls).toEqual([['gate_a', [1, 2, 3]]]);
     expect(animationCalls).toEqual(['play gate_a Open', 'stop gate_a Open']);
+    expect(materialCalls).toEqual(['gate_a main progress 0.5']);
     expect(customCalls).toEqual([{ source: 'test' }]);
     expect(context.directorCommands).toEqual([
       {
@@ -185,6 +199,18 @@ describe('ActionSystem', () => {
     expect(() =>
       new ActionSystem().dispatch({ type: 'function.call', name: 'missing.function' }, context),
     ).toThrow('Action function is not whitelisted: missing.function');
+  });
+
+  it('treats material parameter actions as preview safe', () => {
+    expect(
+      new ActionSystem().getSideEffect({
+        type: 'material.setParameter',
+        entityId: 'gate_a',
+        slot: 'main',
+        parameter: 'progress',
+        value: 0.5,
+      }),
+    ).toBe('previewSafe');
   });
 });
 

@@ -1,4 +1,5 @@
 import type { TransformData } from '../schemas/transform.schema';
+import type { RuntimeMaterialParameterUpdate } from '../runtime/RuntimeTypes';
 
 export type FlagValue = boolean | string | number;
 
@@ -24,6 +25,7 @@ export interface RuntimeActionPort {
     fadeOut?: number;
   }): void;
   stopAnimation?(options: { entityId: string; clip?: string; fadeOut?: number }): void;
+  setMaterialParameter?(update: RuntimeMaterialParameterUpdate): void;
 }
 
 export type DirectorCommand =

@@ -266,6 +266,21 @@ export function createDefaultActionRegistry(): ActionRegistry {
   );
 
   registry.register(
+    'material.setParameter',
+    (action, context) => {
+      if (action.type === 'material.setParameter') {
+        context.runtime?.setMaterialParameter?.({
+          entityId: action.entityId,
+          slot: action.slot,
+          parameter: action.parameter,
+          value: action.value,
+        });
+      }
+    },
+    { sideEffect: 'previewSafe' },
+  );
+
+  registry.register(
     'subtitle.show',
     (action, context) => {
       if (action.type === 'subtitle.show') {

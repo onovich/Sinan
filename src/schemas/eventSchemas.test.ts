@@ -46,6 +46,13 @@ describe('event condition action schemas', () => {
           type: 'timeline.play',
           timelineId: 'tl_open_gate',
         },
+        {
+          type: 'material.setParameter',
+          entityId: 'gate_a',
+          slot: 'main',
+          parameter: 'progress',
+          value: 0,
+        },
       ],
     });
 
@@ -76,6 +83,18 @@ describe('event condition action schemas', () => {
         type: 'function.call',
         name: 'quest.advance',
         script: 'window.openGate()',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects raw uniform-like material action parameters', () => {
+    expect(
+      ActionSchema.safeParse({
+        type: 'material.setParameter',
+        entityId: 'gate_a',
+        slot: 'main',
+        parameter: 'uProgress',
+        value: 0.5,
       }).success,
     ).toBe(false);
   });

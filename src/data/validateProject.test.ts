@@ -871,4 +871,155 @@ describe('validateProject', () => {
       ]),
     );
   });
+
+  it('validates material set parameter action references', () => {
+    const materialLevel: LevelData = {
+      ...level,
+      entities: [
+        {
+          ...level.entities[0],
+          components: {
+            Renderable: {
+              model: 'model.switch_wall',
+              materials: {
+                main: {
+                  materialId: STORY_GATE_DISSOLVE_MATERIAL_ID,
+                  parameters: {
+                    progress: 0,
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    };
+    const materialEvent: EventData = {
+      ...triggerEvent,
+      actions: [
+        {
+          type: 'material.setParameter',
+          entityId: 'switch_a',
+          slot: 'main',
+          parameter: 'progress',
+          value: 0.5,
+        },
+      ],
+    };
+
+    expect(
+      validateProject({
+        assets,
+        prefabs: [switchPrefab],
+        levels: [materialLevel],
+        events: [materialEvent],
+      }).issues,
+    ).toEqual([]);
+  });
+
+  it('reports invalid material set parameter action references', () => {
+    const materialLevel: LevelData = {
+      ...level,
+      entities: [
+        {
+          ...level.entities[0],
+          components: {},
+        },
+        {
+          id: 'switch_b',
+          prefab: 'switch_wall',
+          transform: level.entities[0].transform,
+          components: {
+            Renderable: {
+              model: 'model.switch_wall',
+              materials: {
+                main: {
+                  materialId: STORY_GATE_DISSOLVE_MATERIAL_ID,
+                  parameters: {
+                    progress: 0,
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    };
+    const materialEvent: EventData = {
+      ...triggerEvent,
+      actions: [
+        {
+          type: 'material.setParameter',
+          entityId: 'missing_gate',
+          slot: 'main',
+          parameter: 'progress',
+          value: 0.5,
+        },
+        {
+          type: 'material.setParameter',
+          entityId: 'switch_a',
+          slot: 'main',
+          parameter: 'progress',
+          value: 0.5,
+        },
+        {
+          type: 'material.setParameter',
+          entityId: 'switch_b',
+          slot: 'rim',
+          parameter: 'progress',
+          value: 0.5,
+        },
+        {
+          type: 'material.setParameter',
+          entityId: 'switch_b',
+          slot: 'main',
+          parameter: 'missing',
+          value: 0.5,
+        },
+        {
+          type: 'material.setParameter',
+          entityId: 'switch_b',
+          slot: 'main',
+          parameter: 'progress',
+          value: 'high',
+        },
+      ],
+    };
+
+    const issues = validateProject({
+      assets,
+      prefabs: [switchPrefab],
+      levels: [materialLevel],
+      events: [materialEvent],
+    }).issues;
+
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: 'data/events/ev_gate_trigger_enter.json.actions.0.entityId',
+          message: 'Missing entity "missing_gate".',
+        }),
+        expect.objectContaining({
+          path: 'data/events/ev_gate_trigger_enter.json.actions.0.slot',
+          message: 'Entity "missing_gate" does not define renderable material slot "main".',
+        }),
+        expect.objectContaining({
+          path: 'data/events/ev_gate_trigger_enter.json.actions.1.slot',
+          message: 'Entity "switch_a" does not define renderable material slot "main".',
+        }),
+        expect.objectContaining({
+          path: 'data/events/ev_gate_trigger_enter.json.actions.2.slot',
+          message: 'Unsupported renderable material slot "rim". Supported slots: main.',
+        }),
+        expect.objectContaining({
+          path: 'data/events/ev_gate_trigger_enter.json.actions.3.parameter',
+          message: `Unknown material parameter "missing" for material "${STORY_GATE_DISSOLVE_MATERIAL_ID}".`,
+        }),
+        expect.objectContaining({
+          path: 'data/events/ev_gate_trigger_enter.json.actions.4.value',
+          message: 'Expected finite number.',
+        }),
+      ]),
+    );
+  });
 });
