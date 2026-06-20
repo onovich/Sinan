@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
 
-import { DEBUG_UV_GRADIENT_MATERIAL_ID } from '../../materials';
+import { DEBUG_UV_GRADIENT_MATERIAL_ID, STORY_GATE_DISSOLVE_MATERIAL_ID } from '../../materials';
 import { FALLBACK_MATERIAL_NAME } from './createFallbackMaterial';
 import { ThreeMaterialRuntime } from './ThreeMaterialRuntime';
 
@@ -38,6 +38,75 @@ describe('ThreeMaterialRuntime', () => {
     expect(runtime.resetParameter(target, 'strength')).toEqual({ ok: true, errors: [] });
     expect(material.uniforms.uStrength.value).toBe(1);
     expect(runtime.getParameter(target, 'strength')).toBe(1);
+  });
+
+  it('sets and resets gate dissolve public parameters through Three uniforms', () => {
+    const mesh = createMesh();
+    const runtime = new ThreeMaterialRuntime();
+
+    runtime.bindEntityObject(target.entityId, mesh);
+    runtime.applyMaterial(target, STORY_GATE_DISSOLVE_MATERIAL_ID, {
+      progress: 0.2,
+      edgeWidth: 0.1,
+    });
+
+    expect(runtime.setParameter(target, 'progress', 0.75)).toEqual({ ok: true, errors: [] });
+    expect(runtime.setParameter(target, 'edgeWidth', 0.2)).toEqual({ ok: true, errors: [] });
+    expect(runtime.setParameter(target, 'edgeColor', '#ffffff')).toEqual({ ok: true, errors: [] });
+    expect(runtime.setParameter(target, 'baseColor', '#111111')).toEqual({ ok: true, errors: [] });
+    expect(runtime.setParameter(target, 'noiseScale', 14)).toEqual({ ok: true, errors: [] });
+
+    const material = mesh.material as THREE.ShaderMaterial;
+    expect(material.uniforms.uProgress.value).toBe(0.75);
+    expect(material.uniforms.uEdgeWidth.value).toBe(0.2);
+    expect((material.uniforms.uEdgeColor.value as THREE.Color).getHexString()).toBe('ffffff');
+    expect((material.uniforms.uBaseColor.value as THREE.Color).getHexString()).toBe('111111');
+    expect(material.uniforms.uNoiseScale.value).toBe(14);
+    expect(runtime.getParameter(target, 'progress')).toBe(0.75);
+
+    expect(runtime.resetParameter(target, 'progress')).toEqual({ ok: true, errors: [] });
+    expect(material.uniforms.uProgress.value).toBe(0);
+    expect(runtime.getParameter(target, 'progress')).toBe(0);
+  });
+
+  it('returns a deterministic error for missing material bindings', () => {
+    const runtime = new ThreeMaterialRuntime();
+
+    expect(runtime.setParameter(target, 'progress', 0.5)).toEqual({
+      ok: false,
+      errors: [
+        {
+          code: 'missing_material_binding',
+          message: 'No material is bound for entity "switch_a" slot "main".',
+          parameter: 'progress',
+          target,
+        },
+      ],
+    });
+  });
+
+  it('rejects unknown gate dissolve parameters without mutating known uniforms', () => {
+    const mesh = createMesh();
+    const runtime = new ThreeMaterialRuntime();
+
+    runtime.bindEntityObject(target.entityId, mesh);
+    runtime.applyMaterial(target, STORY_GATE_DISSOLVE_MATERIAL_ID);
+
+    expect(runtime.setParameter(target, 'missing', 1)).toEqual({
+      ok: false,
+      errors: [
+        {
+          code: 'invalid_parameter',
+          message: `Unknown material parameter "missing" for material "${STORY_GATE_DISSOLVE_MATERIAL_ID}".`,
+          materialId: STORY_GATE_DISSOLVE_MATERIAL_ID,
+          parameter: 'missing',
+          target,
+        },
+      ],
+    });
+
+    const material = mesh.material as THREE.ShaderMaterial;
+    expect(material.uniforms.uProgress.value).toBe(0);
   });
 
   it('binds fallback material and returns errors when factory validation fails', () => {

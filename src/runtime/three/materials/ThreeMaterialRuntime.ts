@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 import {
   DEBUG_UV_GRADIENT_MATERIAL_ID,
+  STORY_GATE_DISSOLVE_MATERIAL_ID,
   createDefaultMaterialRegistry,
   type MaterialParameterValue,
   type MaterialRegistry,
@@ -258,7 +259,10 @@ function applyParameterToMaterial(
   parameter: string,
   value: MaterialParameterValue,
 ): MaterialRuntimeError | undefined {
-  if (binding.materialId !== DEBUG_UV_GRADIENT_MATERIAL_ID) {
+  if (
+    binding.materialId !== DEBUG_UV_GRADIENT_MATERIAL_ID &&
+    binding.materialId !== STORY_GATE_DISSOLVE_MATERIAL_ID
+  ) {
     return {
       code: 'unsupported_material_parameter',
       message: `Material "${binding.materialId}" does not support runtime parameter updates.`,
@@ -292,6 +296,18 @@ function applyParameterToMaterial(
       (binding.material.uniforms.uUvScale.value as THREE.Vector2).set(
         ...(value as readonly [number, number]),
       );
+      return undefined;
+    case 'progress':
+      binding.material.uniforms.uProgress.value = value as number;
+      return undefined;
+    case 'edgeWidth':
+      binding.material.uniforms.uEdgeWidth.value = value as number;
+      return undefined;
+    case 'edgeColor':
+      (binding.material.uniforms.uEdgeColor.value as THREE.Color).set(value as string);
+      return undefined;
+    case 'noiseScale':
+      binding.material.uniforms.uNoiseScale.value = value as number;
       return undefined;
     default:
       return {
