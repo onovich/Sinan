@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
 import { gateDissolveShaders } from '../../../shaders/materials/story/gateDissolveShaders';
+import { createThreeShaderGlobalUniforms } from './ThreeShaderGlobalUniforms';
 
 export interface GateDissolveMaterialOptions {
   progress: number;
@@ -18,6 +19,7 @@ export function createGateDissolveMaterial(
     vertexShader: gateDissolveShaders.vertexShader,
     fragmentShader: gateDissolveShaders.fragmentShader,
     uniforms: {
+      ...createThreeShaderGlobalUniforms(),
       uProgress: { value: options.progress },
       uEdgeWidth: { value: options.edgeWidth },
       uEdgeColor: { value: new THREE.Color(options.edgeColor) },

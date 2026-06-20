@@ -40,6 +40,45 @@ describe('ThreeMaterialRuntime', () => {
     expect(runtime.getParameter(target, 'strength')).toBe(1);
   });
 
+  it('updates shader globals on bound shader materials without replacing vector uniforms', () => {
+    const mesh = createMesh();
+    const runtime = new ThreeMaterialRuntime();
+
+    runtime.bindEntityObject(target.entityId, mesh);
+    runtime.applyMaterial(target, DEBUG_UV_GRADIENT_MATERIAL_ID);
+
+    const material = mesh.material as THREE.ShaderMaterial;
+    const viewportUniform = material.uniforms.uViewportSize.value as THREE.Vector2;
+    const cameraUniform = material.uniforms.uCameraPosition.value as THREE.Vector3;
+
+    runtime.setShaderGlobals({
+      elapsedSeconds: 2,
+      deltaSeconds: 0.016,
+      viewportSize: [128, 64],
+      cameraPosition: [1, 2, 3],
+    });
+
+    expect(material.uniforms.uElapsedSeconds.value).toBe(2);
+    expect(material.uniforms.uDeltaSeconds.value).toBe(0.016);
+    expect(material.uniforms.uViewportSize.value).toBe(viewportUniform);
+    expect(viewportUniform).toEqual(new THREE.Vector2(128, 64));
+    expect(material.uniforms.uCameraPosition.value).toBe(cameraUniform);
+    expect(cameraUniform).toEqual(new THREE.Vector3(1, 2, 3));
+
+    runtime.setShaderGlobals({
+      elapsedSeconds: 3,
+      deltaSeconds: 0.033,
+      viewportSize: [256, 128],
+      cameraPosition: [4, 5, 6],
+    });
+
+    expect(material.uniforms.uElapsedSeconds.value).toBe(3);
+    expect(material.uniforms.uViewportSize.value).toBe(viewportUniform);
+    expect(viewportUniform).toEqual(new THREE.Vector2(256, 128));
+    expect(material.uniforms.uCameraPosition.value).toBe(cameraUniform);
+    expect(cameraUniform).toEqual(new THREE.Vector3(4, 5, 6));
+  });
+
   it('sets and resets gate dissolve public parameters through Three uniforms', () => {
     const mesh = createMesh();
     const runtime = new ThreeMaterialRuntime();
@@ -127,6 +166,13 @@ describe('ThreeMaterialRuntime', () => {
     ]);
     expect(mesh.material).toBeInstanceOf(THREE.MeshBasicMaterial);
     expect(mesh.material.name).toBe(FALLBACK_MATERIAL_NAME);
+    expect(() =>
+      runtime.setShaderGlobals({
+        elapsedSeconds: 1,
+        deltaSeconds: 0.016,
+        viewportSize: [64, 64],
+      }),
+    ).not.toThrow();
   });
 
   it('restores original materials and disposes owned material instances', () => {
@@ -150,6 +196,13 @@ describe('ThreeMaterialRuntime', () => {
 
     expect(disposed).toBe(true);
     expect(mesh.material).toBe(originalMaterial);
+    expect(() =>
+      runtime.setShaderGlobals({
+        elapsedSeconds: 1,
+        deltaSeconds: 0.016,
+        viewportSize: [64, 64],
+      }),
+    ).not.toThrow();
   });
 
   it('rejects unsupported slots without mutating the mesh', () => {

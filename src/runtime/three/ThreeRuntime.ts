@@ -14,6 +14,7 @@ import type {
   RuntimeRenderableMaterialSlots,
   RuntimeRenderStyle,
   RuntimeInitOptions,
+  RuntimeShaderGlobals,
   RuntimeSize,
   RuntimeStyleQualityProfile,
   RuntimeStyleResources,
@@ -482,6 +483,10 @@ export class ThreeRuntime implements WebRuntime {
     for (const error of result.errors) {
       this.logger.warn(error.message);
     }
+  }
+
+  setShaderGlobals(globals: RuntimeShaderGlobals): void {
+    this.materialRuntime.setShaderGlobals(globals);
   }
 
   setRenderEnvironment(environment: RuntimeRenderEnvironmentStyle | undefined): void {

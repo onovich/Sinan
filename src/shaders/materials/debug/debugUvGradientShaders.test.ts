@@ -7,6 +7,8 @@ describe('debugUvGradientShaders', () => {
     expect(debugUvGradientShaders.vertexShader).toContain('varying vec2 vUv');
     expect(debugUvGradientShaders.vertexShader).toContain('gl_Position');
     expect(debugUvGradientShaders.fragmentShader).toContain('uBaseColor');
+    expect(debugUvGradientShaders.fragmentShader).toContain('uElapsedSeconds');
+    expect(debugUvGradientShaders.fragmentShader).toContain('uViewportSize');
     expect(debugUvGradientShaders.fragmentShader).toContain('colorspace_fragment');
   });
 });

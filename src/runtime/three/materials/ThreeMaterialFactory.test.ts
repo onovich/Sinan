@@ -27,6 +27,10 @@ describe('ThreeMaterialFactory', () => {
     expect(material.uniforms.uAccentColor.value).toBeInstanceOf(THREE.Color);
     expect(material.uniforms.uStrength.value).toBe(0.25);
     expect(material.uniforms.uUvScale.value).toEqual(new THREE.Vector2(2, 3));
+    expect(material.uniforms.uElapsedSeconds.value).toBe(0);
+    expect(material.uniforms.uDeltaSeconds.value).toBe(0);
+    expect(material.uniforms.uViewportSize.value).toEqual(new THREE.Vector2(1, 1));
+    expect(material.uniforms.uCameraPosition.value).toEqual(new THREE.Vector3(0, 0, 0));
   });
 
   it('uses deterministic definition defaults when parameters are omitted', () => {
@@ -67,6 +71,8 @@ describe('ThreeMaterialFactory', () => {
     expect(material.uniforms.uEdgeColor.value).toEqual(new THREE.Color('#ffffff'));
     expect(material.uniforms.uBaseColor.value).toEqual(new THREE.Color('#111111'));
     expect(material.uniforms.uNoiseScale.value).toBe(14);
+    expect(material.uniforms.uElapsedSeconds.value).toBe(0);
+    expect(material.uniforms.uViewportSize.value).toEqual(new THREE.Vector2(1, 1));
     expect(material.fragmentShader).toContain('uProgress');
     expect(material.vertexShader).toContain('vWorldPosition');
   });

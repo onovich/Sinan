@@ -10,9 +10,11 @@ import {
   type MaterialRuntimeError,
   type MaterialRuntimeResult,
   type MaterialTarget,
+  type ShaderGlobals,
 } from '../../materials';
 import { FALLBACK_MATERIAL_NAME } from './createFallbackMaterial';
 import { ThreeMaterialFactory } from './ThreeMaterialFactory';
+import { applyShaderGlobalsToUniforms } from './ThreeShaderGlobalUniforms';
 
 interface ThreeMaterialRuntimeOptions {
   materialFactory?: ThreeMaterialFactory;
@@ -162,6 +164,14 @@ export class ThreeMaterialRuntime implements MaterialRuntime {
 
   getParameter(target: MaterialTarget, parameter: string): MaterialParameterValue | undefined {
     return this.materialBindings.get(getTargetKey(target))?.parameters.get(parameter);
+  }
+
+  setShaderGlobals(globals: ShaderGlobals): void {
+    for (const binding of this.materialBindings.values()) {
+      if (binding.material instanceof THREE.ShaderMaterial) {
+        applyShaderGlobalsToUniforms(binding.material.uniforms, globals);
+      }
+    }
   }
 
   resetParameter(target: MaterialTarget, parameter: string): MaterialRuntimeResult {
