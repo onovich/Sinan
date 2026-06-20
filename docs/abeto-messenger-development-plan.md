@@ -345,6 +345,8 @@ Goal: make shader work reliable enough for future visual development and vertica
 
 Estimated rounds: 4.
 
+Execution: `docs/phase-21-shader-production-quality-gate-goal-mode-execution-guide.md` defines the goal-mode plan.
+
 Scope:
 
 - Add browser compile coverage for all production shader materials and postprocess passes.
@@ -514,7 +516,7 @@ Phase 20 is PASS. `docs/phase-20-shader-globals-and-postprocessing-ramp-final-re
 Complete Phase 21 from docs/abeto-messenger-development-plan.md: Shader Production Quality Gate.
 ```
 
-Create or use a Phase 21 goal-mode guide before implementation. Phase 21 should build on the Phase 20 shader globals, second material, lifecycle diagnostics, and postprocessing public contract while keeping shader production quality work inside runtime adapter boundaries.
+Use `docs/phase-21-shader-production-quality-gate-goal-mode-execution-guide.md` before implementation. Phase 21 should build on the Phase 20 shader globals, second material, lifecycle diagnostics, and postprocessing public contract while keeping shader production quality work inside runtime adapter boundaries.
 
 Start only after confirming `docs/phase-20-shader-globals-and-postprocessing-ramp-final-report.md` is PASS and pushed. Phase 21 must continue to keep raw uniforms out of data, timeline, action, and editor contracts.
 
