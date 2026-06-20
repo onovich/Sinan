@@ -1,0 +1,178 @@
+{
+  "before": {
+    "scenes": {
+      "properties": [
+        {
+          "name": "fixture-scene",
+          "rootName": "triangle-node",
+          "bboxMin": [
+            0,
+            0,
+            0
+          ],
+          "bboxMax": [
+            1,
+            0,
+            1
+          ],
+          "renderVertexCount": 3,
+          "uploadVertexCount": 3,
+          "uploadNaiveVertexCount": 3
+        }
+      ]
+    },
+    "meshes": {
+      "properties": [
+        {
+          "name": "triangle-mesh",
+          "mode": [
+            "TRIANGLES"
+          ],
+          "meshPrimitives": 1,
+          "glPrimitives": 1,
+          "vertices": 3,
+          "indices": [
+            "u16"
+          ],
+          "attributes": [
+            "POSITION:f32"
+          ],
+          "instances": 1,
+          "size": 42
+        }
+      ]
+    },
+    "materials": {
+      "properties": []
+    },
+    "textures": {
+      "properties": []
+    },
+    "animations": {
+      "properties": []
+    }
+  },
+  "after": {
+    "scenes": {
+      "properties": [
+        {
+          "name": "fixture-scene",
+          "rootName": "triangle-node",
+          "bboxMin": [
+            0,
+            0,
+            0
+          ],
+          "bboxMax": [
+            1,
+            0,
+            1
+          ],
+          "renderVertexCount": 3,
+          "uploadVertexCount": 3,
+          "uploadNaiveVertexCount": 3
+        }
+      ]
+    },
+    "meshes": {
+      "properties": [
+        {
+          "name": "triangle-mesh",
+          "mode": [
+            "TRIANGLES"
+          ],
+          "meshPrimitives": 1,
+          "glPrimitives": 1,
+          "vertices": 3,
+          "indices": [
+            "u16"
+          ],
+          "attributes": [
+            "POSITION:f32"
+          ],
+          "instances": 1,
+          "size": 42
+        }
+      ]
+    },
+    "materials": {
+      "properties": []
+    },
+    "textures": {
+      "properties": []
+    },
+    "animations": {
+      "properties": []
+    }
+  },
+  "roundTrip": {
+    "scenes": {
+      "properties": [
+        {
+          "name": "fixture-scene",
+          "rootName": "triangle-node",
+          "bboxMin": [
+            0,
+            0,
+            0
+          ],
+          "bboxMax": [
+            1,
+            0,
+            1
+          ],
+          "renderVertexCount": 3,
+          "uploadVertexCount": 3,
+          "uploadNaiveVertexCount": 3
+        }
+      ]
+    },
+    "meshes": {
+      "properties": [
+        {
+          "name": "triangle-mesh",
+          "mode": [
+            "TRIANGLES"
+          ],
+          "meshPrimitives": 1,
+          "glPrimitives": 1,
+          "vertices": 3,
+          "indices": [
+            "u16"
+          ],
+          "attributes": [
+            "POSITION:f32"
+          ],
+          "instances": 1,
+          "size": 42
+        }
+      ]
+    },
+    "materials": {
+      "properties": []
+    },
+    "textures": {
+      "properties": []
+    },
+    "animations": {
+      "properties": []
+    }
+  },
+  "summary": {
+    "fixturePath": "D:\\LabProjects\\Sinan-MatureDependencySpikes\\spikes\\mature-dependencies\\fixtures\\minimal-triangle.gltf",
+    "reportPath": "D:\\LabProjects\\Sinan-MatureDependencySpikes\\spikes\\mature-dependencies\\reports\\gltf-transform-report.json",
+    "meshoptReady": true,
+    "glbBytes": 716,
+    "sceneCount": 1,
+    "meshCount": 1,
+    "materialCount": 0,
+    "deterministicReportKeys": [
+      "animations",
+      "materials",
+      "meshes",
+      "scenes",
+      "textures"
+    ],
+    "adapterBoundary": "Sinan asset manifest/build profile -> offline adapter -> glTF Transform and meshoptimizer"
+  }
+}
