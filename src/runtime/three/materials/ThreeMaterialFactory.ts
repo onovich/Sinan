@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 
 import {
   DEBUG_UV_GRADIENT_MATERIAL_ID,
+  STORY_GATE_DISSOLVE_MATERIAL_ID,
   createDefaultMaterialRegistry,
   type MaterialDefinition,
   type MaterialParameterValue,
@@ -10,6 +11,7 @@ import {
 } from '../../materials';
 import { createDebugUvGradientMaterial } from './createDebugUvGradientMaterial';
 import { createFallbackMaterial } from './createFallbackMaterial';
+import { createGateDissolveMaterial } from './createGateDissolveMaterial';
 
 export type ThreeMaterialFactoryErrorCode =
   | 'missing_material'
@@ -96,6 +98,16 @@ export class ThreeMaterialFactory {
         accentColor: requireString(values.accentColor, 'accentColor'),
         strength: requireNumber(values.strength, 'strength'),
         uvScale: requireVec2(values.uvScale, 'uvScale'),
+      });
+    }
+
+    if (definition.id === STORY_GATE_DISSOLVE_MATERIAL_ID) {
+      return createGateDissolveMaterial({
+        progress: requireNumber(values.progress, 'progress'),
+        edgeWidth: requireNumber(values.edgeWidth, 'edgeWidth'),
+        edgeColor: requireString(values.edgeColor, 'edgeColor'),
+        baseColor: requireString(values.baseColor, 'baseColor'),
+        noiseScale: requireNumber(values.noiseScale, 'noiseScale'),
       });
     }
 
