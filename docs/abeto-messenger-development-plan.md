@@ -486,6 +486,8 @@ Phase 18.5 is PASS. `docs/engine-positioning-architecture-adjustment-plan.md` in
 Complete Phase 19 from docs/abeto-messenger-development-plan.md: Shader Dissolve And Material Timeline.
 ```
 
+Use `docs/phase-19-shader-dissolve-material-timeline-goal-mode-execution-guide.md` as the active goal-mode guide. It uses a 16-round budget: 12 implementation rounds, 3 buffer rounds, and 1 final validation/handoff round.
+
 Start only after confirming `docs/phase-18-5-engine-core-alignment-final-report.md` is PASS and pushed. Phase 19 should use the new `EngineSession` and `EditorSessionBridge` route for material timeline/action integration.
 
 Before starting Phase 19, re-read `AGENTS.md`, the main architecture guide, `docs/engine-positioning-architecture-adjustment-plan.md`, the Phase 18 and Phase 18.5 final reports, and the current runtime/editor architecture.

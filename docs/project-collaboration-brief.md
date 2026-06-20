@@ -22,8 +22,11 @@ Sinan 当前已经从文档/架构阶段推进到可运行的 Post-MVP 基线：
 - Demo：当前 Gate Demo 包含房间、开关、门、触发器、交互事件、开门 Timeline、Camera Shot、字幕、音频、保存/重载作者工作流。
 - 数据安全：已有 Zod schema、引用校验、registry 覆盖校验、migration check、import boundary check、Playwright smoke。
 - 视觉基础：Phase 16 已完成数据驱动 `Renderable.renderStyle`、palette-toon 风格、环境背景/雾/曝光/饱和度、selected/highlight 装饰和 low-end style profile。
-- 定位升级：当前产品定位已经从 Scene Director 升级为 Sinan Engine；后续渲染、物理、输入、UI 等模块将按 first-party engine systems 规划。
-- 下一阶段：Phase 17 计划推进 asset metadata、预算校验、资源报告、压缩资源加载策略和优化管线文档。
+- 资源基础：Phase 17 已完成 asset metadata、预算校验、资源报告、压缩资源加载策略和优化管线文档。
+- Shader 基础：Phase 18 已完成 renderer-neutral `MaterialRuntime`、GLSL raw import、Three ShaderMaterial backend、fallback 和 Chromium shader compile smoke。
+- 引擎根：Phase 18.5 已完成轻量 `EngineSession`、`EngineLoop`、`World` 和 `EditorSessionBridge`，编辑器不再直接拥有完整运行闭环。
+- 定位升级：当前产品定位已经从 Scene Director 升级为 Sinan Engine；渲染、物理、输入、UI 等模块将按 first-party engine systems 规划。
+- 下一阶段：Phase 19 计划推进 Shader Dissolve And Material Timeline，验证材质参数、Timeline、Action、Editor 与 EngineSession 的协作路径。
 
 当前项目可以作为合作方的真实集成测试场：它不是空白 demo，也还没有大到所有接口都定型，因此适合共同探索 adapter、schema、runtime hooks 和编辑器嵌入方式。
 
@@ -38,6 +41,10 @@ React Editor / HUD / Panels
         v
 Editor Application Layer
   Commands / Undo / Redo / Selection / Save / Tools
+        |
+        v
+Engine Session Layer
+  EngineSession / EngineLoop / World / EditorSessionBridge
         |
         v
 Engine Semantic Layer
@@ -59,6 +66,8 @@ Three.js / Rapier / Browser APIs
 - `src/schemas/**` 定义 JSON 数据格式，并提供 TypeScript 类型与运行时校验。
 - `src/events/**` 通过 trigger、condition、action registry 执行游戏事件，不允许 `eval`、脚本字符串或未注册函数调用。
 - `src/director/**` 负责 Timeline、Camera Shot、动画、属性轨道、字幕、音频等 Director System，但不直接依赖 Three.js。
+- `src/engine/**` 负责 EngineSession、EngineLoop 和运行模式编排，不依赖 Three.js 或 React。
+- `src/world/**` 保存 renderer-neutral 的实体数据、transform 和 snapshot，不保存 `THREE.Object3D`、DOM、React state 或 shader uniform。
 - `src/runtime/WebRuntime.ts` 是渲染运行时接口；Three.js 当前只是一个实现。
 - 后续 `src/physics/**`、`src/renderer/**`、`src/input/**`、`src/ui/**` 等引擎语义模块也应保持 adapter-neutral，不直接绑定 Three.js、Rapier 或 React 高频状态。
 - `src/editor/**` 负责 React 慢状态、面板、命令式编辑、undo/redo、dirty state 和保存体验。
@@ -78,11 +87,79 @@ Three.js / Rapier / Browser APIs
 
 这意味着外部库如果希望合作，最理想的接入方式不是要求 Sinan 把状态藏进某个 GUI 或私有序列化格式，而是共同定义可校验、可迁移、可 diff 的数据契约。
 
+## 合作分工建议
+
+Sinan 的基本合作原则是：
+
+```txt
+核心语义自研，底层能力和专长模块可合作；
+合作方接 adapter、tool、widget 或 backend，不接管 Sinan 的数据事实源。
+```
+
+对输入控制、相机、资源加载、UI 这四类方向，我们建议如下：
+
+| 方向 | 建议分工 | Sinan 必须自研掌握 | 适合合作方提供 |
+| --- | --- | --- | --- |
+| 输入控制 | 核心自研，设备适配可合作 | `InputMap`、`InputAction`、editor/gameplay 输入路由、replay/test contract、与 World/Event 的语义映射 | mobile touch、gamepad、手势、虚拟摇杆、死区/灵敏度、组合键、跨浏览器输入细节 |
+| 相机模块 | 核心自研，高级 rig 可合作 | `cameraShots/*.json`、Virtual Camera、DirectorCameraSystem、Timeline camera track、camera restore/preview-safe 规则 | follow/rail/constraint/shake/collision avoidance、编辑器相机手感、路径预览、曲线工具 |
+| 资源加载 | 强烈建议混合，优先合作 | `assets.manifest.json`、asset schema、budget、ReferenceResolver、fallback policy、CI/report 规则 | GLB/glTF 加载优化、Draco/meshopt、KTX2/Basis、preload/cache/progressive loading、资源报告和优化建议 |
+| UI 框架 | 编辑器框架自研，组件/控件可合作 | Editor shell、panel ownership、command/undo/dirty/save、schema validation display、tool workflow | inspector 控件、timeline widget、dock/split pane、context menu、runtime HUD/dialogue 组件、可访问性/focus 细节 |
+
+更具体地说：
+
+- 输入控制可以合作“外设与平台细节”，但不能让合作方定义 Sinan 的玩法输入语义。
+- 相机可以合作“算法和手感”，但不能让合作方替代 Sinan 的 Camera Shot 数据模型。
+- 资源加载最适合合作，因为输入和输出边界最清楚：manifest in，runtime asset handle / diagnostics out。
+- UI 可以合作“组件能力”，但不建议把一个早期外部 UI framework 作为 Sinan Editor 的根框架。
+
+如果合作方也处于早期阶段，Sinan 可以提供宿主场景、接口规范、验收标准和工程反馈；合作方则需要接受小范围 POC、自动化测试和 adapter 边界约束。
+
+## 合作方集成标准
+
+为了降低双方试错成本，所有合作方向都建议遵守以下标准。
+
+### 1. 数据事实源
+
+- 合作模块可以有 runtime cache，但不能把关键项目状态只保存在内部对象、GUI、localStorage 或不可 diff 的私有格式里。
+- 需要持久化的能力，应映射到 Sinan 的 JSON、schema、registry、metadata 或 editor command。
+- 如果合作模块有自己的配置格式，需要说明如何导入/导出为稳定 JSON。
+
+### 2. Adapter 接入
+
+- 合作方优先实现 adapter、backend、tool 或 widget，而不是直接改 Sinan 核心系统。
+- Three.js、Rapier、DOM、Web APIs 等平台细节必须留在 adapter 或明确允许的边界内。
+- 合作模块不应要求 `src/events/**`、`src/director/**`、`src/world/**`、`src/schemas/**` 直接依赖 Three.js 或浏览器对象。
+
+### 3. TypeScript 与错误模型
+
+- 对外 API 应提供清晰 TypeScript 类型。
+- 错误应可结构化返回，例如 `code`、`message`、`target`、`assetId`、`entityId`、`parameter`、`cause`。
+- 失败时需要 fallback 或 degraded mode，不能 silent fail。
+
+### 4. 测试与验证
+
+- 合作 POC 至少需要可跑单元测试。
+- 涉及浏览器、Canvas、WebGL、输入、布局或交互的模块，需要 Playwright smoke 或等价 browser test。
+- 涉及数据协议的模块，需要 schema validation 和 reference validation。
+- 不应依赖人工截图判断作为唯一验收标准。
+
+### 5. 性能和包体
+
+- 合作方需要说明 bundle size、主要依赖、是否支持按需加载。
+- 资源加载、相机、输入、UI 都需要避免每帧无意义分配和 React 高频 setState。
+- 需要配合 Sinan 的 desktop/mobile 性能预算和 low-end profile。
+
+### 6. 文档与维护
+
+- POC 需要有最小接入文档。
+- 需要列出当前限制、非目标、已知风险和下一步路线。
+- 如果项目仍在早期阶段，应明确哪些 API 稳定、哪些 API 可能变动。
+
 ## 可合作方向
 
 ### 1. 相机控制库
 
-Sinan 已经有 Camera Shot 数据和 `DirectorCameraSystem`，支持 keyframed、follow、lookAt 等镜头类型，并通过 `WebRuntime.setCameraPose` 下发 runtime pose。当前也有编辑器视口相机控制与 TransformControls 相关逻辑。
+Sinan 已经有 Camera Shot 数据和 `DirectorCameraSystem`，支持 keyframed、follow、lookAt 等镜头类型，并通过 `WebRuntime.setCameraPose` 下发 runtime pose。当前也有编辑器视口相机控制、TransformControls 相关逻辑，以及 Phase 18.5 后的 `EngineSession` / `EditorSessionBridge` 运行边界。
 
 潜在合作点：
 
@@ -101,7 +178,7 @@ Sinan 已经有 Camera Shot 数据和 `DirectorCameraSystem`，支持 keyframed�
 
 ### 2. 输入控制库
 
-Sinan 当前已经有编辑器选择、viewport picking、gizmo 操作和基础交互路径。更完整的 gameplay input、rebind、gamepad、mobile touch、editor/game mode input routing 仍有合作空间。
+Sinan 当前已经有编辑器选择、viewport picking、gizmo 操作和基础交互路径。更完整的 gameplay input、rebind、gamepad、mobile touch、editor/play/showcase input routing 仍有合作空间。
 
 潜在合作点：
 
@@ -125,7 +202,7 @@ Sinan 当前已经有编辑器选择、viewport picking、gizmo 操作和基础�
 
 ### 3. 资源加载库与资产管线
 
-Sinan 当前资源通过 `assets.manifest.json` 声明，Three runtime 加载 GLB/audio，并在缺失或失败时使用确定性 placeholder/fallback。Phase 17 正准备做 asset metadata、预算校验、资源报告和压缩资源加载策略。
+Sinan 当前资源通过 `assets.manifest.json` 声明，Three runtime 加载 GLB/audio，并在缺失或失败时使用确定性 placeholder/fallback。Phase 17 已经加入 asset metadata、预算校验、资源报告和压缩资源加载策略；Phase 18 已经补齐材质/Shader S0 对 texture metadata 的前置要求。
 
 潜在合作点：
 
@@ -212,6 +289,16 @@ Sinan 已有 timeline JSON 和 track player，支持 action、animation、camera
 - 场景导演类 use case：不是单纯模型展示，而是事件、条件、动作、镜头、动画、音效、字幕、UI 编辑共同工作。
 - 后续路线清晰：资源预算/压缩、LOD/instancing、球形世界、Showcase gameplay、多人协作等阶段都可预留合作窗口。
 
+我们也可以为合作方准备一套轻量 Integration Kit：
+
+- 最小宿主 demo：Gate Demo 场景和固定测试数据。
+- TypeScript contract：例如 input adapter、camera rig provider、asset loader backend、UI widget bridge。
+- JSON/schema 样例：说明状态如何进入 Sinan 的数据事实源。
+- 验收测试：Vitest fixture、Playwright smoke、boundary check、validate-data。
+- 性能预算：bundle、加载耗时、资源体积、frame cost、mobile profile。
+- 诊断规范：结构化错误、fallback、日志和调试面板预留。
+- 集成文档模板：安装、接入、限制、非目标、维护计划。
+
 ## 对合作方的期望
 
 为了判断合作空间，建议合作方提供以下信息：
@@ -235,10 +322,35 @@ Sinan 已有 timeline JSON 和 track player，支持 action、animation、camera
 
 推荐优先级：
 
-- 资源加载库：与 Phase 17 高度契合，短期最容易形成可验证成果。
+- 资源加载库：边界最清楚，短期最容易形成可验证成果，也最能体现合作方工程价值。
 - 相机控制库：与 Sinan Director System 和 Camera System 的核心差异化能力相关，适合做高展示价值 demo。
-- UI 组件库：能直接改善编辑器生产力，但需要谨慎保护 command/save/undo 数据边界。
 - 输入控制库：对后续 gameplay 和 editor 工具都重要，适合在基础规则定清后进入。
+- UI 组件库：能直接改善编辑器生产力，但需要最谨慎保护 command/save/undo、schema error 和 panel ownership 边界。
+
+建议首轮合作不要一次接入多个方向。每个方向先做一个 1-2 周可验收的 POC，范围越窄越好：
+
+- 资源加载：接管一个模型加载路径，保留 `WebRuntime.loadModel(assetId, url)` 契约。
+- 相机：增强一个 camera shot 或 editor camera 控制，不改 Timeline 数据源。
+- 输入：实现一个 `interact` action 和 editor/gameplay 输入隔离。
+- UI：替换一个低风险 panel 的局部控件，不改保存格式。
+
+## 适合与不适合合作的信号
+
+适合继续深入的信号：
+
+- 合作方愿意以 adapter/contract 方式接入。
+- 关键状态能序列化、能验证、能导入导出。
+- 能接受自动化测试作为 POC 验收条件。
+- 能说明 fallback、错误诊断、性能和包体影响。
+- 愿意先服务一个真实 demo，而不是先要求完整平台化。
+
+需要谨慎的信号：
+
+- 必须接管宿主项目主循环、场景树、编辑器状态或保存格式。
+- 关键状态只能存在 GUI 内部，无法稳定导出。
+- API 没有 TypeScript 类型或错误不可观测。
+- 需要绕过 Sinan 的 schema、registry、ReferenceResolver 或 command 模型。
+- 一开始就要求大范围重构，而不能从窄 POC 开始。
 
 ## 当前运行与验证
 

@@ -62,6 +62,8 @@ Phase 18.5 completed the lightweight engine-root alignment checkpoint between Ph
 
 Recommended next goal: Phase 19 Shader Dissolve And Material Timeline.
 
+Use `docs/phase-19-shader-dissolve-material-timeline-goal-mode-execution-guide.md` as the active goal-mode guide.
+
 Phase 19 should use `EngineSession` and `EditorSessionBridge` as the integration path for material timeline tracks and material actions. Do not put material timeline/action runtime orchestration back into `src/editor/Viewport.tsx`.
 
 Suggested next prompt:

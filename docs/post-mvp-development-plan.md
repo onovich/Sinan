@@ -41,7 +41,7 @@ With the superseded optional Phase 15: 31-33 rounds.
 
 After Phase 14, continue with `docs/abeto-messenger-development-plan.md` for the Messenger-like vertical-slice roadmap. The next planning handoff is `docs/phase-15-abeto-scope-lock-goal-mode-execution-guide.md`.
 
-Current route update: Phase 18.5 Engine Core Alignment is PASS. The active next checkpoint is Phase 19: Shader Dissolve And Material Timeline from `docs/abeto-messenger-development-plan.md`.
+Current route update: Phase 18.5 Engine Core Alignment is PASS. The active next checkpoint is Phase 19: Shader Dissolve And Material Timeline from `docs/phase-19-shader-dissolve-material-timeline-goal-mode-execution-guide.md` and `docs/abeto-messenger-development-plan.md`.
 
 Engine-positioning update: Phase 18.5 moved runtime orchestration from `src/editor/Viewport.tsx` into `EngineSession`/`EngineLoop` with a minimal renderer-neutral `World` and `EditorSessionBridge`.
 
