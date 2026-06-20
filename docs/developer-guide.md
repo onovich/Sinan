@@ -349,6 +349,36 @@ Phase 20 material lifetime policy: Three shader materials are currently owned pe
 
 Phase 20 postprocess contract: public postprocess effects live under `src/runtime/postprocess/**`. The first effect id is `cinematic.vignette` with public parameters `enabled`, `intensity`, and `softness`. Runtime/editor/data contracts must use these public names only; Three composer passes, `ShaderPass`, `OutputPass`, and raw vignette uniforms stay inside `src/runtime/three/**`.
 
+### Shader HMR And Failure Triage
+
+During local GLSL or Three material factory iteration, treat every shader replacement as a risky runtime swap. The editor must keep either the previous valid material or the explicit fallback material visible; a failed shader edit should not silently blank the viewport.
+
+Development-time replacement policy:
+
+1. Keep the source of truth in `.glsl` files plus `MaterialDefinition` public parameters.
+2. Create a new `ShaderMaterial` instance before replacing the current scene material.
+3. Copy current public parameter values and the latest `ShaderGlobals` into the new instance.
+4. Compile or render through the smallest deterministic fixture before considering the replacement valid.
+5. Replace the scene material only after creation and compile succeed where practical.
+6. Dispose the previous owned material after the replacement is known-good.
+7. If creation, parameter validation, or compile fails, keep the previous valid material when available; otherwise use `material:fallback-error`.
+8. Surface a structured diagnostic with material id, stage, source path, runtime context, browser/GPU context when available, entity id, slot, and compile log where available.
+
+Triage order:
+
+- If `renderer.compileAsync(scene, camera)` or smoke fails, inspect the structured diagnostic first.
+- If the diagnostic names a public parameter, fix `MaterialDefinition`, editor data, timeline/action data, or the Three public-parameter mapping before touching GLSL.
+- If the diagnostic names a GLSL source path and stage, isolate the failing vertex or fragment shader in the browser compile fixture.
+- If only visual baselines fail, compare the fixture id, sampled pixel, expected value, observed value, and tolerance before changing art values.
+- If fallback is visible in the editor, treat it as an error state, not as a passing visual result.
+
+Do not:
+
+- edit raw uniforms from React, JSON, timelines, actions, or editor UI;
+- hide shader compile failures behind a successful fallback in CI;
+- introduce a broad Vite HMR runtime graph before the existing factory/runtime/visual fixtures show that a narrow helper is insufficient;
+- commit Playwright traces, generated screenshots, or local hardware captures as HMR evidence.
+
 ## Actions
 
 Current action types:

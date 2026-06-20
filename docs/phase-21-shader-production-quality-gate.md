@@ -115,6 +115,8 @@ Policy:
 - Preserve timeline/action/editor public parameter state.
 - Never allow a failed shader edit to silently blank the editor.
 
+Round 21.8 records this policy in `docs/developer-guide.md` under "Shader HMR And Failure Triage" so future shader authors and executors can follow the same local iteration and CI triage steps.
+
 ## Precompile Strategy
 
 Document and smoke-test the current browser precompile path where practical:
