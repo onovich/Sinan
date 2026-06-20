@@ -146,6 +146,8 @@ Budget intent:
 - Demo shader/postprocess fixtures should remain small, deterministic, and suitable for local validation.
 - The gate watches for obvious regressions, unbounded program/material growth, blank output, and excessive fixture runtime, not device-grade frame pacing yet.
 
+Round 21.10 adds `runLowEndShaderBaselineSmoke` as the current local gate. It uses Chromium through Playwright at `360x640`, pixel ratio `1`, production materials `story.gate-dissolve` and `story.hologram-scanline`, and the `cinematic.vignette` output path. The fixture records duration, renderer memory counters, shader program count, visible material pixels, and vignette edge darkening against broad local budgets documented in `docs/developer-guide.md`. Real mobile hardware remains unavailable in this workspace and is not certified by this phase.
+
 ## Explicit Non-Scope
 
 Phase 21 does not implement:

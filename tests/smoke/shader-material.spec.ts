@@ -55,6 +55,30 @@ interface ShaderFallbackDiagnosticsSmokeResult {
   ok: boolean;
 }
 
+interface LowEndShaderBaselineSmokeResult {
+  budget: {
+    maxDurationMs: number;
+    maxGeometries: number;
+    maxProgramCount: number;
+    maxTextures: number;
+  };
+  durationMs: number;
+  edgeDarkeningDelta: number;
+  gatePixel: readonly [number, number, number, number];
+  hologramPixel: readonly [number, number, number, number];
+  memory: {
+    geometries: number;
+    textures: number;
+  };
+  ok: boolean;
+  pixelRatio: number;
+  programCount: number | null;
+  viewport: {
+    height: number;
+    width: number;
+  };
+}
+
 interface ShaderLifecycleResourceSmokeResult {
   finalProgramCount: number | null;
   finalRuntimeBindingCount: number;
@@ -253,6 +277,32 @@ test('shader fallback path renders visibly and reports structured diagnostics', 
   expect(result.diagnosticMessages[0]).toContain(
     'message="Missing material definition "story.missing"."',
   );
+  expect(browserErrors).toEqual([]);
+});
+
+test('low-end shader baseline stays within local Chromium budgets', async ({ page }) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/');
+  const result = await page.evaluate(async (): Promise<LowEndShaderBaselineSmokeResult> => {
+    const fixtureUrl = '/tests/smoke/shaderCompileFixture.ts';
+    const fixture = (await import(/* @vite-ignore */ fixtureUrl)) as {
+      runLowEndShaderBaselineSmoke: () => Promise<LowEndShaderBaselineSmokeResult>;
+    };
+
+    return fixture.runLowEndShaderBaselineSmoke();
+  });
+
+  expect(result.ok).toBe(true);
+  expect(result.viewport).toEqual({ width: 360, height: 640 });
+  expect(result.pixelRatio).toBe(1);
+  expect(result.gatePixel[3]).toBe(255);
+  expect(result.hologramPixel[3]).toBe(255);
+  expect(result.edgeDarkeningDelta).toBeGreaterThan(20);
+  expect(result.durationMs).toBeLessThanOrEqual(result.budget.maxDurationMs);
+  expect(result.programCount ?? 0).toBeLessThanOrEqual(result.budget.maxProgramCount);
+  expect(result.memory.geometries).toBeLessThanOrEqual(result.budget.maxGeometries);
+  expect(result.memory.textures).toBeLessThanOrEqual(result.budget.maxTextures);
   expect(browserErrors).toEqual([]);
 });
 

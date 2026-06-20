@@ -81,6 +81,30 @@ export interface ShaderFallbackDiagnosticsSmokeResult {
   ok: boolean;
 }
 
+export interface LowEndShaderBaselineSmokeResult {
+  budget: {
+    maxDurationMs: number;
+    maxGeometries: number;
+    maxProgramCount: number;
+    maxTextures: number;
+  };
+  durationMs: number;
+  edgeDarkeningDelta: number;
+  gatePixel: readonly [number, number, number, number];
+  hologramPixel: readonly [number, number, number, number];
+  memory: {
+    geometries: number;
+    textures: number;
+  };
+  ok: boolean;
+  pixelRatio: number;
+  programCount: number | null;
+  viewport: {
+    height: number;
+    width: number;
+  };
+}
+
 export interface ShaderLifecycleResourceSmokeResult {
   finalProgramCount: number | null;
   finalRuntimeBindingCount: number;
@@ -758,6 +782,131 @@ export function renderShaderFallbackDiagnosticsSmoke(): ShaderFallbackDiagnostic
   }
 }
 
+export async function runLowEndShaderBaselineSmoke(): Promise<LowEndShaderBaselineSmokeResult> {
+  const viewport = { width: 360, height: 640 };
+  const budget = {
+    maxDurationMs: 2_500,
+    maxGeometries: 6,
+    maxProgramCount: 8,
+    maxTextures: 6,
+  };
+  const canvas = document.createElement('canvas');
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  document.body.append(canvas);
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: false,
+    preserveDrawingBuffer: true,
+  });
+  renderer.debug.checkShaderErrors = true;
+  renderer.setClearColor(0x000000, 1);
+  renderer.setPixelRatio(1);
+  renderer.setSize(viewport.width, viewport.height, false);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+  camera.position.z = 2;
+  const geometry = new THREE.PlaneGeometry(1.8, 1.8);
+  const originalMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  const mesh = new THREE.Mesh(geometry, originalMaterial);
+  const materialRuntime = new ThreeMaterialRuntime();
+  const postProcessRuntime = new ThreePostProcessRuntime();
+  const target = { entityId: 'low_end_shader_panel', slot: 'main' };
+  const start = performance.now();
+
+  scene.add(mesh);
+  materialRuntime.bindEntityObject(target.entityId, mesh);
+
+  try {
+    applyDiagnosticMaterial(materialRuntime, target, STORY_GATE_DISSOLVE_MATERIAL_ID, {
+      progress: 0,
+      edgeWidth: 0.08,
+      edgeColor: '#ffcf70',
+      baseColor: '#9b6a3c',
+      noiseScale: 8,
+    });
+    await compileScene(renderer, scene, camera);
+    renderer.render(scene, camera);
+    const gatePixel = readCenterPixel(renderer);
+
+    applyDiagnosticMaterial(materialRuntime, target, STORY_HOLOGRAM_SCANLINE_MATERIAL_ID, {
+      intensity: 0.95,
+      baseColor: '#5aa7d6',
+      scanlineColor: '#ffcf70',
+      scanlineDensity: 18,
+      flickerStrength: 0.2,
+    });
+    materialRuntime.setShaderGlobals({
+      elapsedSeconds: 0.4,
+      deltaSeconds: 0.016,
+      viewportSize: [viewport.width, viewport.height],
+    });
+    await compileScene(renderer, scene, camera);
+    renderer.render(scene, camera);
+    const hologramPixel = readCenterPixel(renderer);
+
+    materialRuntime.disposeEntityMaterials(target.entityId);
+    mesh.material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    postProcessRuntime.setVignette({
+      enabled: true,
+      intensity: 0.85,
+      softness: 0.25,
+    });
+    postProcessRuntime.init({
+      camera,
+      enabled: true,
+      height: viewport.height,
+      pixelRatio: 1,
+      renderer,
+      scene,
+      width: viewport.width,
+    });
+    postProcessRuntime.render(() => renderer.render(scene, camera));
+    const centerPixel = readPixel(renderer, 180, 320);
+    const cornerPixel = readPixel(renderer, 24, 24);
+    const edgeDarkeningDelta = getPixelDelta(centerPixel, cornerPixel);
+    const durationMs = performance.now() - start;
+    const programCount = renderer.info.programs?.length ?? null;
+    const memory = {
+      geometries: renderer.info.memory.geometries,
+      textures: renderer.info.memory.textures,
+    };
+
+    return {
+      budget,
+      durationMs,
+      edgeDarkeningDelta,
+      gatePixel,
+      hologramPixel,
+      memory,
+      ok:
+        gatePixel[3] === 255 &&
+        hologramPixel[3] === 255 &&
+        edgeDarkeningDelta > 20 &&
+        durationMs <= budget.maxDurationMs &&
+        (programCount === null || programCount <= budget.maxProgramCount) &&
+        memory.geometries <= budget.maxGeometries &&
+        memory.textures <= budget.maxTextures,
+      pixelRatio: 1,
+      programCount,
+      viewport,
+    };
+  } finally {
+    postProcessRuntime.dispose();
+    materialRuntime.disposeEntityMaterials(target.entityId);
+    geometry.dispose();
+    if (mesh.material instanceof THREE.Material) {
+      mesh.material.dispose();
+    }
+    originalMaterial.dispose();
+    renderer.dispose();
+    canvas.remove();
+  }
+}
+
 async function renderMaterialVisualFixture(
   baseline: VisualFixtureBaseline,
 ): Promise<VisualFixtureComparison> {
@@ -916,6 +1065,19 @@ function applyDiagnosticMaterial(
   if (!result.ok) {
     throw new Error(result.errors.map((error) => error.message).join('; '));
   }
+}
+
+async function compileScene(
+  renderer: THREE.WebGLRenderer,
+  scene: THREE.Scene,
+  camera: THREE.Camera,
+): Promise<void> {
+  if (typeof renderer.compileAsync === 'function') {
+    await renderer.compileAsync(scene, camera);
+    return;
+  }
+
+  renderer.compile(scene, camera);
 }
 
 function readCenterPixel(renderer: THREE.WebGLRenderer): [number, number, number, number] {

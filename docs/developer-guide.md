@@ -405,6 +405,28 @@ Current Chromium smoke coverage already precompiles or renders the production ma
 
 If a browser does not support `compileAsync`, the fixture must still run synchronously with `renderer.compile` and keep the same diagnostics and fallback behavior. A fallback render is not a passing production shader compile result; CI should fail when a known production shader cannot compile.
 
+### Mobile / Low-End Shader Baseline
+
+The current local low-end shader gate is a Playwright Chromium fixture, not a real mobile hardware certification. It exists to catch obvious shader/postprocess regressions before LOD, instancing, compact world, and gameplay phases depend on the visual stack.
+
+Current local baseline:
+
+- viewport: `360x640`
+- pixel ratio: `1`
+- browser: Chromium through Playwright
+- materials: `story.gate-dissolve` and `story.hologram-scanline`
+- postprocess: `cinematic.vignette`
+- metrics: fixture duration, `renderer.info.programs`, `renderer.info.memory.geometries`, `renderer.info.memory.textures`, visible pixels, and vignette edge darkening
+
+Accepted local budgets:
+
+- duration: `<= 2500 ms`
+- shader programs: `<= 8`
+- geometries: `<= 6`
+- textures: `<= 6`
+
+These budgets are intentionally broad for local stability. They are not a frame-rate promise and should be tightened only after dedicated mobile hardware or a more complete performance harness exists. If a real device test is unavailable, reports must say so explicitly and cite this local Chromium baseline instead.
+
 ## Actions
 
 Current action types:
