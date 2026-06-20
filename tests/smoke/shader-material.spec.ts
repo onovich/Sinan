@@ -7,6 +7,7 @@ interface ShaderCompileSmokeResult {
   materialName: string;
   ok: boolean;
   programCount: number | null;
+  runtimeContext: string;
   vertexShaderPath: string;
 }
 
@@ -28,6 +29,10 @@ interface ShaderGlobalsSmokeResult extends ShaderCompileSmokeResult {
   timePixelDelta: number;
   viewportPixel: readonly [number, number, number, number];
   viewportPixelDelta: number;
+}
+
+interface HologramScanlineShaderSmokeResult extends ShaderCompileSmokeResult {
+  visiblePixel: readonly [number, number, number, number];
 }
 
 interface ShaderLifecycleResourceSmokeResult {
@@ -52,12 +57,15 @@ interface PostProcessVignetteSmokeResult {
   centerPixel: readonly [number, number, number, number];
   cornerPixel: readonly [number, number, number, number];
   edgeDarkeningDelta: number;
+  effectId: string;
   memory: {
     geometries: number;
     textures: number;
   };
   ok: boolean;
+  passSourcePath: string;
   programCount: number | null;
+  runtimeContext: string;
 }
 
 test('S0 debug ShaderMaterial compiles in Chromium', async ({ page }) => {
@@ -79,6 +87,7 @@ test('S0 debug ShaderMaterial compiles in Chromium', async ({ page }) => {
     materialId: 'debug.uv-gradient',
     materialName: 'material:debug.uv-gradient',
     ok: true,
+    runtimeContext: 'smoke.shader.compile',
     vertexShaderPath: 'src/shaders/materials/debug/debug-uv-gradient.vert.glsl',
   });
   expect(result.programCount ?? 0).toBeGreaterThan(0);
@@ -104,6 +113,7 @@ test('production gate dissolve ShaderMaterial compiles and changes pixels', asyn
     materialId: 'story.gate-dissolve',
     materialName: 'material:story.gate-dissolve',
     ok: true,
+    runtimeContext: 'smoke.shader.compile',
     runtimeParameterOk: true,
     vertexShaderPath: 'src/shaders/materials/story/gate-dissolve.vert.glsl',
   });
@@ -133,6 +143,7 @@ test('debug ShaderMaterial responds to shader globals in Chromium', async ({ pag
     materialId: 'debug.uv-gradient',
     materialName: 'material:debug.uv-gradient',
     ok: true,
+    runtimeContext: 'smoke.shader.compile',
     vertexShaderPath: 'src/shaders/materials/debug/debug-uv-gradient.vert.glsl',
   });
   expect(result.programCount ?? 0).toBeGreaterThan(0);
@@ -142,6 +153,33 @@ test('debug ShaderMaterial responds to shader globals in Chromium', async ({ pag
   expect(result.baselinePixel[3]).toBe(255);
   expect(result.timePixel[3]).toBe(255);
   expect(result.viewportPixel[3]).toBe(255);
+  expect(browserErrors).toEqual([]);
+});
+
+test('production hologram scanline ShaderMaterial compiles in Chromium', async ({ page }) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/');
+  const result = await page.evaluate(async (): Promise<HologramScanlineShaderSmokeResult> => {
+    const fixtureUrl = '/tests/smoke/shaderCompileFixture.ts';
+    const fixture = (await import(/* @vite-ignore */ fixtureUrl)) as {
+      compileHologramScanlineMaterial: () => Promise<HologramScanlineShaderSmokeResult>;
+    };
+
+    return fixture.compileHologramScanlineMaterial();
+  });
+
+  expect(result).toMatchObject({
+    compileAsyncUsed: true,
+    fragmentShaderPath: 'src/shaders/materials/story/hologram-scanline.frag.glsl',
+    materialId: 'story.hologram-scanline',
+    materialName: 'material:story.hologram-scanline',
+    ok: true,
+    runtimeContext: 'smoke.shader.compile',
+    vertexShaderPath: 'src/shaders/materials/story/hologram-scanline.vert.glsl',
+  });
+  expect(result.programCount ?? 0).toBeGreaterThan(0);
+  expect(result.visiblePixel[3]).toBe(255);
   expect(browserErrors).toEqual([]);
 });
 
@@ -190,6 +228,9 @@ test('postprocess vignette pass changes edge pixels in Chromium', async ({ page 
   });
 
   expect(result.ok).toBe(true);
+  expect(result.effectId).toBe('cinematic.vignette');
+  expect(result.passSourcePath).toBe('src/runtime/three/ThreePostProcessRuntime.ts');
+  expect(result.runtimeContext).toBe('smoke.postprocess.render');
   expect(result.edgeDarkeningDelta).toBeGreaterThan(20);
   expect(result.centerPixel[3]).toBe(255);
   expect(result.cornerPixel[3]).toBe(255);

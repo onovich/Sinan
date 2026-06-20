@@ -20,6 +20,7 @@ export interface ShaderCompileSmokeResult {
   materialName: string;
   ok: boolean;
   programCount: number | null;
+  runtimeContext: string;
   vertexShaderPath: string;
 }
 
@@ -41,6 +42,10 @@ export interface ShaderGlobalsSmokeResult extends ShaderCompileSmokeResult {
   timePixelDelta: number;
   viewportPixel: readonly [number, number, number, number];
   viewportPixelDelta: number;
+}
+
+export interface HologramScanlineShaderSmokeResult extends ShaderCompileSmokeResult {
+  visiblePixel: readonly [number, number, number, number];
 }
 
 export interface ShaderLifecycleResourceSmokeResult {
@@ -65,12 +70,15 @@ export interface PostProcessVignetteSmokeResult {
   centerPixel: readonly [number, number, number, number];
   cornerPixel: readonly [number, number, number, number];
   edgeDarkeningDelta: number;
+  effectId: string;
   memory: {
     geometries: number;
     textures: number;
   };
   ok: boolean;
+  passSourcePath: string;
   programCount: number | null;
+  runtimeContext: string;
 }
 
 export async function compileDebugUvGradientMaterial(): Promise<ShaderCompileSmokeResult> {
@@ -124,6 +132,7 @@ export async function compileDebugUvGradientMaterial(): Promise<ShaderCompileSmo
       materialName: materialResult.material.name,
       ok: true,
       programCount: renderer.info.programs?.length ?? null,
+      runtimeContext: 'smoke.shader.compile',
       vertexShaderPath: 'src/shaders/materials/debug/debug-uv-gradient.vert.glsl',
     };
   } finally {
@@ -203,6 +212,7 @@ export async function compileGateDissolveMaterial(): Promise<DissolveShaderSmoke
       ok: true,
       pixelDelta: getPixelDelta(visiblePixel, dissolvedPixel),
       programCount: renderer.info.programs?.length ?? null,
+      runtimeContext: 'smoke.shader.compile',
       runtimeParameterOk: parameterResult.ok,
       vertexShaderPath: 'src/shaders/materials/story/gate-dissolve.vert.glsl',
       visiblePixel,
@@ -299,11 +309,90 @@ export async function renderDebugUvGradientWithShaderGlobals(): Promise<ShaderGl
       },
       ok: true,
       programCount: renderer.info.programs?.length ?? null,
+      runtimeContext: 'smoke.shader.compile',
       timePixel,
       timePixelDelta,
       vertexShaderPath: 'src/shaders/materials/debug/debug-uv-gradient.vert.glsl',
       viewportPixel,
       viewportPixelDelta,
+    };
+  } finally {
+    materialRuntime.disposeEntityMaterials(target.entityId);
+    geometry.dispose();
+    originalMaterial.dispose();
+    renderer.dispose();
+    canvas.remove();
+  }
+}
+
+export async function compileHologramScanlineMaterial(): Promise<HologramScanlineShaderSmokeResult> {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  document.body.append(canvas);
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: false,
+    preserveDrawingBuffer: true,
+  });
+  renderer.debug.checkShaderErrors = true;
+  renderer.setClearColor(0x000000, 1);
+  renderer.setSize(64, 64, false);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+  camera.position.z = 2;
+  const geometry = new THREE.PlaneGeometry(1.8, 1.8);
+  const originalMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  const mesh = new THREE.Mesh(geometry, originalMaterial);
+  const materialRuntime = new ThreeMaterialRuntime();
+  const target = { entityId: 'hologram_panel', slot: 'main' };
+  scene.add(mesh);
+  materialRuntime.bindEntityObject(target.entityId, mesh);
+
+  const applyResult = materialRuntime.applyMaterial(target, STORY_HOLOGRAM_SCANLINE_MATERIAL_ID, {
+    intensity: 0.95,
+    baseColor: '#5aa7d6',
+    scanlineColor: '#ffcf70',
+    scanlineDensity: 18,
+    flickerStrength: 0.2,
+  });
+
+  if (!applyResult.ok) {
+    throw new Error(applyResult.errors.map((error) => error.message).join('; '));
+  }
+
+  materialRuntime.setShaderGlobals({
+    elapsedSeconds: 0.4,
+    deltaSeconds: 0.016,
+    viewportSize: [64, 64],
+  });
+
+  let compileAsyncUsed = false;
+
+  try {
+    if (typeof renderer.compileAsync === 'function') {
+      compileAsyncUsed = true;
+      await renderer.compileAsync(scene, camera);
+    } else {
+      renderer.compile(scene, camera);
+    }
+
+    renderer.render(scene, camera);
+    const visiblePixel = readCenterPixel(renderer);
+
+    return {
+      compileAsyncUsed,
+      fragmentShaderPath: 'src/shaders/materials/story/hologram-scanline.frag.glsl',
+      materialId: STORY_HOLOGRAM_SCANLINE_MATERIAL_ID,
+      materialName: (mesh.material as THREE.Material).name,
+      ok: true,
+      programCount: renderer.info.programs?.length ?? null,
+      runtimeContext: 'smoke.shader.compile',
+      vertexShaderPath: 'src/shaders/materials/story/hologram-scanline.vert.glsl',
+      visiblePixel,
     };
   } finally {
     materialRuntime.disposeEntityMaterials(target.entityId);
@@ -526,12 +615,15 @@ export function renderPostProcessVignetteSmoke(): PostProcessVignetteSmokeResult
       centerPixel,
       cornerPixel,
       edgeDarkeningDelta,
+      effectId: CINEMATIC_VIGNETTE_POSTPROCESS_EFFECT_ID,
       memory: {
         geometries: renderer.info.memory.geometries,
         textures: renderer.info.memory.textures,
       },
       ok: edgeDarkeningDelta > 20 && centerPixel[3] === 255 && cornerPixel[3] === 255,
+      passSourcePath: 'src/runtime/three/ThreePostProcessRuntime.ts',
       programCount: renderer.info.programs?.length ?? null,
+      runtimeContext: 'smoke.postprocess.render',
     };
   } finally {
     postProcessRuntime.dispose();
