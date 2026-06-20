@@ -38,11 +38,14 @@ import { ThreeMaterialRegistry } from './ThreeMaterialRegistry';
 import { ThreeMaterialRuntime } from './materials/ThreeMaterialRuntime';
 import { disposeObjectResources } from './ThreeObjectResources';
 import { pickThreeObject } from './ThreePicking';
+import { ThreePostProcessRuntime } from './ThreePostProcessRuntime';
 import { ThreeStyleDecorators } from './ThreeStyleDecorators';
 
 export interface ThreeRuntimeOptions {
   modelAssets?: ThreeAssetLoader;
   logger?: Pick<Console, 'warn'>;
+  postProcessingEnabled?: boolean;
+  postProcessRuntime?: ThreePostProcessRuntime;
 }
 
 interface EntityAnimationBinding {
@@ -55,6 +58,8 @@ interface EntityAnimationBinding {
 export class ThreeRuntime implements WebRuntime {
   private readonly modelAssets: ThreeAssetLoader;
   private readonly logger: Pick<Console, 'warn'>;
+  private readonly postProcessingEnabled: boolean;
+  private readonly postProcessRuntime: ThreePostProcessRuntime;
   private renderer: THREE.WebGLRenderer | undefined;
   private canvas: HTMLCanvasElement | undefined;
   private scene: THREE.Scene | undefined;
@@ -85,11 +90,14 @@ export class ThreeRuntime implements WebRuntime {
   private selectedEntityId: string | undefined;
   private width = 1;
   private height = 1;
+  private pixelRatio = 1;
   private disposed = false;
 
   constructor(options: ThreeRuntimeOptions = {}) {
     this.modelAssets = options.modelAssets ?? new ThreeAssetLoader();
     this.logger = options.logger ?? console;
+    this.postProcessingEnabled = options.postProcessingEnabled === true;
+    this.postProcessRuntime = options.postProcessRuntime ?? new ThreePostProcessRuntime();
     this.materialRegistry = new ThreeMaterialRegistry({ logger: this.logger });
     this.materialRuntime = new ThreeMaterialRuntime();
   }
@@ -98,6 +106,7 @@ export class ThreeRuntime implements WebRuntime {
     this.canvas = options.canvas;
     this.width = Math.max(1, Math.floor(options.width));
     this.height = Math.max(1, Math.floor(options.height));
+    this.pixelRatio = options.pixelRatio ?? window.devicePixelRatio ?? 1;
     this.disposed = false;
 
     const renderer = new THREE.WebGLRenderer({
@@ -107,7 +116,7 @@ export class ThreeRuntime implements WebRuntime {
     });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.setClearColor(0x0f1517, 1);
-    renderer.setPixelRatio(options.pixelRatio ?? window.devicePixelRatio ?? 1);
+    renderer.setPixelRatio(this.pixelRatio);
     renderer.setSize(this.width, this.height, false);
 
     const scene = new THREE.Scene();
@@ -176,6 +185,15 @@ export class ThreeRuntime implements WebRuntime {
     this.transformControls = transformControls;
     this.transformControlsHelper = transformControlsHelper;
     this.applyRenderEnvironment();
+    this.postProcessRuntime.init({
+      camera,
+      enabled: this.postProcessingEnabled,
+      height: this.height,
+      pixelRatio: this.pixelRatio,
+      renderer,
+      scene,
+      width: this.width,
+    });
   }
 
   async loadModel(assetId: string, url: string): Promise<ModelHandle> {
@@ -613,7 +631,9 @@ export class ThreeRuntime implements WebRuntime {
       return;
     }
 
-    this.renderer.render(this.scene, this.camera);
+    this.postProcessRuntime.render(() => {
+      this.renderer?.render(this.scene as THREE.Scene, this.camera as THREE.Camera);
+    });
   }
 
   resize(size: RuntimeSize): void {
@@ -623,10 +643,16 @@ export class ThreeRuntime implements WebRuntime {
 
     this.width = Math.max(1, Math.floor(size.width));
     this.height = Math.max(1, Math.floor(size.height));
+    this.pixelRatio = size.pixelRatio ?? window.devicePixelRatio ?? 1;
     this.camera.aspect = this.width / this.height;
     this.camera.updateProjectionMatrix();
-    this.renderer.setPixelRatio(size.pixelRatio ?? window.devicePixelRatio ?? 1);
+    this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.setSize(this.width, this.height, false);
+    this.postProcessRuntime.resize({
+      height: this.height,
+      pixelRatio: this.pixelRatio,
+      width: this.width,
+    });
   }
 
   dispose(): void {
@@ -642,6 +668,7 @@ export class ThreeRuntime implements WebRuntime {
       this.materialRegistry.applyStyle(object, { profile: 'standard' });
     }
     this.styleDecorators?.dispose();
+    this.postProcessRuntime.dispose();
     this.scene?.traverse((object) => {
       disposeObjectResources(object);
     });

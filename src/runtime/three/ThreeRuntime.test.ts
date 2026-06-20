@@ -8,6 +8,7 @@ import {
 } from './ThreeAssetLoader';
 import { DEBUG_UV_GRADIENT_MATERIAL_ID } from '../materials';
 import { FALLBACK_MATERIAL_NAME } from './materials/createFallbackMaterial';
+import type { ThreePostProcessRuntime } from './ThreePostProcessRuntime';
 import { ThreeRuntime } from './ThreeRuntime';
 
 describe('ThreeRuntime asset-backed models', () => {
@@ -176,6 +177,47 @@ describe('ThreeRuntime asset-backed models', () => {
   });
 });
 
+describe('ThreeRuntime postprocessing boundary', () => {
+  it('routes render, resize, and dispose through the injected postprocess runtime', () => {
+    const postProcess = createPostProcessProbe();
+    const runtime = new ThreeRuntime({
+      postProcessingEnabled: true,
+      postProcessRuntime: postProcess.runtime,
+    });
+    const renderer = createRendererProbe();
+
+    setRuntimeRenderState(runtime, renderer.renderer);
+
+    runtime.render();
+    runtime.resize({ height: 180, pixelRatio: 2, width: 320 });
+    runtime.dispose();
+
+    expect(postProcess.render).toHaveBeenCalledTimes(1);
+    expect(renderer.render).not.toHaveBeenCalled();
+    expect(renderer.setPixelRatio).toHaveBeenCalledWith(2);
+    expect(renderer.setSize).toHaveBeenCalledWith(320, 180, false);
+    expect(postProcess.resize).toHaveBeenCalledWith({
+      height: 180,
+      pixelRatio: 2,
+      width: 320,
+    });
+    expect(postProcess.dispose).toHaveBeenCalledTimes(1);
+    expect(renderer.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps direct renderer fallback available when postprocess runtime has no composer', () => {
+    const postProcess = createPostProcessProbe({ callFallbackRender: true });
+    const runtime = new ThreeRuntime({ postProcessRuntime: postProcess.runtime });
+    const renderer = createRendererProbe();
+
+    setRuntimeRenderState(runtime, renderer.renderer);
+    runtime.render();
+
+    expect(postProcess.render).toHaveBeenCalledTimes(1);
+    expect(renderer.render).toHaveBeenCalledTimes(1);
+  });
+});
+
 class FakeModelLoader implements ThreeModelLoader {
   constructor(
     private readonly loadImplementation: (url: string) => Promise<ThreeModelLoadResult>,
@@ -237,4 +279,71 @@ function getSingleMaterial(mesh: THREE.Mesh): THREE.Material {
   }
 
   return mesh.material;
+}
+
+function createPostProcessProbe(options: { callFallbackRender?: boolean } = {}): {
+  dispose: ReturnType<typeof vi.fn>;
+  render: ReturnType<typeof vi.fn>;
+  resize: ReturnType<typeof vi.fn>;
+  runtime: ThreePostProcessRuntime;
+} {
+  const dispose = vi.fn();
+  const hasComposer = vi.fn(() => options.callFallbackRender !== true);
+  const init = vi.fn();
+  const render = vi.fn((fallbackRender: () => void) => {
+    if (options.callFallbackRender) {
+      fallbackRender();
+    }
+  });
+  const resize = vi.fn();
+
+  return {
+    dispose,
+    render,
+    resize,
+    runtime: {
+      dispose,
+      hasComposer,
+      init,
+      render,
+      resize,
+    } as unknown as ThreePostProcessRuntime,
+  };
+}
+
+function createRendererProbe(): {
+  dispose: ReturnType<typeof vi.fn>;
+  render: ReturnType<typeof vi.fn>;
+  renderer: THREE.WebGLRenderer;
+  setPixelRatio: ReturnType<typeof vi.fn>;
+  setSize: ReturnType<typeof vi.fn>;
+} {
+  const dispose = vi.fn();
+  const render = vi.fn();
+  const setPixelRatio = vi.fn();
+  const setSize = vi.fn();
+
+  return {
+    dispose,
+    render,
+    renderer: {
+      dispose,
+      render,
+      setPixelRatio,
+      setSize,
+    } as unknown as THREE.WebGLRenderer,
+    setPixelRatio,
+    setSize,
+  };
+}
+
+function setRuntimeRenderState(runtime: ThreeRuntime, renderer: THREE.WebGLRenderer): void {
+  const runtimeInternals = runtime as unknown as {
+    camera: THREE.PerspectiveCamera;
+    renderer: THREE.WebGLRenderer;
+    scene: THREE.Scene;
+  };
+  runtimeInternals.camera = new THREE.PerspectiveCamera();
+  runtimeInternals.renderer = renderer;
+  runtimeInternals.scene = new THREE.Scene();
 }
