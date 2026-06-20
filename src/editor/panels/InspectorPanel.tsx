@@ -3,11 +3,13 @@ import { useState } from 'react';
 import {
   isKnownComponentType,
   parseKnownComponentPayload,
+  RenderableComponentSchema,
   type KnownComponentType,
 } from '../../schemas/component.schema';
 import type { ComponentPayloadData, EntityData } from '../../schemas/entity.schema';
 import { TransformSchema, type TransformData } from '../../schemas/transform.schema';
 import { NumericScrubInput } from '../components/NumericScrubInput';
+import { MaterialInspector } from './MaterialInspector';
 
 export interface InspectorPanelProps {
   entity: EntityData | undefined;
@@ -52,6 +54,10 @@ export function InspectorPanel({
   }
 
   const validationIssues = validationState?.entityId === entity.id ? validationState.issues : [];
+  const renderableResult =
+    entity.components.Renderable === undefined
+      ? undefined
+      : RenderableComponentSchema.safeParse(entity.components.Renderable);
   const draftTransform =
     draftTransformState?.entityId === entity.id &&
     draftTransformState.sourceSignature === entityTransformSignature
@@ -204,6 +210,27 @@ export function InspectorPanel({
             <li key={issue}>{issue}</li>
           ))}
         </ul>
+      ) : null}
+      {renderableResult ? (
+        renderableResult.success ? (
+          <MaterialInspector
+            entityId={entity.id}
+            renderable={renderableResult.data}
+            onApplyComponent={onApplyComponent}
+            onValidationIssues={(issues) => {
+              setValidationState(issues.length > 0 ? { entityId: entity.id, issues } : null);
+            }}
+          />
+        ) : (
+          <section className="material-inspector" aria-labelledby="material-inspector-heading">
+            <h3 id="material-inspector-heading">Materials</h3>
+            <ul className="material-validation-list" role="alert">
+              {formatZodIssues(renderableResult.error.issues).map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
+            </ul>
+          </section>
+        )
       ) : null}
       <section className="component-section" aria-labelledby="components-heading">
         <h3 id="components-heading">Components</h3>
@@ -450,7 +477,11 @@ function readComponentForm(
   formData: FormData,
 ): ComponentPayloadData {
   if (componentType === 'Renderable') {
-    return { model: readString(formData, 'model') };
+    return removeUndefined({
+      model: readString(formData, 'model'),
+      renderStyle: current.renderStyle,
+      materials: current.materials,
+    });
   }
 
   if (componentType === 'Door') {
