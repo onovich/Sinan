@@ -10,6 +10,7 @@ import type {
   RuntimeCameraPose,
   RuntimeDebugAabb,
   RuntimeMaterialParameterUpdate,
+  RuntimePostProcessEffectUpdate,
   RuntimeShaderGlobals,
   RuntimeRenderEnvironmentStyle,
   RuntimeRenderableMaterialSlots,
@@ -42,6 +43,7 @@ export interface WebRuntime {
   ): void;
   setMaterialParameter?(update: RuntimeMaterialParameterUpdate): void;
   setShaderGlobals?(globals: RuntimeShaderGlobals): void;
+  setPostProcessEffect?(update: RuntimePostProcessEffectUpdate): void;
   setRenderEnvironment?(environment: RuntimeRenderEnvironmentStyle | undefined): void;
   setStyleQualityProfile?(profile: RuntimeStyleQualityProfile): void;
   setSelectedEntity?(entityId: string | undefined): void;

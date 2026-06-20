@@ -347,6 +347,8 @@ Phase 20 introduces `ShaderGlobals` as a renderer-neutral runtime input contract
 
 Phase 20 material lifetime policy: Three shader materials are currently owned per entity and material slot because public parameters and shader globals mutate uniforms at runtime. Equal-parameter static material sharing is deferred until a future pooling policy can prove immutability; high-cardinality visual variation should use instancing or attributes in a later phase. `ThreeMaterialRuntime` restores original mesh materials on rebind/dispose and disposes only the shader/fallback materials it created, leaving original shared textures under their existing owner.
 
+Phase 20 postprocess contract: public postprocess effects live under `src/runtime/postprocess/**`. The first effect id is `cinematic.vignette` with public parameters `enabled`, `intensity`, and `softness`. Runtime/editor/data contracts must use these public names only; Three composer passes, `ShaderPass`, `OutputPass`, and raw vignette uniforms stay inside `src/runtime/three/**`.
+
 ## Actions
 
 Current action types:

@@ -107,6 +107,11 @@ export interface RuntimeMaterialParameterUpdate {
 
 export type RuntimeShaderGlobals = ShaderGlobals;
 
+export interface RuntimePostProcessEffectUpdate {
+  effectId: string;
+  parameters?: Readonly<Record<string, MaterialParameterValue>>;
+}
+
 export interface RuntimePalette {
   id: string;
   tones: Record<string, string>;

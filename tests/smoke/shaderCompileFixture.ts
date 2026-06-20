@@ -5,6 +5,10 @@ import {
   STORY_GATE_DISSOLVE_MATERIAL_ID,
   STORY_HOLOGRAM_SCANLINE_MATERIAL_ID,
 } from '../../src/runtime/materials';
+import {
+  CINEMATIC_VIGNETTE_POSTPROCESS_EFFECT_ID,
+  createDefaultPostProcessRegistry,
+} from '../../src/runtime/postprocess';
 import { ThreeMaterialFactory } from '../../src/runtime/three/materials/ThreeMaterialFactory';
 import { ThreeMaterialRuntime } from '../../src/runtime/three/materials/ThreeMaterialRuntime';
 import { ThreePostProcessRuntime } from '../../src/runtime/three/ThreePostProcessRuntime';
@@ -477,8 +481,31 @@ export function renderPostProcessVignetteSmoke(): PostProcessVignetteSmokeResult
   const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const mesh = new THREE.Mesh(geometry, material);
   const postProcessRuntime = new ThreePostProcessRuntime();
+  const postProcessRegistry = createDefaultPostProcessRegistry();
+  const publicParameters = {
+    enabled: true,
+    intensity: 0.85,
+    softness: 0.25,
+  };
+  const parameterIssues = postProcessRegistry.validateParameters(
+    CINEMATIC_VIGNETTE_POSTPROCESS_EFFECT_ID,
+    publicParameters,
+  );
+  const resolvedParameters = postProcessRegistry.resolveParameters(
+    CINEMATIC_VIGNETTE_POSTPROCESS_EFFECT_ID,
+    publicParameters,
+  );
+
+  if (parameterIssues.length > 0 || !resolvedParameters) {
+    throw new Error(parameterIssues.map((issue) => issue.message).join('; '));
+  }
+
   scene.add(mesh);
-  postProcessRuntime.setVignette({ enabled: true, intensity: 0.85, softness: 0.25 });
+  postProcessRuntime.setVignette({
+    enabled: resolvedParameters.enabled === true,
+    intensity: resolvedParameters.intensity as number,
+    softness: resolvedParameters.softness as number,
+  });
   postProcessRuntime.init({
     camera,
     enabled: true,

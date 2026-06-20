@@ -7,6 +7,7 @@ import {
   type ThreeModelLoadResult,
 } from './ThreeAssetLoader';
 import { DEBUG_UV_GRADIENT_MATERIAL_ID } from '../materials';
+import { CINEMATIC_VIGNETTE_POSTPROCESS_EFFECT_ID } from '../postprocess';
 import { FALLBACK_MATERIAL_NAME } from './materials/createFallbackMaterial';
 import type { ThreePostProcessRuntime } from './ThreePostProcessRuntime';
 import { ThreeRuntime } from './ThreeRuntime';
@@ -216,6 +217,44 @@ describe('ThreeRuntime postprocessing boundary', () => {
     expect(postProcess.render).toHaveBeenCalledTimes(1);
     expect(renderer.render).toHaveBeenCalledTimes(1);
   });
+
+  it('routes public postprocess effect parameters without exposing pass uniforms', () => {
+    const warnings: string[] = [];
+    const postProcess = createPostProcessProbe();
+    const runtime = new ThreeRuntime({
+      logger: {
+        warn: (message: unknown) => warnings.push(String(message)),
+      },
+      postProcessRuntime: postProcess.runtime,
+    });
+
+    runtime.setPostProcessEffect({
+      effectId: CINEMATIC_VIGNETTE_POSTPROCESS_EFFECT_ID,
+      parameters: {
+        enabled: true,
+        intensity: 0.8,
+        softness: 0.3,
+      },
+    });
+
+    expect(postProcess.setVignette).toHaveBeenCalledWith({
+      enabled: true,
+      intensity: 0.8,
+      softness: 0.3,
+    });
+
+    runtime.setPostProcessEffect({
+      effectId: CINEMATIC_VIGNETTE_POSTPROCESS_EFFECT_ID,
+      parameters: {
+        uIntensity: 1,
+      },
+    });
+
+    expect(postProcess.setVignette).toHaveBeenCalledTimes(1);
+    expect(warnings).toEqual([
+      `Unknown postprocess parameter "uIntensity" for effect "${CINEMATIC_VIGNETTE_POSTPROCESS_EFFECT_ID}".`,
+    ]);
+  });
 });
 
 class FakeModelLoader implements ThreeModelLoader {
@@ -286,6 +325,7 @@ function createPostProcessProbe(options: { callFallbackRender?: boolean } = {}):
   render: ReturnType<typeof vi.fn>;
   resize: ReturnType<typeof vi.fn>;
   runtime: ThreePostProcessRuntime;
+  setVignette: ReturnType<typeof vi.fn>;
 } {
   const dispose = vi.fn();
   const hasComposer = vi.fn(() => options.callFallbackRender !== true);
@@ -296,6 +336,7 @@ function createPostProcessProbe(options: { callFallbackRender?: boolean } = {}):
     }
   });
   const resize = vi.fn();
+  const setVignette = vi.fn();
 
   return {
     dispose,
@@ -307,7 +348,9 @@ function createPostProcessProbe(options: { callFallbackRender?: boolean } = {}):
       init,
       render,
       resize,
+      setVignette,
     } as unknown as ThreePostProcessRuntime,
+    setVignette,
   };
 }
 

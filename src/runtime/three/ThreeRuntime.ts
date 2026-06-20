@@ -10,6 +10,7 @@ import type {
   RuntimeCameraPose,
   RuntimeDebugAabb,
   RuntimeMaterialParameterUpdate,
+  RuntimePostProcessEffectUpdate,
   RuntimeRenderEnvironmentStyle,
   RuntimeRenderableMaterialSlots,
   RuntimeRenderStyle,
@@ -36,6 +37,11 @@ import {
 import { applyThreeEnvironmentStyle } from './ThreeEnvironmentStyle';
 import { ThreeMaterialRegistry } from './ThreeMaterialRegistry';
 import { ThreeMaterialRuntime } from './materials/ThreeMaterialRuntime';
+import {
+  CINEMATIC_VIGNETTE_POSTPROCESS_EFFECT_ID,
+  createDefaultPostProcessRegistry,
+  type PostProcessRegistry,
+} from '../postprocess';
 import { disposeObjectResources } from './ThreeObjectResources';
 import { pickThreeObject } from './ThreePicking';
 import { ThreePostProcessRuntime } from './ThreePostProcessRuntime';
@@ -58,6 +64,7 @@ interface EntityAnimationBinding {
 export class ThreeRuntime implements WebRuntime {
   private readonly modelAssets: ThreeAssetLoader;
   private readonly logger: Pick<Console, 'warn'>;
+  private readonly postProcessRegistry: PostProcessRegistry;
   private readonly postProcessingEnabled: boolean;
   private readonly postProcessRuntime: ThreePostProcessRuntime;
   private renderer: THREE.WebGLRenderer | undefined;
@@ -96,6 +103,7 @@ export class ThreeRuntime implements WebRuntime {
   constructor(options: ThreeRuntimeOptions = {}) {
     this.modelAssets = options.modelAssets ?? new ThreeAssetLoader();
     this.logger = options.logger ?? console;
+    this.postProcessRegistry = createDefaultPostProcessRegistry();
     this.postProcessingEnabled = options.postProcessingEnabled === true;
     this.postProcessRuntime = options.postProcessRuntime ?? new ThreePostProcessRuntime();
     this.materialRegistry = new ThreeMaterialRegistry({ logger: this.logger });
@@ -505,6 +513,34 @@ export class ThreeRuntime implements WebRuntime {
 
   setShaderGlobals(globals: RuntimeShaderGlobals): void {
     this.materialRuntime.setShaderGlobals(globals);
+  }
+
+  setPostProcessEffect(update: RuntimePostProcessEffectUpdate): void {
+    const issues = this.postProcessRegistry.validateParameters(update.effectId, update.parameters);
+
+    if (issues.length > 0) {
+      for (const issue of issues) {
+        this.logger.warn(issue.message);
+      }
+      return;
+    }
+
+    const parameters = this.postProcessRegistry.resolveParameters(
+      update.effectId,
+      update.parameters,
+    );
+
+    if (!parameters) {
+      return;
+    }
+
+    if (update.effectId === CINEMATIC_VIGNETTE_POSTPROCESS_EFFECT_ID) {
+      this.postProcessRuntime.setVignette({
+        enabled: parameters.enabled === true,
+        intensity: parameters.intensity as number,
+        softness: parameters.softness as number,
+      });
+    }
   }
 
   setRenderEnvironment(environment: RuntimeRenderEnvironmentStyle | undefined): void {
