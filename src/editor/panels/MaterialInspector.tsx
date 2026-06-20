@@ -167,6 +167,7 @@ function MaterialParameterEditor({
   return (
     <li>
       <form
+        key={`${slotName}-${parameterName}-${formatMaterialValue(parameterValue)}`}
         className="material-parameter-form"
         aria-label={`${slotName} ${parameterLabel} material parameter`}
         onSubmit={(event) => {

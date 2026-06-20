@@ -665,6 +665,59 @@ test('event action cards support drag reorder before command commit', async ({ p
   expect(browserErrors).toEqual([]);
 });
 
+test('material inspector edits public parameters and timeline scrub previews dissolve', async ({
+  page,
+}) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/');
+  await expect(page.getByTestId('editor-shell')).toBeVisible();
+  const canvas = page.locator('canvas.runtime-canvas');
+  await expect(canvas).toBeVisible();
+  const initialCanvas = await canvas.screenshot();
+
+  await page.getByRole('button', { name: /^gate_a/ }).click();
+  const materialInspector = page.locator('.material-inspector');
+  await expect(materialInspector).toContainText('Gate Dissolve');
+  await expect(materialInspector).toContainText('story.gate-dissolve');
+  await expect(materialInspector).toContainText('Progress');
+  const progressForm = materialInspector.locator(
+    'form[aria-label="main Progress material parameter"]',
+  );
+  await expect(progressForm).toContainText('Current 0');
+  const progressInput = progressForm.locator('input[name="value"]');
+  await expect(progressInput).toHaveValue('0');
+
+  await progressInput.fill('0.5');
+  await progressForm.getByRole('button', { name: 'Apply' }).click();
+  await expect(page.locator('.save-status')).toHaveText('Unsaved');
+  await expect(progressInput).toHaveValue('0.5');
+  await expect(materialInspector).not.toContainText('uProgress');
+  await expect(materialInspector).not.toContainText('fragmentShader');
+
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.locator('.save-status')).toHaveText('Clean');
+  await expect(progressInput).toHaveValue('0');
+
+  const timelinePanel = page.getByTestId('timeline-panel');
+  await timelinePanel.getByRole('button', { name: /^track_gate_dissolve_progress/ }).click();
+  await expect(page.getByTestId('timeline-selected-track')).toContainText(
+    'TimelinePanel -> MaterialParameterTrackPlayer',
+  );
+  await page.locator('#timeline-scrub').evaluate((element) => {
+    const input = element as HTMLInputElement;
+    input.value = '2.25';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await expect(timelinePanel.locator('.sequencer-controls .status-pill.is-preview')).toContainText(
+    'tl_open_gate @ 2.25s',
+  );
+  await page.waitForTimeout(200);
+  expect(sampleAveragePngDelta(initialCanvas, await canvas.screenshot())).toBeGreaterThan(1);
+  expect(browserErrors).toEqual([]);
+});
+
 test('camera key strip drags keys with live preview and camera-only dirty state', async ({
   page,
 }) => {

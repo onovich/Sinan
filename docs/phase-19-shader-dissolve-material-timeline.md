@@ -1,6 +1,6 @@
 # Phase 19 Shader Dissolve And Material Timeline
 
-Status: Design lock for Phase 19 execution.
+Status: Phase 19 design and authoring notes.
 Last updated: 2026-06-20.
 
 Phase 19 turns the Phase 18 shader material foundation into one production story-material proof. The target is intentionally narrow: a dissolve/open-gate material, deterministic timeline and action control over public material parameters, a small editor inspector surface, and browser smoke evidence that the material changes visibly.
@@ -9,12 +9,12 @@ Phase 19 turns the Phase 18 shader material foundation into one production story
 
 - Phase 18 shipped renderer-neutral `MaterialDefinition`, `MaterialRegistry`, `MaterialRuntime`, raw GLSL imports, a Three `ShaderMaterial` backend, fallback behavior, renderable material slots, validation, and a Chromium shader compile smoke.
 - Phase 18.5 moved editor runtime orchestration behind `EngineSession`, `EngineLoop`, `World`, and `EditorSessionBridge`; Phase 19 must use that path instead of putting material orchestration back into `src/editor/Viewport.tsx`.
-- Current `MaterialRuntime.setParameter` exists, but `src/runtime/three/materials/ThreeMaterialRuntime.ts` only maps public parameter updates for `debug.uv-gradient`.
+- Phase 19 extends `MaterialRuntime.setParameter` so the Three backend maps public parameter updates for both `debug.uv-gradient` and `story.gate-dissolve`.
 - Current data already has a visible proof target: `gate_a` in `data/levels/level_01.json`, using prefab `door_wood`, and `data/timelines/tl_open_gate.json` already drives the gate opening flow.
 - `ReferenceResolver` already validates `Renderable.materials`, supported slot `main`, public parameter names, material registry parameters, and texture/image references.
-- Timeline currently supports `property` tracks with deterministic sampling, but there is no `material.parameter` track yet.
-- Action registry currently supports gameplay/director actions, but there is no `material.setParameter` action yet.
-- Inspector currently edits transform and known component payloads; it does not inspect or edit material definitions or public parameters.
+- Timeline supports `material.parameter` tracks with deterministic public-parameter sampling.
+- Action registry supports `material.setParameter` through the preview-safe runtime command path.
+- Inspector includes a Materials section for selected renderable entities and edits public material parameters through existing component update commands.
 
 ## Production Material
 
@@ -30,13 +30,13 @@ Implementation owner:
 
 Public parameters:
 
-| Parameter | Type | Default | Range | Timeline | Purpose |
-| --- | --- | --- | --- | --- | --- |
-| `progress` | number | `0` | `0..1` | continuous | Dissolve amount; `0` means fully visible, `1` means dissolved. |
-| `edgeWidth` | number | `0.08` | `0..0.35` | continuous | Width of the glowing dissolve edge. |
-| `edgeColor` | color | `#ffcf70` | n/a | continuous | Edge glow color for the gate reveal. |
-| `baseColor` | color | `#9b6a3c` | n/a | continuous | Warm wood tint used by the story material. |
-| `noiseScale` | number | `8` | `1..32` | continuous | Procedural noise scale. |
+| Parameter    | Type   | Default   | Range     | Timeline   | Purpose                                                        |
+| ------------ | ------ | --------- | --------- | ---------- | -------------------------------------------------------------- |
+| `progress`   | number | `0`       | `0..1`    | continuous | Dissolve amount; `0` means fully visible, `1` means dissolved. |
+| `edgeWidth`  | number | `0.08`    | `0..0.35` | continuous | Width of the glowing dissolve edge.                            |
+| `edgeColor`  | color  | `#ffcf70` | n/a       | continuous | Edge glow color for the gate reveal.                           |
+| `baseColor`  | color  | `#9b6a3c` | n/a       | continuous | Warm wood tint used by the story material.                     |
+| `noiseScale` | number | `8`       | `1..32`   | continuous | Procedural noise scale.                                        |
 
 Asset plan: use inline procedural GLSL noise for the first production material. Phase 19 will not add a texture/noise asset unless implementation or smoke proves it is necessary. This keeps the first story material focused on public parameters and runtime binding rather than texture-loading scope.
 
@@ -120,7 +120,7 @@ MVP behavior:
 - Show material id, display name, and current/default public parameter values.
 - Provide controls for Phase 19 public parameter types: number, color, boolean, vec2, vec3, texture id/null as read/write where supported by current schemas.
 - Commit data changes through existing editor command/component update patterns so undo/dirty/save behavior remains editor-owned.
-- Optionally send preview parameter updates through `EditorSessionBridge` when a runtime is available.
+- Runtime preview remains timeline/action driven in Phase 19; Inspector edits are command-backed data edits.
 - Display validation errors from schemas/registry in the panel.
 
 Explicitly not included:
@@ -137,7 +137,7 @@ Explicitly not included:
 - Add a small rendered-state assertion proving that `progress = 0` and `progress = 1` produce measurably different pixels.
 - Add unit coverage for material definition registration, factory defaults, runtime parameter updates, reset behavior, missing binding, unsupported parameter, and fallback behavior.
 - Add timeline/action/schema/reference coverage before using the data in the Gate Demo.
-- Add editor smoke or component tests only after the Inspector MVP exists.
+- Editor smoke covers selecting `gate_a`, inspecting `story.gate-dissolve`, editing public `progress`, undoing the data edit, selecting the `material.parameter` timeline track, and confirming timeline scrub changes visible pixels.
 
 ## Non-Scope
 

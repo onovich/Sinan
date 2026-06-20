@@ -51,7 +51,7 @@ npm run test:smoke
 - `data/prefabs/*.json`: reusable component bundles.
 - `data/levels/*.json`: level entities, prefab references, timelines, camera shots, and events.
 - `data/events/*.json`: trigger, condition, and action definitions.
-- `data/timelines/*.json`: director tracks for action, animation, camera, property, subtitle, sound, and wait behavior.
+- `data/timelines/*.json`: director tracks for action, animation, camera, material parameter, property, subtitle, sound, and wait behavior.
 - `data/cameraShots/*.json`: static, keyframed, follow, and look-at camera shots.
 - `public/models/**` and `public/audio/**`: Vite public-root assets referenced by manifest URLs.
 - `src/schemas/**`: Zod schemas for all project JSON.
@@ -238,15 +238,15 @@ When adding a new render style profile:
 
 ## Shader Material Authoring
 
-Phase 18 adds the Shader GLSL Material Runtime Foundation for Shader MVP S0. It is separate from `Renderable.renderStyle`: use `renderStyle` for the high-level built-in style path, and use `Renderable.materials` only when an entity explicitly needs a shader/runtime material slot.
+Phase 18 adds the Shader GLSL Material Runtime Foundation for Shader MVP S0, and Phase 19 adds the first production story material plus timeline/action authoring. Shader materials are separate from `Renderable.renderStyle`: use `renderStyle` for the high-level built-in style path, and use `Renderable.materials` only when an entity explicitly needs a shader/runtime material slot.
 
-Current S0 material files:
+Current material files:
 
 - `src/runtime/materials/**`: renderer-neutral material contracts, definitions, public parameter validation, and the default registry.
-- `src/runtime/materials/BuiltInMaterials.ts`: registers the S0 debug material id `debug.uv-gradient`.
-- `src/shaders/materials/debug/*.glsl`: GLSL source imported with `.glsl?raw`.
+- `src/runtime/materials/BuiltInMaterials.ts`: registers the debug material id `debug.uv-gradient` and the production story material id `story.gate-dissolve`.
+- `src/shaders/materials/debug/*.glsl` and `src/shaders/materials/story/*.glsl`: GLSL source imported with `.glsl?raw`.
 - `src/runtime/three/materials/**`: Three-only `ShaderMaterial` factory, runtime binding, fallback material, and public-parameter-to-uniform mapping.
-- `tests/smoke/shader-material.spec.ts`: Chromium smoke test that compiles the debug shader through the real Three renderer path.
+- `tests/smoke/shader-material.spec.ts`: Chromium smoke tests that compile shader materials through the real Three renderer path and compare visible output for changed public parameters.
 
 Attach a shader material through the optional `Renderable.materials` slot map:
 
@@ -274,15 +274,63 @@ Attach a shader material through the optional `Renderable.materials` slot map:
 }
 ```
 
+The production gate dissolve material uses:
+
+```json
+{
+  "materials": {
+    "main": {
+      "materialId": "story.gate-dissolve",
+      "parameters": {
+        "progress": 0,
+        "edgeWidth": 0.08,
+        "edgeColor": "#ffcf70",
+        "baseColor": "#9b6a3c",
+        "noiseScale": 8
+      }
+    }
+  }
+}
+```
+
 Rules:
 
 - S0 supports the `main` material slot only. Multi-material GLB slot authoring is deferred.
-- Public parameter names are data/editor names such as `baseColor`, `accentColor`, `strength`, and `uvScale`.
+- Public parameter names are data/editor names such as `progress`, `edgeWidth`, `edgeColor`, `baseColor`, `noiseScale`, `accentColor`, `strength`, and `uvScale`.
 - Do not put raw uniform names such as `uBaseColor` in JSON, timelines, events, or editor-facing contracts.
 - Do not put GLSL source in JSON, React components, or TypeScript template strings. Shader source belongs in `.glsl` files imported with `?raw`.
 - Add renderer-neutral definitions before adding a Three material factory. The Three backend is the only layer that maps public parameter names to uniforms.
 - Invalid material ids, unsupported slots, unknown parameters, wrong value types, and invalid texture asset references should fail through schema/reference validation before runtime.
 - Runtime material creation failures must return a visible fallback material and structured errors; failures should not be silently swallowed.
+- Edit selected entity shader parameters in the Inspector's Materials section. The panel shows material id, display name, current/default values, override state, and registry validation without exposing GLSL or uniform names.
+
+Material timeline tracks use public parameter names:
+
+```json
+{
+  "id": "track_gate_dissolve_progress",
+  "type": "material.parameter",
+  "target": "gate_a",
+  "slot": "main",
+  "parameter": "progress",
+  "keys": [
+    { "time": 0.4, "value": 0, "ease": "linear" },
+    { "time": 2, "value": 1, "ease": "easeOutCubic" }
+  ]
+}
+```
+
+Material actions use the same public contract:
+
+```json
+{
+  "type": "material.setParameter",
+  "entityId": "gate_a",
+  "slot": "main",
+  "parameter": "progress",
+  "value": 0
+}
+```
 
 When adding the next shader material:
 
@@ -293,7 +341,7 @@ When adding the next shader material:
 5. Add or extend a Chromium smoke test when shader compilation behavior changes.
 6. Run `npm run validate-data`, `npm run test -- src/runtime/materials src/runtime/three src/data src/schemas`, `npm run build`, `npm run check-boundaries`, and `npm run test:smoke`.
 
-Phase 18 S0 does not include the production dissolve material, material timeline tracks, material actions, shader globals such as `uTime`, postprocessing, or a Material Inspector UI. Those are Phase 19+ work.
+Phase 19 still does not include shader globals such as `uTime`, postprocessing, shader graph authoring, multi-slot material assignment, or a second production material. Those remain future-phase work.
 
 ## Actions
 
@@ -311,6 +359,7 @@ Current action types:
 - `timeline.play`
 - `timeline.stop`
 - `camera.playShot`
+- `material.setParameter`
 - `animation.play`
 - `animation.stop`
 - `sound.play`
@@ -360,6 +409,7 @@ Supported track types:
 - `action`: dispatches a schema-backed action at `time`.
 - `animation.play`: plays a named entity animation clip.
 - `camera.shot`: samples a camera shot over a duration.
+- `material.parameter`: samples a public material parameter and routes it through the runtime material parameter path.
 - `property`: samples keyframes such as `Door.openAmount`.
 - `subtitle`: shows viewport subtitle HUD text.
 - `sound`: routes an audio asset through the editor-safe audio bridge.
@@ -397,6 +447,7 @@ Common editing paths are available in the UI:
 
 - Select entities in Hierarchy or the viewport.
 - Edit known components through Inspector forms.
+- Inspect and edit selected entity public material parameters through the Inspector Materials section.
 - Edit event names, conditions, and actions in Event Inspector.
 - Add, reorder, apply, and remove property timeline keys.
 - Add, reorder, apply, remove, preview, and save camera shot keys.
