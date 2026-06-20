@@ -379,6 +379,32 @@ Do not:
 - introduce a broad Vite HMR runtime graph before the existing factory/runtime/visual fixtures show that a narrow helper is insufficient;
 - commit Playwright traces, generated screenshots, or local hardware captures as HMR evidence.
 
+### Shader Precompile Guidance
+
+Known production shader and postprocess targets are listed by `src/runtime/three/ShaderPrecompilePlan.ts`. The current list covers:
+
+- `story.gate-dissolve`
+- `story.hologram-scanline`
+- `cinematic.vignette`
+
+Precompile policy:
+
+1. Build the smallest scene that instantiates the known production material or postprocess pass through the existing Three runtime/factory path.
+2. Use `renderer.compileAsync(scene, camera)` when available.
+3. Fall back to `renderer.compile(scene, camera)` when async compile is unavailable.
+4. Render once after compile so browser shader errors and output-path failures are observable.
+5. Record structured diagnostics with material/effect id, source path, stage, runtime context, browser/GPU context where available, entity id, slot, and fixture name.
+6. Keep production precompile fixtures inside `tests/smoke/**` or Three runtime tests; do not expose Three renderer, `ShaderMaterial`, `EffectComposer`, or pass classes through `WebRuntime`, data, timeline, action, or editor contracts.
+
+Current Chromium smoke coverage already precompiles or renders the production material/postprocess paths:
+
+- `production gate dissolve ShaderMaterial compiles and changes pixels`
+- `production hologram scanline ShaderMaterial compiles in Chromium`
+- `postprocess vignette pass changes edge pixels in Chromium`
+- `postprocess vignette matches deterministic visual baselines`
+
+If a browser does not support `compileAsync`, the fixture must still run synchronously with `renderer.compile` and keep the same diagnostics and fallback behavior. A fallback render is not a passing production shader compile result; CI should fail when a known production shader cannot compile.
+
 ## Actions
 
 Current action types:

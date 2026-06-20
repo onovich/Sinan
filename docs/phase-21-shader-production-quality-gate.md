@@ -126,6 +126,8 @@ Document and smoke-test the current browser precompile path where practical:
 - Precompile fixture scenes should instantiate the known production materials and the postprocess route behind the Three adapter boundary.
 - The public runtime contract should not expose Three renderer or material types.
 
+Round 21.9 adds `src/runtime/three/ShaderPrecompilePlan.ts` as the Three-boundary inventory for known production precompile targets and records the local precompile policy in `docs/developer-guide.md`.
+
 ## Mobile And Low-End Baseline Strategy
 
 Phase 21 does not require real mobile hardware in this workspace. The accepted baseline is a repeatable low-end Chromium profile until device testing is available.
