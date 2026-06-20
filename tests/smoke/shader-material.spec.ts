@@ -10,6 +10,13 @@ interface ShaderCompileSmokeResult {
   vertexShaderPath: string;
 }
 
+interface DissolveShaderSmokeResult extends ShaderCompileSmokeResult {
+  dissolvedPixel: readonly [number, number, number, number];
+  pixelDelta: number;
+  runtimeParameterOk: boolean;
+  visiblePixel: readonly [number, number, number, number];
+}
+
 test('S0 debug ShaderMaterial compiles in Chromium', async ({ page }) => {
   const browserErrors = collectBrowserErrors(page);
 
@@ -32,6 +39,34 @@ test('S0 debug ShaderMaterial compiles in Chromium', async ({ page }) => {
     vertexShaderPath: 'src/shaders/materials/debug/debug-uv-gradient.vert.glsl',
   });
   expect(result.programCount ?? 0).toBeGreaterThan(0);
+  expect(browserErrors).toEqual([]);
+});
+
+test('production gate dissolve ShaderMaterial compiles and changes pixels', async ({ page }) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/');
+  const result = await page.evaluate(async (): Promise<DissolveShaderSmokeResult> => {
+    const fixtureUrl = '/tests/smoke/shaderCompileFixture.ts';
+    const fixture = (await import(/* @vite-ignore */ fixtureUrl)) as {
+      compileGateDissolveMaterial: () => Promise<DissolveShaderSmokeResult>;
+    };
+
+    return fixture.compileGateDissolveMaterial();
+  });
+
+  expect(result).toMatchObject({
+    compileAsyncUsed: true,
+    fragmentShaderPath: 'src/shaders/materials/story/gate-dissolve.frag.glsl',
+    materialId: 'story.gate-dissolve',
+    materialName: 'material:story.gate-dissolve',
+    ok: true,
+    runtimeParameterOk: true,
+    vertexShaderPath: 'src/shaders/materials/story/gate-dissolve.vert.glsl',
+  });
+  expect(result.programCount ?? 0).toBeGreaterThan(0);
+  expect(result.visiblePixel[3]).toBe(255);
+  expect(result.pixelDelta).toBeGreaterThan(20);
   expect(browserErrors).toEqual([]);
 });
 

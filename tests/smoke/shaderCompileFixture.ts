@@ -1,7 +1,11 @@
 import * as THREE from 'three';
 
-import { DEBUG_UV_GRADIENT_MATERIAL_ID } from '../../src/runtime/materials';
+import {
+  DEBUG_UV_GRADIENT_MATERIAL_ID,
+  STORY_GATE_DISSOLVE_MATERIAL_ID,
+} from '../../src/runtime/materials';
 import { ThreeMaterialFactory } from '../../src/runtime/three/materials/ThreeMaterialFactory';
+import { ThreeMaterialRuntime } from '../../src/runtime/three/materials/ThreeMaterialRuntime';
 
 export interface ShaderCompileSmokeResult {
   compileAsyncUsed: boolean;
@@ -11,6 +15,13 @@ export interface ShaderCompileSmokeResult {
   ok: boolean;
   programCount: number | null;
   vertexShaderPath: string;
+}
+
+export interface DissolveShaderSmokeResult extends ShaderCompileSmokeResult {
+  dissolvedPixel: readonly [number, number, number, number];
+  pixelDelta: number;
+  runtimeParameterOk: boolean;
+  visiblePixel: readonly [number, number, number, number];
 }
 
 export async function compileDebugUvGradientMaterial(): Promise<ShaderCompileSmokeResult> {
@@ -72,4 +83,102 @@ export async function compileDebugUvGradientMaterial(): Promise<ShaderCompileSmo
     renderer.dispose();
     canvas.remove();
   }
+}
+
+export async function compileGateDissolveMaterial(): Promise<DissolveShaderSmokeResult> {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  document.body.append(canvas);
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: false,
+    preserveDrawingBuffer: true,
+  });
+  renderer.debug.checkShaderErrors = true;
+  renderer.setClearColor(0x000000, 1);
+  renderer.setSize(64, 64, false);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+  camera.position.z = 2;
+  const geometry = new THREE.PlaneGeometry(1.8, 1.8);
+  const originalMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  const mesh = new THREE.Mesh(geometry, originalMaterial);
+  const materialRuntime = new ThreeMaterialRuntime();
+  const target = { entityId: 'gate_a', slot: 'main' };
+  scene.add(mesh);
+  materialRuntime.bindEntityObject(target.entityId, mesh);
+
+  const applyResult = materialRuntime.applyMaterial(target, STORY_GATE_DISSOLVE_MATERIAL_ID, {
+    progress: 0,
+    edgeWidth: 0.08,
+    edgeColor: '#ffcf70',
+    baseColor: '#9b6a3c',
+    noiseScale: 8,
+  });
+
+  if (!applyResult.ok) {
+    throw new Error(applyResult.errors.map((error) => error.message).join('; '));
+  }
+
+  let compileAsyncUsed = false;
+
+  try {
+    if (typeof renderer.compileAsync === 'function') {
+      compileAsyncUsed = true;
+      await renderer.compileAsync(scene, camera);
+    } else {
+      renderer.compile(scene, camera);
+    }
+
+    renderer.render(scene, camera);
+    const visiblePixel = readCenterPixel(renderer);
+    const parameterResult = materialRuntime.setParameter(target, 'progress', 1);
+
+    if (!parameterResult.ok) {
+      throw new Error(parameterResult.errors.map((error) => error.message).join('; '));
+    }
+
+    renderer.render(scene, camera);
+    const dissolvedPixel = readCenterPixel(renderer);
+
+    return {
+      compileAsyncUsed,
+      dissolvedPixel,
+      fragmentShaderPath: 'src/shaders/materials/story/gate-dissolve.frag.glsl',
+      materialId: STORY_GATE_DISSOLVE_MATERIAL_ID,
+      materialName: (mesh.material as THREE.Material).name,
+      ok: true,
+      pixelDelta: getPixelDelta(visiblePixel, dissolvedPixel),
+      programCount: renderer.info.programs?.length ?? null,
+      runtimeParameterOk: parameterResult.ok,
+      vertexShaderPath: 'src/shaders/materials/story/gate-dissolve.vert.glsl',
+      visiblePixel,
+    };
+  } finally {
+    materialRuntime.disposeEntityMaterials(target.entityId);
+    geometry.dispose();
+    originalMaterial.dispose();
+    renderer.dispose();
+    canvas.remove();
+  }
+}
+
+function readCenterPixel(renderer: THREE.WebGLRenderer): [number, number, number, number] {
+  const gl = renderer.getContext();
+  const pixel = new Uint8Array(4);
+
+  gl.readPixels(32, 32, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+
+  return [pixel[0], pixel[1], pixel[2], pixel[3]];
+}
+
+function getPixelDelta(
+  left: readonly [number, number, number, number],
+  right: readonly [number, number, number, number],
+): number {
+  return left.reduce((total, value, index) => total + Math.abs(value - right[index]), 0);
 }
