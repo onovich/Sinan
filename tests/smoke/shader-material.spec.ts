@@ -48,6 +48,18 @@ interface ShaderLifecycleResourceSmokeResult {
   warmProgramCount: number | null;
 }
 
+interface PostProcessVignetteSmokeResult {
+  centerPixel: readonly [number, number, number, number];
+  cornerPixel: readonly [number, number, number, number];
+  edgeDarkeningDelta: number;
+  memory: {
+    geometries: number;
+    textures: number;
+  };
+  ok: boolean;
+  programCount: number | null;
+}
+
 test('S0 debug ShaderMaterial compiles in Chromium', async ({ page }) => {
   const browserErrors = collectBrowserErrors(page);
 
@@ -161,6 +173,28 @@ test('shader material lifecycle counters stay bounded in Chromium', async ({ pag
   expect(result.memoryAfterDispose.textures).toBeLessThanOrEqual(
     result.memoryAfterWarmup.textures + 1,
   );
+  expect(browserErrors).toEqual([]);
+});
+
+test('postprocess vignette pass changes edge pixels in Chromium', async ({ page }) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/');
+  const result = await page.evaluate(async (): Promise<PostProcessVignetteSmokeResult> => {
+    const fixtureUrl = '/tests/smoke/shaderCompileFixture.ts';
+    const fixture = (await import(/* @vite-ignore */ fixtureUrl)) as {
+      renderPostProcessVignetteSmoke: () => PostProcessVignetteSmokeResult;
+    };
+
+    return fixture.renderPostProcessVignetteSmoke();
+  });
+
+  expect(result.ok).toBe(true);
+  expect(result.edgeDarkeningDelta).toBeGreaterThan(20);
+  expect(result.centerPixel[3]).toBe(255);
+  expect(result.cornerPixel[3]).toBe(255);
+  expect(result.programCount ?? 0).toBeGreaterThan(0);
+  expect(result.memory.geometries).toBeGreaterThan(0);
   expect(browserErrors).toEqual([]);
 });
 

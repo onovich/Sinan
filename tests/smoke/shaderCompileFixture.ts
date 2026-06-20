@@ -7,6 +7,7 @@ import {
 } from '../../src/runtime/materials';
 import { ThreeMaterialFactory } from '../../src/runtime/three/materials/ThreeMaterialFactory';
 import { ThreeMaterialRuntime } from '../../src/runtime/three/materials/ThreeMaterialRuntime';
+import { ThreePostProcessRuntime } from '../../src/runtime/three/ThreePostProcessRuntime';
 
 export interface ShaderCompileSmokeResult {
   compileAsyncUsed: boolean;
@@ -54,6 +55,18 @@ export interface ShaderLifecycleResourceSmokeResult {
   ok: boolean;
   programGrowthAfterWarmup: number | null;
   warmProgramCount: number | null;
+}
+
+export interface PostProcessVignetteSmokeResult {
+  centerPixel: readonly [number, number, number, number];
+  cornerPixel: readonly [number, number, number, number];
+  edgeDarkeningDelta: number;
+  memory: {
+    geometries: number;
+    textures: number;
+  };
+  ok: boolean;
+  programCount: number | null;
 }
 
 export async function compileDebugUvGradientMaterial(): Promise<ShaderCompileSmokeResult> {
@@ -441,6 +454,67 @@ export function runShaderMaterialLifecycleResourceSmoke(): ShaderLifecycleResour
   }
 }
 
+export function renderPostProcessVignetteSmoke(): PostProcessVignetteSmokeResult {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  document.body.append(canvas);
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: false,
+    preserveDrawingBuffer: true,
+  });
+  renderer.debug.checkShaderErrors = true;
+  renderer.setClearColor(0x000000, 1);
+  renderer.setSize(64, 64, false);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x000000);
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+  camera.position.z = 2;
+  const geometry = new THREE.PlaneGeometry(2, 2);
+  const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const mesh = new THREE.Mesh(geometry, material);
+  const postProcessRuntime = new ThreePostProcessRuntime();
+  scene.add(mesh);
+  postProcessRuntime.setVignette({ enabled: true, intensity: 0.85, softness: 0.25 });
+  postProcessRuntime.init({
+    camera,
+    enabled: true,
+    height: 64,
+    pixelRatio: 1,
+    renderer,
+    scene,
+    width: 64,
+  });
+
+  try {
+    postProcessRuntime.render(() => renderer.render(scene, camera));
+    const centerPixel = readPixel(renderer, 32, 32);
+    const cornerPixel = readPixel(renderer, 4, 4);
+    const edgeDarkeningDelta = getPixelDelta(centerPixel, cornerPixel);
+
+    return {
+      centerPixel,
+      cornerPixel,
+      edgeDarkeningDelta,
+      memory: {
+        geometries: renderer.info.memory.geometries,
+        textures: renderer.info.memory.textures,
+      },
+      ok: edgeDarkeningDelta > 20 && centerPixel[3] === 255 && cornerPixel[3] === 255,
+      programCount: renderer.info.programs?.length ?? null,
+    };
+  } finally {
+    postProcessRuntime.dispose();
+    geometry.dispose();
+    material.dispose();
+    renderer.dispose();
+    canvas.remove();
+  }
+}
+
 function applyDiagnosticMaterial(
   materialRuntime: ThreeMaterialRuntime,
   target: { entityId: string; slot: string },
@@ -455,10 +529,18 @@ function applyDiagnosticMaterial(
 }
 
 function readCenterPixel(renderer: THREE.WebGLRenderer): [number, number, number, number] {
+  return readPixel(renderer, 32, 32);
+}
+
+function readPixel(
+  renderer: THREE.WebGLRenderer,
+  x: number,
+  y: number,
+): [number, number, number, number] {
   const gl = renderer.getContext();
   const pixel = new Uint8Array(4);
 
-  gl.readPixels(32, 32, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+  gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
 
   return [pixel[0], pixel[1], pixel[2], pixel[3]];
 }
