@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { ProjectData } from '../data/DataRepository';
 import { EngineSession } from '../engine/EngineSession';
+import type { RuntimeLodDiagnostics, RuntimeScatterDiagnostics } from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
 import type { TransformData } from '../schemas/transform.schema';
 import { EditorSessionBridge, readEditorRuntimeStyleQualityProfile } from './EditorSessionBridge';
@@ -20,6 +21,15 @@ interface ViewportPointerInteraction {
   startY: number;
   mode: 'select' | 'pan' | 'orbit';
   dragged: boolean;
+}
+
+interface RuntimeDiagnosticsSnapshot {
+  lod: readonly RuntimeLodDiagnostics[];
+  scatter: readonly RuntimeScatterDiagnostics[];
+}
+
+interface RuntimeDiagnosticsWindow {
+  __SINAN_RUNTIME_DIAGNOSTICS__?: () => RuntimeDiagnosticsSnapshot;
 }
 
 const viewportDragThresholdPx = 4;
@@ -130,6 +140,9 @@ export function Viewport({
       sessionRef.current = activeSession;
       bridgeRef.current = activeBridge;
       runtimeReadyRef.current?.(activeRuntime);
+      if (readEditorRuntimeDiagnosticsEnabled()) {
+        installRuntimeDiagnostics(activeRuntime);
+      }
 
       resizeObserver = new ResizeObserver(() => {
         activeSession.resize(readSize());
@@ -149,6 +162,7 @@ export function Viewport({
     return () => {
       disposed = true;
       resizeObserver?.disconnect();
+      clearRuntimeDiagnostics();
       session?.dispose();
       sessionRef.current = null;
       bridgeRef.current = null;
@@ -378,4 +392,30 @@ function createBrowserFrameScheduler() {
     now: () => performance.now(),
     requestFrame: (callback: (timeMs: number) => void) => window.requestAnimationFrame(callback),
   };
+}
+
+function readEditorRuntimeDiagnosticsEnabled(
+  search = typeof window === 'undefined' ? '' : window.location.search,
+): boolean {
+  return new URLSearchParams(search).get('runtimeDiagnostics') === '1';
+}
+
+function installRuntimeDiagnostics(runtime: WebRuntime): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const diagnosticsWindow = window as unknown as RuntimeDiagnosticsWindow;
+  diagnosticsWindow.__SINAN_RUNTIME_DIAGNOSTICS__ = () => ({
+    lod: runtime.getLodDiagnostics?.() ?? [],
+    scatter: runtime.getScatterDiagnostics?.() ?? [],
+  });
+}
+
+function clearRuntimeDiagnostics(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  delete (window as unknown as RuntimeDiagnosticsWindow).__SINAN_RUNTIME_DIAGNOSTICS__;
 }

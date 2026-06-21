@@ -120,6 +120,12 @@ export interface RuntimeLodSelectedLevel {
 
 export type RuntimeLodSelectionResult = RuntimeLodDisabledSelection | RuntimeLodSelectedLevel;
 
+export interface RuntimeLodDiagnostics {
+  entityId: string;
+  currentLevel: number | undefined;
+  currentAsset: string | undefined;
+}
+
 export type RuntimeScatterSource =
   | {
       type: 'asset';

@@ -9,6 +9,7 @@ import type {
   RuntimeAnimationTimeOptions,
   RuntimeCameraPose,
   RuntimeDebugAabb,
+  RuntimeLodDiagnostics,
   RuntimeLodGroup,
   RuntimeMaterialParameterUpdate,
   RuntimePostProcessEffectUpdate,
@@ -39,6 +40,7 @@ export interface WebRuntime {
   setCameraPose(pose: RuntimeCameraPose): void;
   setDebugAabb(entityId: string, bounds: RuntimeDebugAabb | undefined): void;
   setEntityLodGroup?(entityId: string, group: RuntimeLodGroup | undefined): void;
+  getLodDiagnostics?(): readonly RuntimeLodDiagnostics[];
   setScatterGroups?(groups: readonly RuntimeScatterGroup[]): void;
   getScatterDiagnostics?(): readonly RuntimeScatterDiagnostics[];
   setStyleResources?(resources: RuntimeStyleResources): void;

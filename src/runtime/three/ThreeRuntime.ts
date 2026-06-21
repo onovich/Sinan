@@ -9,6 +9,7 @@ import type {
   RuntimeAnimationTimeOptions,
   RuntimeCameraPose,
   RuntimeDebugAabb,
+  RuntimeLodDiagnostics,
   RuntimeLodGroup,
   RuntimeMaterialParameterUpdate,
   RuntimePostProcessEffectUpdate,
@@ -512,6 +513,14 @@ export class ThreeRuntime implements WebRuntime {
       currentLevel: this.getCurrentLodLevel(entityId, group),
     });
     this.updateEntityLod(entityId);
+  }
+
+  getLodDiagnostics(): readonly RuntimeLodDiagnostics[] {
+    return Array.from(this.lodBindingByEntityId, ([entityId, binding]) => ({
+      entityId,
+      currentLevel: binding.currentLevel,
+      currentAsset: this.getObjectAssetId(this.objectByEntityId.get(entityId)),
+    }));
   }
 
   setScatterGroups(groups: readonly RuntimeScatterGroup[]): void {

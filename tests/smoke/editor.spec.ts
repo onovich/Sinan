@@ -388,6 +388,49 @@ test('styled runtime rendering is nonblank and low-end mode changes visible pixe
   expect(browserErrors).toEqual([]);
 });
 
+test('runtime diagnostics expose LOD and instanced scatter smoke counters', async ({ page }) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/?runtimeDiagnostics=1');
+  await expect(page.getByTestId('editor-shell')).toBeVisible();
+  await expect(page.locator('.viewport-status')).toContainText('runtime ready');
+  await expect
+    .poll(() => readRuntimeSmokeSignals(page))
+    .toEqual({
+      switchLod: {
+        entityId: 'switch_a',
+        currentLevel: 0,
+        currentAsset: 'model.switch_wall.lod0',
+      },
+      scatter: {
+        groupId: 'scatter_switch_markers',
+        instanceCount: 6,
+        sourceAsset: 'model.switch_wall.lod2',
+        fallbackUsed: false,
+      },
+    });
+
+  await page.goto('/?runtimeDiagnostics=1&styleQuality=low-end');
+  await expect(page.getByTestId('editor-shell')).toBeVisible();
+  await expect(page.locator('.viewport-status')).toContainText('runtime ready');
+  await expect
+    .poll(() => readRuntimeSmokeSignals(page))
+    .toEqual({
+      switchLod: {
+        entityId: 'switch_a',
+        currentLevel: 1,
+        currentAsset: 'model.switch_wall.lod1',
+      },
+      scatter: {
+        groupId: 'scatter_switch_markers',
+        instanceCount: 3,
+        sourceAsset: 'model.switch_wall.lod2',
+        fallbackUsed: false,
+      },
+    });
+  expect(browserErrors).toEqual([]);
+});
+
 test('transform gizmo previews inspector and overlay before commit', async ({ page }) => {
   const browserErrors = collectBrowserErrors(page);
 
@@ -902,7 +945,7 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   await expect(page.locator('.asset-list button')).toContainText('audio.switch_click');
   await page.getByLabel('Search assets').fill('');
   await expect(page.getByText('/models/props/switch_wall.glb')).toBeVisible();
-  await page.getByRole('button', { name: /model.switch_wall/ }).click();
+  await page.getByRole('button', { name: /^model\.switch_wall\s/ }).click();
   await expect(page.locator('.asset-detail')).toContainText('model.switch_wall');
   await expect(page.getByRole('button', { name: /room_blockout_01/ })).toBeVisible();
   const switchClick = await page.request.get('/audio/switch_click.wav');
@@ -1239,6 +1282,40 @@ function collectBrowserErrors(page: Page): string[] {
   });
 
   return browserErrors;
+}
+
+interface RuntimeSmokeDiagnostics {
+  lod: Array<{
+    currentAsset: string | undefined;
+    currentLevel: number | undefined;
+    entityId: string;
+  }>;
+  scatter: Array<{
+    fallbackUsed: boolean;
+    groupId: string;
+    instanceCount: number;
+    sourceAsset: string;
+  }>;
+}
+
+async function readRuntimeSmokeSignals(page: Page): Promise<{
+  scatter: RuntimeSmokeDiagnostics['scatter'][number] | undefined;
+  switchLod: RuntimeSmokeDiagnostics['lod'][number] | undefined;
+}> {
+  const diagnostics = await page.evaluate(() => {
+    const runtimeDiagnostics = (
+      window as unknown as {
+        __SINAN_RUNTIME_DIAGNOSTICS__?: () => RuntimeSmokeDiagnostics;
+      }
+    ).__SINAN_RUNTIME_DIAGNOSTICS__;
+
+    return runtimeDiagnostics?.();
+  });
+
+  return {
+    switchLod: diagnostics?.lod.find((item) => item.entityId === 'switch_a'),
+    scatter: diagnostics?.scatter.find((item) => item.groupId === 'scatter_switch_markers'),
+  };
 }
 
 async function readSmokeJson(request: APIRequestContext, path: string): Promise<unknown> {

@@ -197,6 +197,21 @@ Smoke must prove:
 - LOD or instancing state is observable through a deterministic runtime/smoke signal
 - no generated smoke artifacts are committed unless explicitly stable fixtures
 
+Round 22.8 local demo budgets:
+
+- Standard profile at the demo camera pose selects `switch_a` LOD0, renders
+  `scatter_switch_markers` as 6 instances, and keeps that scatter group to one instanced
+  draw-call estimate with no more than 72 scatter triangles from manifest metadata.
+- Low-end profile at the same pose selects `switch_a` LOD1, reduces
+  `scatter_switch_markers` to 3 instances, and keeps the scatter estimate to no more than
+  36 triangles.
+- The isolated runtime perf gate also samples a 9-unit camera distance where standard selects
+  LOD1 and low-end biases to LOD2, proving the more aggressive profile behavior without relying
+  on browser timing or GPU memory counters.
+- Browser memory metrics are not gated in Phase 22 because they vary by driver and browser
+  process state. Acceptance relies on deterministic LOD diagnostics, instance counts, triangle
+  estimates, and one-instanced-draw-call estimates.
+
 ## 10. Round 22.1 Decision
 
 Proceed with the 12-round Phase 22 guide:
