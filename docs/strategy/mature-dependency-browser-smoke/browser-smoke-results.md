@@ -66,3 +66,11 @@ Do not commit:
 | recast-navigation | `POLICY-SKIP` | `recast-policy-skip-summary.json` records RFC-013 hold. | Navigation remains `hold-for-rfc`; no browser smoke result can promote it in this goal. | Dedicated navigation RFC before implementation. |
 
 Storage boundary note: Dexie / IndexedDB smoke can only prove a browser-local persistence surface. It does not move source-of-truth away from canonical `data/**/*.json`, repository schemas, or migrations.
+
+## Round 10 Stabilization Notes
+
+- The configured browser smoke port is `5184`; port `5174` is not used by this harness.
+- `npm --prefix spikes\mature-dependencies run smoke:browser` remains repeatable while Chromium is missing; it emits normalized `ENVIRONMENT-BLOCKED` summaries instead of failing silently or claiming `PASS`.
+- The harness commits only Markdown reports, source files, config, and small JSON summaries.
+- Playwright traces, videos, screenshots, browser binaries, cache folders, `dist/**`, `coverage/**`, and `node_modules/**` remain non-committed artifacts.
+- No new candidate was added in the buffer round.
