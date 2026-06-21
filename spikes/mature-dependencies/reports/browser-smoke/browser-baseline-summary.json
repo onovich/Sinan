@@ -5,7 +5,7 @@
   "layer": "environment",
   "browser": "Playwright Chromium",
   "port": 5184,
-  "durationMs": 8,
+  "durationMs": 10,
   "command": "npm exec -- playwright test -c playwright.config.ts",
   "consoleErrors": [],
   "artifacts": [],
@@ -13,5 +13,5 @@
     "Expected Playwright Chromium executable is missing: C:\\Users\\Administrator\\AppData\\Local\\ms-playwright\\chromium-1228\\chrome-win64\\chrome.exe",
     "Run npm exec -- playwright install chromium from spikes/mature-dependencies."
   ],
-  "timestamp": "2026-06-21T11:15:22.830Z"
+  "timestamp": "2026-06-21T11:19:16.360Z"
 }
