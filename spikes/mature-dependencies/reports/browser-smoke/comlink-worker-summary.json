@@ -5,7 +5,7 @@
   "layer": "environment",
   "browser": "Playwright Chromium",
   "port": 5184,
-  "durationMs": 10,
+  "durationMs": 9,
   "command": "npm exec -- playwright test -c playwright.config.ts",
   "consoleErrors": [],
   "artifacts": [],
@@ -14,5 +14,5 @@
     "Run npm exec -- playwright install chromium from spikes/mature-dependencies.",
     "Worker URL, RPC, transferable payload, diagnostic error mapping, and terminate smoke cannot run until Playwright Chromium launches."
   ],
-  "timestamp": "2026-06-21T11:14:13.171Z"
+  "timestamp": "2026-06-21T11:15:22.831Z"
 }

@@ -74,3 +74,13 @@ Storage boundary note: Dexie / IndexedDB smoke can only prove a browser-local pe
 - The harness commits only Markdown reports, source files, config, and small JSON summaries.
 - Playwright traces, videos, screenshots, browser binaries, cache folders, `dist/**`, `coverage/**`, and `node_modules/**` remain non-committed artifacts.
 - No new candidate was added in the buffer round.
+
+## Round 11 Consistency Notes
+
+No external review feedback was received during this execution pass. The consistency self-review checked that:
+
+- Every browser-sensitive candidate has exactly one committed JSON summary under `spikes/mature-dependencies/reports/browser-smoke/**`.
+- `browser-baseline`, Web Audio, Dexie / IndexedDB, Comlink / Worker, Spector.js, and Rapier / WASM are `ENVIRONMENT-BLOCKED` because Playwright Chromium 1228 cannot launch.
+- `recast-navigation` is `POLICY-SKIP` because RFC-013 keeps NavigationAdapter on hold.
+- `environment-audit.md` and this results file agree that the goal cannot be PASS until Playwright-managed Chromium installs and launches.
+- No summary promotes a candidate to production integration, hard dependency status, or mainline `src/**` work.
