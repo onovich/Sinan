@@ -529,3 +529,9 @@ Use `docs/phase-21-5-poc-sequencing-and-roadmap-routing.md` to decide which futu
 Before starting Phase 21.5, re-read `AGENTS.md`, the main architecture guide, `docs/engine-positioning-architecture-adjustment-plan.md`, the Phase 18, Phase 18.5, Phase 19, Phase 20, and Phase 21 final reports, both Web3D Shader GLSL MVP docs, and the current runtime/editor architecture.
 
 After Phase 21.5 is PASS and pushed, Phase 22 LOD, Instancing, And Vegetation may start. Phase 22 remains blocked until Phase 21.5 produces its PASS final report and pushed commits.
+
+Phase 21.5 is PASS in `docs/phase-21-5-engine-maturity-external-infrastructure-contract-gate-final-report.md`. The next goal should be Phase 22: LOD, Instancing, And Vegetation.
+
+```txt
+Complete Phase 22 from docs/abeto-messenger-development-plan.md: LOD, Instancing, And Vegetation. Start only after Phase 21.5 is PASS and pushed. Keep LOD and instancing data source-of-truth JSON with schema and validation; keep Three InstancedMesh, GLTF, texture, and compression details under src/runtime/three/**. Do not make Indirection, InputFlow, ViewRig, LudoWeave, Inscape, Physics, or Audio a hard dependency unless a scoped Phase 22 guide explicitly expands scope while preserving Phase 21.5 boundaries.
+```

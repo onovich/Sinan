@@ -33,6 +33,8 @@ Phase 21 is PASS. The current active next gate is Phase 21.5: Engine Maturity Ex
 
 Phase 21.5: Engine Maturity And External Infrastructure Contract Gate also owns POC sequencing through `docs/phase-21-5-poc-sequencing-and-roadmap-routing.md`. After Phase 21.5 PASS and pushed commits, Phase 22 remains the next implementation phase; partner POCs and mature dependency spikes require their own scoped guide unless a later phase explicitly adopts one.
 
+Phase 21.5 is PASS in `docs/phase-21-5-engine-maturity-external-infrastructure-contract-gate-final-report.md`. The active next implementation target is Phase 22: LOD, Instancing, And Vegetation from `docs/abeto-messenger-development-plan.md`.
+
 During Phase 21 and later shader work, use the "Shader Production Quality Checklist" in `docs/developer-guide.md`. New production materials or postprocess passes should not be accepted with editor-only evidence; they need compile smoke, visual regression coverage, fallback diagnostics, precompile consideration, and low-end baseline evidence appropriate to the change.
 
 ## Execution Budget
