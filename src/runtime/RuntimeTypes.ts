@@ -78,6 +78,47 @@ export type RuntimeRenderStyleProfile = 'standard' | 'palette-toon';
 export type RuntimeRenderStyleVisibilityMode = 'none' | 'selected' | 'interactable' | 'always';
 export type RuntimeRenderStyleFeatureMode = 'inherit' | 'enabled' | 'disabled';
 export type RuntimeStyleQualityProfile = 'standard' | 'low-end';
+export type RuntimeLodStrategy = 'distance';
+
+export interface RuntimeLodLevel {
+  level: number;
+  asset: string;
+  minDistance: number;
+}
+
+export interface RuntimeLodGroup {
+  strategy: RuntimeLodStrategy;
+  hysteresis: number;
+  lowEndBias: number;
+  fallbackAsset: string;
+  levels: readonly RuntimeLodLevel[];
+  enabled?: boolean;
+}
+
+export interface RuntimeLodSelectionInput {
+  group?: RuntimeLodGroup;
+  distance: number;
+  currentLevel?: number;
+  qualityProfile?: RuntimeStyleQualityProfile;
+  availableAssetIds?: ReadonlySet<string>;
+}
+
+export interface RuntimeLodDisabledSelection {
+  status: 'disabled';
+  changed: false;
+  fallbackUsed: false;
+}
+
+export interface RuntimeLodSelectedLevel {
+  status: 'selected';
+  level: number;
+  asset: string;
+  distance: number;
+  changed: boolean;
+  fallbackUsed: boolean;
+}
+
+export type RuntimeLodSelectionResult = RuntimeLodDisabledSelection | RuntimeLodSelectedLevel;
 
 export interface RuntimeRenderStyle {
   profile: RuntimeRenderStyleProfile;
