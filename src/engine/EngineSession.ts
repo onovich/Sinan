@@ -12,6 +12,7 @@ import {
 } from '../runtime/materials';
 import type {
   RuntimeDebugAabb,
+  RuntimeLodGroup,
   RuntimeMaterialParameterUpdate,
   RuntimePalette,
   RuntimeRenderEnvironmentStyle,
@@ -152,6 +153,10 @@ export class EngineSession {
       this.options.runtime.setRenderableMaterials?.(
         entity.id,
         getRenderableMaterials(project, entity),
+      );
+      this.options.runtime.setEntityLodGroup?.(
+        entity.id,
+        modelAssetId ? toRuntimeLodGroup(project, modelAssetId) : undefined,
       );
     }
 
@@ -311,5 +316,29 @@ function toRuntimeRenderEnvironment(
     ambientLight: environment.ambientLight,
     fog: environment.fog,
     colorGrade: environment.colorGrade,
+  };
+}
+
+function toRuntimeLodGroup(
+  project: ProjectData,
+  modelAssetId: string,
+): RuntimeLodGroup | undefined {
+  const groupId = project.assets.assets[modelAssetId]?.metadata?.lodGroup;
+  const group = groupId ? project.assets.lodGroups?.[groupId] : undefined;
+
+  if (!group) {
+    return undefined;
+  }
+
+  return {
+    strategy: group.strategy,
+    hysteresis: group.hysteresis,
+    lowEndBias: group.lowEndBias,
+    fallbackAsset: group.fallbackAsset,
+    levels: group.levels.map((level) => ({
+      level: level.level,
+      asset: level.asset,
+      minDistance: level.minDistance,
+    })),
   };
 }

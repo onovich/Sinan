@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { ProjectData } from '../data/DataRepository';
 import type {
   RuntimeDebugAabb,
+  RuntimeLodGroup,
   RuntimeRenderStyle,
   RuntimeRenderableMaterialSlots,
   RuntimeShaderGlobals,
@@ -203,11 +204,36 @@ describe('EngineSession', () => {
       },
     });
   });
+
+  it('passes manifest LOD groups to runtime entities without renderer details', async () => {
+    const calls: unknown[] = [];
+    const session = new EngineSession({
+      runtime: createRuntimeProbe(calls, { recordLodGroups: true }),
+    });
+
+    await session.loadProject(createLodProject());
+
+    expect(calls).toContainEqual({
+      type: 'setEntityLodGroup',
+      entityId: 'switch_a',
+      group: {
+        strategy: 'distance',
+        hysteresis: 1,
+        lowEndBias: 1,
+        fallbackAsset: 'model.switch_wall.lod2',
+        levels: [
+          { level: 0, asset: 'model.switch_wall.lod0', minDistance: 0 },
+          { level: 1, asset: 'model.switch_wall.lod1', minDistance: 8 },
+          { level: 2, asset: 'model.switch_wall.lod2', minDistance: 16 },
+        ],
+      },
+    });
+  });
 });
 
 function createRuntimeProbe(
   calls: unknown[],
-  options: { recordShaderGlobals?: boolean } = {},
+  options: { recordLodGroups?: boolean; recordShaderGlobals?: boolean } = {},
 ): WebRuntime {
   const runtime: WebRuntime = {
     init: () => undefined,
@@ -275,6 +301,11 @@ function createRuntimeProbe(
   if (options.recordShaderGlobals) {
     runtime.setShaderGlobals = (globals) => {
       calls.push({ type: 'setShaderGlobals', globals });
+    };
+  }
+  if (options.recordLodGroups) {
+    runtime.setEntityLodGroup = (entityId: string, group: RuntimeLodGroup | undefined) => {
+      calls.push({ type: 'setEntityLodGroup', entityId, group });
     };
   }
 
@@ -362,5 +393,50 @@ function createProject(): ProjectData {
     events: {},
     timelines: {},
     cameraShots: {},
+  };
+}
+
+function createLodProject(): ProjectData {
+  const project = createProject();
+
+  return {
+    ...project,
+    assets: {
+      schemaVersion: 1,
+      assets: {
+        'model.switch_wall': {
+          type: 'model',
+          url: '/models/props/switch_wall.glb',
+          metadata: {
+            lodGroup: 'gate-demo-props',
+          },
+        },
+        'model.switch_wall.lod0': {
+          type: 'model',
+          url: '/models/props/switch_wall_lod0.glb',
+        },
+        'model.switch_wall.lod1': {
+          type: 'model',
+          url: '/models/props/switch_wall_lod1.glb',
+        },
+        'model.switch_wall.lod2': {
+          type: 'model',
+          url: '/models/props/switch_wall_lod2.glb',
+        },
+      },
+      lodGroups: {
+        'gate-demo-props': {
+          strategy: 'distance',
+          hysteresis: 1,
+          lowEndBias: 1,
+          fallbackAsset: 'model.switch_wall.lod2',
+          levels: [
+            { level: 0, asset: 'model.switch_wall.lod0', minDistance: 0 },
+            { level: 1, asset: 'model.switch_wall.lod1', minDistance: 8 },
+            { level: 2, asset: 'model.switch_wall.lod2', minDistance: 16 },
+          ],
+        },
+      },
+    },
   };
 }

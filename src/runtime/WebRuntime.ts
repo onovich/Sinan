@@ -9,6 +9,7 @@ import type {
   RuntimeAnimationTimeOptions,
   RuntimeCameraPose,
   RuntimeDebugAabb,
+  RuntimeLodGroup,
   RuntimeMaterialParameterUpdate,
   RuntimePostProcessEffectUpdate,
   RuntimeShaderGlobals,
@@ -35,6 +36,7 @@ export interface WebRuntime {
   setAnimationTime(options: RuntimeAnimationTimeOptions): void;
   setCameraPose(pose: RuntimeCameraPose): void;
   setDebugAabb(entityId: string, bounds: RuntimeDebugAabb | undefined): void;
+  setEntityLodGroup?(entityId: string, group: RuntimeLodGroup | undefined): void;
   setStyleResources?(resources: RuntimeStyleResources): void;
   setRenderStyle?(entityId: string, style: RuntimeRenderStyle | undefined): void;
   setRenderableMaterials?(

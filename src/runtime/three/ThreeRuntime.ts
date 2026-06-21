@@ -9,6 +9,7 @@ import type {
   RuntimeAnimationTimeOptions,
   RuntimeCameraPose,
   RuntimeDebugAabb,
+  RuntimeLodGroup,
   RuntimeMaterialParameterUpdate,
   RuntimePostProcessEffectUpdate,
   RuntimeRenderEnvironmentStyle,
@@ -24,6 +25,7 @@ import type {
 } from '../RuntimeTypes';
 import type { RuntimeTransform } from '../RuntimeTypes';
 import type { WebRuntime } from '../WebRuntime';
+import { selectRuntimeLodLevel } from '../LodSelector';
 import {
   cloneLoadedModelScene,
   ThreeAssetLoader,
@@ -61,6 +63,11 @@ interface EntityAnimationBinding {
   activeClips: Set<string>;
 }
 
+interface EntityLodBinding {
+  group: RuntimeLodGroup;
+  currentLevel?: number;
+}
+
 export class ThreeRuntime implements WebRuntime {
   private readonly modelAssets: ThreeAssetLoader;
   private readonly logger: Pick<Console, 'warn'>;
@@ -90,11 +97,14 @@ export class ThreeRuntime implements WebRuntime {
     { clip: string; loop?: boolean; playing: boolean; time: number }
   >();
   private animationBindingByEntityId = new Map<string, EntityAnimationBinding>();
+  private lodBindingByEntityId = new Map<string, EntityLodBinding>();
   private styleResources: RuntimeStyleResources = { palettes: {} };
   private renderStyleByEntityId = new Map<string, RuntimeRenderStyle>();
+  private renderableMaterialsByEntityId = new Map<string, RuntimeRenderableMaterialSlots>();
   private renderEnvironment: RuntimeRenderEnvironmentStyle | undefined;
   private styleQualityProfile: RuntimeStyleQualityProfile = 'standard';
   private selectedEntityId: string | undefined;
+  private readonly lodWorldPosition = new THREE.Vector3();
   private width = 1;
   private height = 1;
   private pixelRatio = 1;
@@ -220,17 +230,8 @@ export class ThreeRuntime implements WebRuntime {
   instantiateModel(assetId: string, entityId: string): RuntimeObjectHandle {
     this.destroyObject(entityId);
 
-    const loadedAsset = this.modelAssets.getLoadedModel(assetId);
-    const object = loadedAsset
-      ? cloneLoadedModelScene(loadedAsset)
-      : createPlaceholderObject(assetId);
-    object.name = entityId;
-    tagRuntimeObject(object, entityId, assetId);
-    this.objectRoot?.add(object);
-    this.objectByEntityId.set(entityId, object);
-    this.materialRuntime.bindEntityObject(entityId, object);
-    this.bindEntityAnimations(entityId, object, loadedAsset);
-    this.applyEntityRenderStyle(entityId, object);
+    const { loadedAsset, object } = this.createModelObject(assetId);
+    this.bindEntityObject(entityId, object, assetId, loadedAsset);
 
     return { entityId, runtimeObjectId: entityId };
   }
@@ -258,6 +259,8 @@ export class ThreeRuntime implements WebRuntime {
     this.disposeEntityAnimations(entityId);
     this.styleDecorators?.removeEntity(entityId);
     this.renderStyleByEntityId.delete(entityId);
+    this.renderableMaterialsByEntityId.delete(entityId);
+    this.lodBindingByEntityId.delete(entityId);
     if (this.selectedEntityId === entityId) {
       this.selectedEntityId = undefined;
     }
@@ -286,6 +289,7 @@ export class ThreeRuntime implements WebRuntime {
     object.position.set(...transform.position);
     object.quaternion.set(...transform.rotation);
     object.scale.set(...transform.scale);
+    this.updateEntityLod(entityId);
   }
 
   getTransform(entityId: string): RuntimeTransform | null {
@@ -483,9 +487,31 @@ export class ThreeRuntime implements WebRuntime {
     materials: RuntimeRenderableMaterialSlots | undefined,
   ): void {
     if (!materials) {
+      this.renderableMaterialsByEntityId.delete(entityId);
       return;
     }
 
+    this.renderableMaterialsByEntityId.set(entityId, materials);
+    this.applyRenderableMaterials(entityId, materials);
+  }
+
+  setEntityLodGroup(entityId: string, group: RuntimeLodGroup | undefined): void {
+    if (!group) {
+      this.lodBindingByEntityId.delete(entityId);
+      return;
+    }
+
+    this.lodBindingByEntityId.set(entityId, {
+      group,
+      currentLevel: this.getCurrentLodLevel(entityId, group),
+    });
+    this.updateEntityLod(entityId);
+  }
+
+  private applyRenderableMaterials(
+    entityId: string,
+    materials: RuntimeRenderableMaterialSlots,
+  ): void {
     for (const [slot, material] of Object.entries(materials)) {
       const result = this.materialRuntime.applyMaterial(
         { entityId, slot },
@@ -555,6 +581,7 @@ export class ThreeRuntime implements WebRuntime {
     for (const entityId of this.objectByEntityId.keys()) {
       this.applyEntityRenderStyle(entityId);
     }
+    this.updateEntityLods();
   }
 
   setSelectedEntity(entityId: string | undefined): void {
@@ -654,6 +681,8 @@ export class ThreeRuntime implements WebRuntime {
       }
     }
 
+    this.updateEntityLods();
+
     for (const object of this.objectByEntityId.values()) {
       if (object.userData.assetId === 'model.player_spawn') {
         object.rotation.y += deltaSeconds * 0.8;
@@ -728,6 +757,8 @@ export class ThreeRuntime implements WebRuntime {
     this.objectByEntityId.clear();
     this.debugAabbByEntityId.clear();
     this.renderStyleByEntityId.clear();
+    this.renderableMaterialsByEntityId.clear();
+    this.lodBindingByEntityId.clear();
     this.modelAssets.dispose();
     this.animationStateByEntityId.clear();
     this.animationBindingByEntityId.clear();
@@ -758,6 +789,158 @@ export class ThreeRuntime implements WebRuntime {
 
     this.materialRegistry.applyStyle(object, this.renderStyleByEntityId.get(entityId));
     this.styleDecorators?.syncEntity(entityId, object, this.renderStyleByEntityId.get(entityId));
+  }
+
+  private createModelObject(assetId: string): {
+    loadedAsset: ThreeLoadedModelAsset | undefined;
+    object: THREE.Object3D;
+  } {
+    const loadedAsset = this.modelAssets.getLoadedModel(assetId);
+
+    return {
+      loadedAsset,
+      object: loadedAsset ? cloneLoadedModelScene(loadedAsset) : createPlaceholderObject(assetId),
+    };
+  }
+
+  private bindEntityObject(
+    entityId: string,
+    object: THREE.Object3D,
+    assetId: string,
+    loadedAsset: ThreeLoadedModelAsset | undefined,
+  ): void {
+    object.name = entityId;
+    tagRuntimeObject(object, entityId, assetId);
+    this.objectRoot?.add(object);
+    this.objectByEntityId.set(entityId, object);
+    this.materialRuntime.bindEntityObject(entityId, object);
+    this.bindEntityAnimations(entityId, object, loadedAsset);
+    this.applyEntityRenderStyle(entityId, object);
+
+    const materials = this.renderableMaterialsByEntityId.get(entityId);
+    if (materials) {
+      this.applyRenderableMaterials(entityId, materials);
+    }
+  }
+
+  private updateEntityLods(): void {
+    for (const entityId of this.lodBindingByEntityId.keys()) {
+      this.updateEntityLod(entityId);
+    }
+  }
+
+  private updateEntityLod(entityId: string): void {
+    const binding = this.lodBindingByEntityId.get(entityId);
+    const object = this.objectByEntityId.get(entityId);
+
+    if (!binding || !object || !this.camera) {
+      return;
+    }
+
+    object.getWorldPosition(this.lodWorldPosition);
+    const result = selectRuntimeLodLevel({
+      group: binding.group,
+      distance: this.lodWorldPosition.distanceTo(this.camera.position),
+      currentLevel: binding.currentLevel,
+      qualityProfile: this.styleQualityProfile,
+      availableAssetIds: this.getAvailableLodAssetIds(binding.group),
+    });
+
+    if (result.status === 'disabled') {
+      return;
+    }
+
+    binding.currentLevel = result.level;
+
+    if (this.getObjectAssetId(object) === result.asset) {
+      return;
+    }
+
+    this.replaceEntityModel(entityId, result.asset);
+  }
+
+  private getCurrentLodLevel(entityId: string, group: RuntimeLodGroup): number | undefined {
+    const assetId = this.getObjectAssetId(this.objectByEntityId.get(entityId));
+
+    return group.levels.find((level) => level.asset === assetId)?.level;
+  }
+
+  private getObjectAssetId(object: THREE.Object3D | undefined): string | undefined {
+    const assetId: unknown = object?.userData.assetId;
+
+    return typeof assetId === 'string' ? assetId : undefined;
+  }
+
+  private getAvailableLodAssetIds(group: RuntimeLodGroup): ReadonlySet<string> {
+    return new Set(
+      group.levels
+        .map((level) => level.asset)
+        .filter((assetId) => this.modelAssets.getLoadedModel(assetId)),
+    );
+  }
+
+  private replaceEntityModel(entityId: string, assetId: string): void {
+    const previous = this.objectByEntityId.get(entityId);
+
+    if (!previous) {
+      return;
+    }
+
+    const wasTransformGizmoAttached = this.transformGizmoEntityId === entityId;
+    const transform = this.getTransform(entityId);
+    const visible = previous.visible;
+    const animationState = this.animationStateByEntityId.get(entityId);
+    const { loadedAsset, object } = this.createModelObject(assetId);
+
+    if (wasTransformGizmoAttached) {
+      this.transformControls?.detach();
+    }
+
+    this.disposeEntityAnimations(entityId);
+    this.materialRuntime.disposeEntityMaterials(entityId);
+    this.materialRegistry.applyStyle(previous, { profile: 'standard' });
+    previous.removeFromParent();
+    previous.traverse((child) => {
+      disposeObjectResources(child);
+    });
+
+    if (transform) {
+      object.position.set(...transform.position);
+      object.quaternion.set(...transform.rotation);
+      object.scale.set(...transform.scale);
+    }
+    object.visible = visible;
+
+    this.bindEntityObject(entityId, object, assetId, loadedAsset);
+    this.restoreAnimationState(entityId, animationState);
+
+    if (wasTransformGizmoAttached) {
+      this.transformControls?.attach(object);
+    }
+  }
+
+  private restoreAnimationState(
+    entityId: string,
+    animationState: { clip: string; loop?: boolean; playing: boolean; time: number } | undefined,
+  ): void {
+    if (!animationState) {
+      return;
+    }
+
+    if (animationState.playing) {
+      this.playAnimation({
+        entityId,
+        clip: animationState.clip,
+        loop: animationState.loop,
+      });
+      return;
+    }
+
+    this.setAnimationTime({
+      entityId,
+      clip: animationState.clip,
+      time: animationState.time,
+    });
   }
 
   private applyRenderEnvironment(): void {
