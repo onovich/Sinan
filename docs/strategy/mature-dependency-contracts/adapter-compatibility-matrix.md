@@ -47,3 +47,26 @@ Status: Draft contract matrix for RFC-006 through RFC-013.
 - Validation strategy and browser smoke stance.
 - Gate for a future implementation guide.
 - Hold, reject, and blocker rules.
+
+## RFC Coverage Index
+
+| Candidate area | Contract document | Matrix status | Shared policy dependency |
+| --- | --- | --- | --- |
+| Physics | `docs/rfcs/RFC-006-physics-adapter-boundary.md` | `accept-for-contract` | RFC-011 for WASM/bundle/dependency approval. |
+| Audio | `docs/rfcs/RFC-007-audio-system-boundary.md` | `accept-for-contract` | Browser smoke policy for unlock/autoplay/decode. |
+| Storage | `docs/rfcs/RFC-008-storage-save-boundary.md` | `accept-for-contract` | Browser smoke policy for IndexedDB/quota/upgrade. |
+| Asset pipeline | `docs/rfcs/RFC-009-asset-pipeline-boundary.md` | `adapter-spike-ready` | RFC-011 for dependency approval and generated artifact policy. |
+| Worker tasks | `docs/rfcs/RFC-010-worker-task-boundary.md` | `adapter-spike-ready` | Browser smoke policy for worker URL/transfer/timeout. |
+| WASM and dependency policy | `docs/rfcs/RFC-011-wasm-bundle-dependency-policy.md` | `accept-for-contract` | Required by WASM/native or bundle-sensitive candidates. |
+| Dev-only diagnostics | `docs/rfcs/RFC-012-dev-only-diagnostics-policy.md` | `dev-only` | RFC-011 production exclusion proof. |
+| Navigation | `docs/rfcs/RFC-013-navigation-adapter-hold-policy.md` | `hold-for-rfc` | Dedicated navigation RFC plus RFC-011 before implementation. |
+| Browser smoke environment | `docs/strategy/mature-dependency-contracts/browser-smoke-environment-policy.md` | policy | Required by browser-sensitive implementation guides. |
+
+## Cross-RFC Consistency Decisions
+
+- Every adapter RFC keeps Sinan-owned identifiers, schemas, diagnostics, and fallback states at the boundary.
+- Candidate-owned responsibilities are implementation details only; no RFC permits raw dependency objects in JSON, editor store, runtime world state, migrations, or director state.
+- A future implementation guide must cite the relevant RFC, the compatibility matrix status, and the browser smoke or bundle evidence required by that RFC.
+- Fallback is not optional. Each accepted or spike-ready candidate must preserve scene/editor review with a null, silent, volatile, raw pass-through, main-thread, or unavailable fallback.
+- Validation must include at least one contract-level test strategy and one leakage guard. Browser-sensitive candidates also require browser smoke evidence.
+- `dev-only` and `hold-for-rfc` statuses are not weaker approvals; they are explicit stops for production/runtime integration.
