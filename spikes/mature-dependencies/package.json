@@ -8,7 +8,9 @@
     "test": "vitest run",
     "build": "vite build",
     "check": "npm run typecheck && npm run test && npm run build",
-    "dev": "vite --host 127.0.0.1"
+    "dev": "vite --host 127.0.0.1",
+    "smoke:browser": "node src/browser-smoke/run-browser-smoke.mjs",
+    "smoke:browser:headed": "node src/browser-smoke/run-browser-smoke.mjs --headed"
   },
   "keywords": [
     "sinan",
