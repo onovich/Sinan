@@ -1,0 +1,17 @@
+{
+  "candidate": "recast-navigation",
+  "status": "POLICY-SKIP",
+  "decision": "POLICY-SKIP",
+  "layer": "policy",
+  "browser": "Playwright Chromium",
+  "port": 5184,
+  "durationMs": 10,
+  "command": "npm exec -- playwright test -c playwright.config.ts",
+  "consoleErrors": [],
+  "artifacts": [],
+  "diagnostics": [
+    "RFC-013 keeps NavigationAdapter and recast-navigation on hold.",
+    "No browser smoke is required or interpreted as implementation approval in this goal."
+  ],
+  "timestamp": "2026-06-21T11:13:07.967Z"
+}

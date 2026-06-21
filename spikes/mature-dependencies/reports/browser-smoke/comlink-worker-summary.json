@@ -14,5 +14,5 @@
     "Run npm exec -- playwright install chromium from spikes/mature-dependencies.",
     "Worker URL, RPC, transferable payload, diagnostic error mapping, and terminate smoke cannot run until Playwright Chromium launches."
   ],
-  "timestamp": "2026-06-21T11:11:20.398Z"
+  "timestamp": "2026-06-21T11:13:07.966Z"
 }

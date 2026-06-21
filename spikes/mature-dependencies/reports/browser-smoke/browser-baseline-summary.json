@@ -13,5 +13,5 @@
     "Expected Playwright Chromium executable is missing: C:\\Users\\Administrator\\AppData\\Local\\ms-playwright\\chromium-1228\\chrome-win64\\chrome.exe",
     "Run npm exec -- playwright install chromium from spikes/mature-dependencies."
   ],
-  "timestamp": "2026-06-21T11:11:20.397Z"
+  "timestamp": "2026-06-21T11:13:07.965Z"
 }

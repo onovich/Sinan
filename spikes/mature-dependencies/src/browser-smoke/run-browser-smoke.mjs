@@ -103,14 +103,32 @@ if (!existsSync(expectedExecutable)) {
         `production static exclusion matches for spectorjs/SPECTOR: ${spectorDistCheck.matches.length}`,
         ...spectorDistCheck.matches.map((match) => `production match: ${match}`)
       ]
+    },
+    {
+      fileName: "rapier-wasm-summary.json",
+      candidate: "Rapier / WASM",
+      diagnostics: [
+        ...diagnostics,
+        "Rapier dynamic import, WASM init, minimal world step, reload, and bundle path smoke cannot run until Playwright Chromium launches."
+      ]
+    },
+    {
+      fileName: "recast-policy-skip-summary.json",
+      candidate: "recast-navigation",
+      status: "POLICY-SKIP",
+      layer: "policy",
+      diagnostics: [
+        "RFC-013 keeps NavigationAdapter and recast-navigation on hold.",
+        "No browser smoke is required or interpreted as implementation approval in this goal."
+      ]
     }
   ];
 
   for (const blocked of blockedCandidates) {
     writeBrowserSmokeSummary(packageRoot, blocked.fileName, {
       candidate: blocked.candidate,
-      status: "ENVIRONMENT-BLOCKED",
-      layer: "environment",
+      status: blocked.status ?? "ENVIRONMENT-BLOCKED",
+      layer: blocked.layer ?? "environment",
       browser: "Playwright Chromium",
       port: 5184,
       durationMs: durationMs(),

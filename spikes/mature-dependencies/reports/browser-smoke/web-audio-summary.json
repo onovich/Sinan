@@ -14,5 +14,5 @@
     "Run npm exec -- playwright install chromium from spikes/mature-dependencies.",
     "AudioContext unlock, autoplay, fallback, and diagnostic smoke cannot run until Playwright Chromium launches."
   ],
-  "timestamp": "2026-06-21T11:11:20.398Z"
+  "timestamp": "2026-06-21T11:13:07.966Z"
 }
