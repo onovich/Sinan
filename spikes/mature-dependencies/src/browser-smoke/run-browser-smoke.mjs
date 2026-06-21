@@ -45,6 +45,14 @@ if (!existsSync(expectedExecutable)) {
         ...diagnostics,
         "IndexedDB availability, quota, reload, cleanup, export, and import smoke cannot run until Playwright Chromium launches."
       ]
+    },
+    {
+      fileName: "comlink-worker-summary.json",
+      candidate: "Comlink / Worker",
+      diagnostics: [
+        ...diagnostics,
+        "Worker URL, RPC, transferable payload, diagnostic error mapping, and terminate smoke cannot run until Playwright Chromium launches."
+      ]
     }
   ];
 
