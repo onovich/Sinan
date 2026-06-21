@@ -1,5 +1,5 @@
 {
-  "candidate": "Web Audio",
+  "candidate": "Dexie / IndexedDB",
   "status": "ENVIRONMENT-BLOCKED",
   "decision": "ENVIRONMENT-BLOCKED",
   "layer": "environment",
@@ -12,7 +12,7 @@
   "diagnostics": [
     "Expected Playwright Chromium executable is missing: C:\\Users\\Administrator\\AppData\\Local\\ms-playwright\\chromium-1228\\chrome-win64\\chrome.exe",
     "Run npm exec -- playwright install chromium from spikes/mature-dependencies.",
-    "AudioContext unlock, autoplay, fallback, and diagnostic smoke cannot run until Playwright Chromium launches."
+    "IndexedDB availability, quota, reload, cleanup, export, and import smoke cannot run until Playwright Chromium launches."
   ],
   "timestamp": "2026-06-21T11:07:44.953Z"
 }

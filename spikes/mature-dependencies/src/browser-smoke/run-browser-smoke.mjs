@@ -37,6 +37,14 @@ if (!existsSync(expectedExecutable)) {
         ...diagnostics,
         "AudioContext unlock, autoplay, fallback, and diagnostic smoke cannot run until Playwright Chromium launches."
       ]
+    },
+    {
+      fileName: "dexie-indexeddb-summary.json",
+      candidate: "Dexie / IndexedDB",
+      diagnostics: [
+        ...diagnostics,
+        "IndexedDB availability, quota, reload, cleanup, export, and import smoke cannot run until Playwright Chromium launches."
+      ]
     }
   ];
 
