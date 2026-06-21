@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { dirname } from "node:path";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { writeBrowserSmokeSummary } from "./result-writer.mjs";
@@ -19,7 +19,46 @@ function durationMs() {
 
 const expectedExecutable = chromium.executablePath();
 
+function scanDistForSpector() {
+  const distDir = join(packageRoot, "dist");
+  if (!existsSync(distDir)) {
+    return {
+      available: false,
+      matches: []
+    };
+  }
+
+  const matches = [];
+  const stack = [distDir];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const fullPath = join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(fullPath);
+        continue;
+      }
+
+      if (!entry.isFile() || statSync(fullPath).size > 5_000_000) {
+        continue;
+      }
+
+      const text = readFileSync(fullPath, "utf8");
+      if (text.includes("spectorjs") || text.includes("SPECTOR")) {
+        matches.push(fullPath.replace(packageRoot, "."));
+      }
+    }
+  }
+
+  return {
+    available: true,
+    matches
+  };
+}
+
 if (!existsSync(expectedExecutable)) {
+  const spectorDistCheck = scanDistForSpector();
   const diagnostics = [
     `Expected Playwright Chromium executable is missing: ${expectedExecutable}`,
     "Run npm exec -- playwright install chromium from spikes/mature-dependencies."
@@ -52,6 +91,17 @@ if (!existsSync(expectedExecutable)) {
       diagnostics: [
         ...diagnostics,
         "Worker URL, RPC, transferable payload, diagnostic error mapping, and terminate smoke cannot run until Playwright Chromium launches."
+      ]
+    },
+    {
+      fileName: "spector-dev-only-summary.json",
+      candidate: "Spector.js",
+      diagnostics: [
+        ...diagnostics,
+        "Spector dev-only dynamic import guard cannot run in a browser until Playwright Chromium launches.",
+        `production static exclusion check available: ${spectorDistCheck.available}`,
+        `production static exclusion matches for spectorjs/SPECTOR: ${spectorDistCheck.matches.length}`,
+        ...spectorDistCheck.matches.map((match) => `production match: ${match}`)
       ]
     }
   ];

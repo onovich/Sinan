@@ -5,7 +5,7 @@
   "layer": "environment",
   "browser": "Playwright Chromium",
   "port": 5184,
-  "durationMs": 1,
+  "durationMs": 9,
   "command": "npm exec -- playwright test -c playwright.config.ts",
   "consoleErrors": [],
   "artifacts": [],
@@ -14,5 +14,5 @@
     "Run npm exec -- playwright install chromium from spikes/mature-dependencies.",
     "AudioContext unlock, autoplay, fallback, and diagnostic smoke cannot run until Playwright Chromium launches."
   ],
-  "timestamp": "2026-06-21T11:09:22.609Z"
+  "timestamp": "2026-06-21T11:11:20.398Z"
 }

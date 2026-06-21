@@ -1,5 +1,5 @@
 {
-  "candidate": "Comlink / Worker",
+  "candidate": "Spector.js",
   "status": "ENVIRONMENT-BLOCKED",
   "decision": "ENVIRONMENT-BLOCKED",
   "layer": "environment",
@@ -12,7 +12,9 @@
   "diagnostics": [
     "Expected Playwright Chromium executable is missing: C:\\Users\\Administrator\\AppData\\Local\\ms-playwright\\chromium-1228\\chrome-win64\\chrome.exe",
     "Run npm exec -- playwright install chromium from spikes/mature-dependencies.",
-    "Worker URL, RPC, transferable payload, diagnostic error mapping, and terminate smoke cannot run until Playwright Chromium launches."
+    "Spector dev-only dynamic import guard cannot run in a browser until Playwright Chromium launches.",
+    "production static exclusion check available: true",
+    "production static exclusion matches for spectorjs/SPECTOR: 0"
   ],
   "timestamp": "2026-06-21T11:11:20.398Z"
 }

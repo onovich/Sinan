@@ -61,7 +61,7 @@ Do not commit:
 | Web Audio | `ENVIRONMENT-BLOCKED` | `web-audio-summary.json` records that AudioContext unlock, autoplay, fallback, and diagnostic smoke are blocked by missing Playwright Chromium. | Real browser cannot launch yet. | RFC-007 plus browser smoke policy. |
 | Dexie / IndexedDB | `ENVIRONMENT-BLOCKED` | `dexie-indexeddb-summary.json` records that Dexie, IndexedDB, quota, reload, cleanup, export, and import smoke are blocked by missing Playwright Chromium. | Real browser cannot launch yet. | RFC-008 plus browser smoke policy. |
 | Comlink / Worker | `ENVIRONMENT-BLOCKED` | `comlink-worker-summary.json` records that Comlink, Worker, worker URL, transferable, diagnostic error mapping, and terminate smoke are blocked by missing Playwright Chromium. | Real browser cannot launch yet. | RFC-010 plus browser smoke policy. |
-| Spector.js | `ENVIRONMENT-BLOCKED` | Pending candidate smoke. | Real browser cannot launch yet; must also remain `dev-only`. | RFC-012 plus RFC-011 production exclusion. |
+| Spector.js | `ENVIRONMENT-BLOCKED` | `spector-dev-only-summary.json` records that Spector dev-only dynamic import guard is blocked by missing Playwright Chromium, with production static exclusion diagnostics after build. | Real browser cannot launch yet; must also remain `dev-only` and excluded from production behavior. | RFC-012 plus RFC-011 production exclusion. |
 | Rapier / WASM | `ENVIRONMENT-BLOCKED` | Pending candidate smoke. | Real browser cannot launch yet; WASM/bundle path still unproven. | RFC-006 plus RFC-011. |
 | recast-navigation | `POLICY-SKIP` | Not run. | RFC-013 keeps navigation on hold. | Dedicated navigation RFC before implementation. |
 
