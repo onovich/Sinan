@@ -37,6 +37,8 @@ Phase 21.5 is PASS in `docs/phase-21-5-engine-maturity-external-infrastructure-c
 
 Use `docs/phase-22-lod-instancing-and-vegetation-goal-mode-execution-guide.md` for Phase 22. The guide uses 12 rounds and keeps the phase focused on traditional data-driven LOD, deterministic scatter, Three `InstancedMesh`, low-end LOD bias, and perf smoke evidence. Do not treat Phase 22 as approval for runtime dynamic mesh reduction, Nanite-style virtualized geometry, external dependency integration, or Phase 23 spherical world/gameplay work.
 
+Phase 22 is PASS in `docs/phase-22-lod-instancing-and-vegetation-final-report.md`. The active next implementation target is Phase 23: Compact Spherical World Prototype from `docs/abeto-messenger-development-plan.md`. Phase 23 should use Phase 22 LOD/scatter/instancing only as rendering infrastructure and must keep spherical world placement, camera, player movement, and region readability data-first.
+
 During Phase 21 and later shader work, use the "Shader Production Quality Checklist" in `docs/developer-guide.md`. New production materials or postprocess passes should not be accepted with editor-only evidence; they need compile smoke, visual regression coverage, fallback diagnostics, precompile consideration, and low-end baseline evidence appropriate to the change.
 
 ## Execution Budget

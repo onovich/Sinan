@@ -537,3 +537,9 @@ Complete Phase 22 from docs/abeto-messenger-development-plan.md: LOD, Instancing
 ```
 
 Use `docs/phase-22-lod-instancing-and-vegetation-goal-mode-execution-guide.md` before implementation. The guide uses 12 rounds: 8 implementation rounds, 2 buffer rounds, 1 integrated validation/hardening round, and 1 final validation/handoff round. Phase 22 should use traditional data-driven LOD with preauthored or offline-generated LOD assets; runtime dynamic mesh reduction, Nanite-style virtualized geometry, external asset-pipeline dependencies, Phase 23 spherical world work, and unrelated external adapters remain out of scope.
+
+Phase 22 is PASS in `docs/phase-22-lod-instancing-and-vegetation-final-report.md`. The next goal should be Phase 23: Compact Spherical World Prototype.
+
+```txt
+Complete Phase 23 from docs/abeto-messenger-development-plan.md: Compact Spherical World Prototype. Start only after Phase 22 is PASS and pushed. Keep spherical placement, camera behavior, player movement, and region readability data-first. Use Phase 22 LOD, scatter, instancing, and low-end profile work only as renderer infrastructure; do not add Physics, InputFlow, ViewRig, LudoWeave, Inscape, Runtime UI, Audio, narrative importers, multiplayer, or external adapters unless a scoped Phase 23 guide explicitly approves them while preserving Phase 21.5 boundaries.
+```
