@@ -369,7 +369,7 @@ Goal: convert the external infrastructure cooperation strategy and mature-engine
 
 Estimated rounds: 6.
 
-Execution: `docs/phase-21-5-engine-maturity-external-infrastructure-contract-gate-goal-mode-execution-guide.md` defines the goal-mode plan.
+Execution: `docs/phase-21-5-engine-maturity-external-infrastructure-contract-gate-goal-mode-execution-guide.md` defines the 6-round goal-mode plan.
 
 Scope:
 
@@ -518,7 +518,7 @@ Phase 21 is PASS. `docs/phase-21-shader-production-quality-gate-final-report.md`
 Complete Phase 21.5 from docs/abeto-messenger-development-plan.md: Engine Maturity External Contract Gate.
 ```
 
-Use `docs/phase-21-5-engine-maturity-external-infrastructure-contract-gate-goal-mode-execution-guide.md` before implementation. Phase 21.5 should create Sinan-owned RFCs, adapter boundary policy, POC briefs, mature dependency evaluation templates, and compatibility matrix documents before Phase 22.
+Use `docs/phase-21-5-engine-maturity-external-infrastructure-contract-gate-goal-mode-execution-guide.md` before implementation. The guide uses 6 rounds: 4 documentation/architecture rounds, 1 buffer round, and 1 final validation/handoff round. Phase 21.5 should create Sinan-owned RFCs, adapter boundary policy, POC briefs, mature dependency evaluation templates, and compatibility matrix documents before Phase 22.
 
 Start only after confirming `docs/phase-21-shader-production-quality-gate-final-report.md` is PASS and pushed. Phase 21.5 must remain a contract/documentation gate and must not implement LOD, input, physics, Runtime UI, audio, narrative importers, real external adapters, or runtime dependency integrations.
 
