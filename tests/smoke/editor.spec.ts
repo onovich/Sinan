@@ -896,7 +896,7 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
     .toBeGreaterThanOrEqual(4);
   expect(Array.from(modelResponses.values()).every((status) => status === 200)).toBe(true);
   await expect(page.locator('.panel-count').filter({ hasText: '5 entities' })).toBeVisible();
-  await expect(page.locator('.panel-count').filter({ hasText: '5 assets' })).toBeVisible();
+  await expect(page.locator('.panel-count').filter({ hasText: '8 assets' })).toBeVisible();
   await page.getByLabel('Search assets').fill('audio');
   await expect(page.locator('.asset-list button')).toHaveCount(1);
   await expect(page.locator('.asset-list button')).toContainText('audio.switch_click');

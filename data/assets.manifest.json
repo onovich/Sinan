@@ -49,6 +49,78 @@
         "notes": "Generated wall switch prop; eligible for future repeated-prop batching."
       }
     },
+    "model.switch_wall.lod0": {
+      "type": "model",
+      "url": "/models/props/switch_wall_lod0.glb",
+      "metadata": {
+        "category": "prop",
+        "materialProfile": "palette-toon",
+        "maxTriangles": 24,
+        "textureBudgetKb": 0,
+        "sizeBudgetBytes": 4096,
+        "compressed": false,
+        "compression": {
+          "codec": "none",
+          "status": "source"
+        },
+        "lodGroup": "gate-demo-props",
+        "instancing": "eligible",
+        "source": {
+          "file": "scripts/generate-dev-glb-assets.ts",
+          "authoringTool": "Sinan development GLB generator",
+          "generated": true
+        },
+        "notes": "Generated wall switch LOD0 with the full demo switch silhouette."
+      }
+    },
+    "model.switch_wall.lod1": {
+      "type": "model",
+      "url": "/models/props/switch_wall_lod1.glb",
+      "metadata": {
+        "category": "prop",
+        "materialProfile": "palette-toon",
+        "maxTriangles": 12,
+        "textureBudgetKb": 0,
+        "sizeBudgetBytes": 3072,
+        "compressed": false,
+        "compression": {
+          "codec": "none",
+          "status": "source"
+        },
+        "lodGroup": "gate-demo-props",
+        "instancing": "eligible",
+        "source": {
+          "file": "scripts/generate-dev-glb-assets.ts",
+          "authoringTool": "Sinan development GLB generator",
+          "generated": true
+        },
+        "notes": "Generated wall switch LOD1 with a simplified single-box silhouette."
+      }
+    },
+    "model.switch_wall.lod2": {
+      "type": "model",
+      "url": "/models/props/switch_wall_lod2.glb",
+      "metadata": {
+        "category": "prop",
+        "materialProfile": "palette-toon",
+        "maxTriangles": 12,
+        "textureBudgetKb": 0,
+        "sizeBudgetBytes": 2048,
+        "compressed": false,
+        "compression": {
+          "codec": "none",
+          "status": "source"
+        },
+        "lodGroup": "gate-demo-props",
+        "instancing": "eligible",
+        "source": {
+          "file": "scripts/generate-dev-glb-assets.ts",
+          "authoringTool": "Sinan development GLB generator",
+          "generated": true
+        },
+        "notes": "Generated wall switch LOD2 fallback for far-distance and low-end rendering."
+      }
+    },
     "model.door_wood": {
       "type": "model",
       "url": "/models/props/door_wood.glb",
@@ -63,7 +135,7 @@
           "codec": "none",
           "status": "source"
         },
-        "lodGroup": "gate-demo-props",
+        "lodGroup": "gate-demo-animated-props",
         "instancing": "none",
         "clips": ["Open"],
         "source": {
@@ -111,6 +183,19 @@
         },
         "notes": "Short generated switch-click placeholder for the Gate Demo."
       }
+    }
+  },
+  "lodGroups": {
+    "gate-demo-props": {
+      "strategy": "distance",
+      "hysteresis": 1,
+      "lowEndBias": 1,
+      "fallbackAsset": "model.switch_wall.lod2",
+      "levels": [
+        { "level": 0, "asset": "model.switch_wall.lod0", "minDistance": 0 },
+        { "level": 1, "asset": "model.switch_wall.lod1", "minDistance": 8 },
+        { "level": 2, "asset": "model.switch_wall.lod2", "minDistance": 16 }
+      ]
     }
   }
 }

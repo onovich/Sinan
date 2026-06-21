@@ -48,6 +48,33 @@ const assets: AssetSpec[] = [
     color: [0.34, 0.65, 0.84, 1],
   },
   {
+    relativePath: 'public/models/props/switch_wall_lod0.glb',
+    nodeName: 'SwitchWallLod0',
+    boxes: [
+      { min: [-0.24, -0.24, -0.1], max: [0.24, 0.24, 0.05] },
+      { min: [-0.08, -0.16, 0.05], max: [0.08, 0.16, 0.14] },
+    ],
+    color: [0.34, 0.65, 0.84, 1],
+  },
+  {
+    relativePath: 'public/models/props/switch_wall_lod1.glb',
+    nodeName: 'SwitchWallLod1',
+    bounds: {
+      min: [-0.22, -0.22, -0.08],
+      max: [0.22, 0.22, 0.08],
+    },
+    color: [0.28, 0.58, 0.76, 1],
+  },
+  {
+    relativePath: 'public/models/props/switch_wall_lod2.glb',
+    nodeName: 'SwitchWallLod2',
+    bounds: {
+      min: [-0.18, -0.18, -0.06],
+      max: [0.18, 0.18, 0.06],
+    },
+    color: [0.22, 0.5, 0.66, 1],
+  },
+  {
     relativePath: 'public/models/props/door_wood.glb',
     nodeName: 'DoorWood',
     bounds: {

@@ -58,7 +58,34 @@ describe('AssetReport', () => {
     );
     expect(formatAssetReport(report)).toContain('Budget: 1 pass, 0 fail, 0 unknown.');
     expect(formatAssetReport(report)).toContain(
-      '| model.switch_wall | model | /models/props/switch_wall.glb | 1596 B | 4096 B | +2500 B | none/source | palette-toon | - | - | ok |',
+      '| model.switch_wall | model | /models/props/switch_wall.glb | 1596 B | 4096 B | +2500 B | 64 | - | - | none/source | palette-toon | - | - | ok |',
+    );
+  });
+
+  it('reports LOD group, level count, triangle estimates, and instancing hints', () => {
+    const report = createAssetReport({
+      assets: createLodReportAssets(),
+      publicAssetByteSizes: new Map([
+        ['/models/props/switch_wall.glb', 1596],
+        ['/models/props/switch_wall_lod0.glb', 2200],
+        ['/models/props/switch_wall_lod1.glb', 1600],
+        ['/models/props/switch_wall_lod2.glb', 1400],
+      ]),
+    });
+    const lod1 = report.rows.find((row) => row.assetId === 'model.switch_wall.lod1');
+
+    expect(lod1).toEqual(
+      expect.objectContaining({
+        maxTriangles: 12,
+        lodGroup: 'gate-demo-props',
+        lodLevel: 'L1',
+        lodLevelCount: 3,
+        instancing: 'eligible',
+        status: 'ok',
+      }),
+    );
+    expect(formatAssetReport(report)).toContain(
+      '| model.switch_wall.lod1 | model | /models/props/switch_wall_lod1.glb | 1600 B | 3072 B | +1472 B | 12 | gate-demo-props L1/3 | eligible | none/source | palette-toon | - | - | ok |',
     );
   });
 
@@ -160,3 +187,73 @@ describe('AssetReport', () => {
     );
   });
 });
+
+function createLodReportAssets(): AssetManifestData {
+  const modelMetadata = {
+    category: 'prop',
+    materialProfile: 'palette-toon',
+    textureBudgetKb: 0,
+    compressed: false,
+    compression: {
+      codec: 'none',
+      status: 'source',
+    },
+    lodGroup: 'gate-demo-props',
+    instancing: 'eligible',
+  } as const;
+
+  return {
+    schemaVersion: 1,
+    assets: {
+      'model.switch_wall': {
+        type: 'model',
+        url: '/models/props/switch_wall.glb',
+        metadata: {
+          ...modelMetadata,
+          maxTriangles: 64,
+          sizeBudgetBytes: 4096,
+        },
+      },
+      'model.switch_wall.lod0': {
+        type: 'model',
+        url: '/models/props/switch_wall_lod0.glb',
+        metadata: {
+          ...modelMetadata,
+          maxTriangles: 24,
+          sizeBudgetBytes: 4096,
+        },
+      },
+      'model.switch_wall.lod1': {
+        type: 'model',
+        url: '/models/props/switch_wall_lod1.glb',
+        metadata: {
+          ...modelMetadata,
+          maxTriangles: 12,
+          sizeBudgetBytes: 3072,
+        },
+      },
+      'model.switch_wall.lod2': {
+        type: 'model',
+        url: '/models/props/switch_wall_lod2.glb',
+        metadata: {
+          ...modelMetadata,
+          maxTriangles: 12,
+          sizeBudgetBytes: 2048,
+        },
+      },
+    },
+    lodGroups: {
+      'gate-demo-props': {
+        strategy: 'distance',
+        hysteresis: 1,
+        lowEndBias: 1,
+        fallbackAsset: 'model.switch_wall.lod2',
+        levels: [
+          { level: 0, asset: 'model.switch_wall.lod0', minDistance: 0 },
+          { level: 1, asset: 'model.switch_wall.lod1', minDistance: 8 },
+          { level: 2, asset: 'model.switch_wall.lod2', minDistance: 16 },
+        ],
+      },
+    },
+  };
+}

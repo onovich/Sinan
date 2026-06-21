@@ -27,6 +27,11 @@ export interface AssetReportRow {
   byteSize: number | undefined;
   sizeBudgetBytes: number | undefined;
   budgetDeltaBytes: number | undefined;
+  maxTriangles: number | undefined;
+  lodGroup: string;
+  lodLevel: string;
+  lodLevelCount: number | undefined;
+  instancing: string;
   compression: string;
   materialProfile: string;
   texture: string;
@@ -71,9 +76,10 @@ export function createAssetReport(input: AssetReportInput): AssetReport {
       supportedModelCompressionCodecs: input.supportedModelCompressionCodecs,
     }),
   ];
+  const lodLookup = createLodLookup(input.assets);
   const rows = Object.entries(input.assets.assets)
     .map(([assetId, asset]) =>
-      createAssetReportRow(assetId, asset, input.publicAssetByteSizes, issues),
+      createAssetReportRow(assetId, asset, input.publicAssetByteSizes, issues, lodLookup),
     )
     .sort((left, right) => left.assetId.localeCompare(right.assetId));
 
@@ -119,15 +125,17 @@ export function formatAssetReport(report: AssetReport): string {
     )}.`,
     `Budget: ${report.summary.budgetPassCount} pass, ${report.summary.budgetFailCount} fail, ${report.summary.budgetUnknownCount} unknown. Metadata missing: ${report.summary.missingMetadataCount}. Missing files: ${report.summary.missingFileCount}.`,
     '',
-    '| Asset | Type | URL | Bytes | Budget | Delta | Compression | Material | Texture | Clips | Status |',
-    '| --- | --- | --- | ---: | ---: | ---: | --- | --- | --- | --- | --- |',
+    '| Asset | Type | URL | Bytes | Budget | Delta | Triangles | LOD | Instancing | Compression | Material | Texture | Clips | Status |',
+    '| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |',
     ...report.rows.map(
       (row) =>
         `| ${row.assetId} | ${row.type} | ${row.url} | ${formatBytes(row.byteSize)} | ${formatBytes(
           row.sizeBudgetBytes,
-        )} | ${formatDelta(row.budgetDeltaBytes)} | ${row.compression} | ${row.materialProfile} | ${
-          row.texture
-        } | ${row.clips} | ${row.status} |`,
+        )} | ${formatDelta(row.budgetDeltaBytes)} | ${formatNumber(row.maxTriangles)} | ${formatLod(
+          row,
+        )} | ${row.instancing} | ${row.compression} | ${row.materialProfile} | ${row.texture} | ${
+          row.clips
+        } | ${row.status} |`,
     ),
   ];
 
@@ -144,6 +152,7 @@ function createAssetReportRow(
   asset: AssetEntryData,
   publicAssetByteSizes: ReadonlyMap<string, number> | undefined,
   issues: readonly ReferenceValidationIssue[],
+  lodLookup: ReadonlyMap<string, AssetLodReportMetadata>,
 ): AssetReportRow {
   const byteSize = publicAssetByteSizes?.get(asset.url);
   const sizeBudgetBytes = asset.metadata?.sizeBudgetBytes;
@@ -151,6 +160,7 @@ function createAssetReportRow(
     byteSize !== undefined && sizeBudgetBytes !== undefined
       ? sizeBudgetBytes - byteSize
       : undefined;
+  const lodMetadata = lodLookup.get(assetId);
 
   return {
     assetId,
@@ -162,12 +172,52 @@ function createAssetReportRow(
     byteSize,
     sizeBudgetBytes,
     budgetDeltaBytes,
+    maxTriangles: asset.metadata?.maxTriangles,
+    lodGroup: lodMetadata?.groupId ?? asset.metadata?.lodGroup ?? '-',
+    lodLevel: lodMetadata?.levelLabel ?? (asset.metadata?.lodGroup ? 'source' : '-'),
+    lodLevelCount: lodMetadata?.levelCount,
+    instancing: asset.metadata?.instancing ?? '-',
     compression: getCompressionLabel(asset),
     materialProfile: asset.metadata?.materialProfile ?? '-',
     texture: getTextureLabel(asset),
     clips: asset.metadata?.clips?.join(', ') ?? '-',
     status: getAssetReportStatus(assetId, asset, byteSize, budgetDeltaBytes, issues),
   };
+}
+
+interface AssetLodReportMetadata {
+  groupId: string;
+  levelLabel: string;
+  levelCount: number | undefined;
+}
+
+function createLodLookup(assets: AssetManifestData): ReadonlyMap<string, AssetLodReportMetadata> {
+  const lookup = new Map<string, AssetLodReportMetadata>();
+
+  for (const [groupId, group] of Object.entries(assets.lodGroups ?? {})) {
+    for (const level of group.levels) {
+      lookup.set(level.asset, {
+        groupId,
+        levelLabel: `L${level.level}`,
+        levelCount: group.levels.length,
+      });
+    }
+  }
+
+  for (const [assetId, asset] of Object.entries(assets.assets)) {
+    const groupId = asset.metadata?.lodGroup;
+    if (!groupId || lookup.has(assetId)) {
+      continue;
+    }
+
+    lookup.set(assetId, {
+      groupId,
+      levelLabel: 'source',
+      levelCount: assets.lodGroups?.[groupId]?.levels.length,
+    });
+  }
+
+  return lookup;
 }
 
 function getCompressionLabel(asset: AssetEntryData): string {
@@ -254,6 +304,18 @@ function formatBytes(value: number | undefined): string {
   }
 
   return `${value} B`;
+}
+
+function formatNumber(value: number | undefined): string {
+  return value === undefined ? '-' : String(value);
+}
+
+function formatLod(row: AssetReportRow): string {
+  if (row.lodGroup === '-') {
+    return '-';
+  }
+
+  return `${row.lodGroup} ${row.lodLevel}/${row.lodLevelCount ?? '?'}`;
 }
 
 function formatDelta(value: number | undefined): string {
