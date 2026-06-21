@@ -88,3 +88,27 @@ Sinan owns schemas, registries, runtime semantics, validation, diagnostics, and 
 External mature dependencies own difficult algorithms, browser/platform behavior, or dev-only capture tooling.
 External object handles never enter Sinan JSON, data source-of-truth, editor command state, or public engine DSL.
 ```
+
+## Final Document Index
+
+| Document | Purpose |
+| --- | --- |
+| `adapter-compatibility-matrix.md` | Status enum, candidate classification, RFC coverage index, and cross-RFC consistency decisions. |
+| `browser-smoke-environment-policy.md` | Browser smoke requirements for WASM, Web Audio, IndexedDB, workers, diagnostics, and future navigation. |
+| `docs/rfcs/RFC-006-physics-adapter-boundary.md` | `PhysicsAdapter` contract for Rapier-style physics without Rapier leakage. |
+| `docs/rfcs/RFC-007-audio-system-boundary.md` | `AudioSystem` contract for Web Audio implementation behind Sinan cues and buses. |
+| `docs/rfcs/RFC-008-storage-save-boundary.md` | `StorageAdapter` contract for Dexie/IndexedDB while preserving `data/**/*.json` as source-of-truth. |
+| `docs/rfcs/RFC-009-asset-pipeline-boundary.md` | Offline `AssetPipelineAdapter` contract for glTF Transform and meshoptimizer. |
+| `docs/rfcs/RFC-010-worker-task-boundary.md` | `WorkerTaskAdapter` contract for Comlink-style worker transport. |
+| `docs/rfcs/RFC-011-wasm-bundle-dependency-policy.md` | Shared WASM, bundle, dependency, license, and dynamic import approval policy. |
+| `docs/rfcs/RFC-012-dev-only-diagnostics-policy.md` | Dev-only diagnostics policy for Spector-style tooling. |
+| `docs/rfcs/RFC-013-navigation-adapter-hold-policy.md` | Navigation hold policy for recast-style candidates. |
+
+## Review Buffer Result
+
+No external review feedback was received during this execution pass. The Round 11 self-review checked that:
+
+- Every required output path from the goal guide has a planned or completed document.
+- Every candidate in the compatibility matrix has a matching RFC or policy entry.
+- Shared risks are not duplicated inconsistently; WASM/bundle/dependency approval belongs to RFC-011, and real browser execution belongs to the browser smoke policy.
+- The contract pack does not approve runtime integration, root package changes, or source/data changes.
