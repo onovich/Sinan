@@ -38,6 +38,95 @@ export const AssetCompressionStatusSchema = z.enum([
 
 export const AssetInstancingHintSchema = z.enum(['none', 'eligible', 'required']);
 
+export const AssetLodStrategySchema = z.enum(['distance']);
+
+export const AssetLodLevelSchema = z
+  .object({
+    level: z.number().int().nonnegative(),
+    asset: AssetIdSchema,
+    minDistance: z.number().finite().nonnegative(),
+  })
+  .strict();
+
+const MAX_LOW_END_LOD_BIAS = 4;
+
+export const AssetLodGroupSchema = z
+  .object({
+    strategy: AssetLodStrategySchema,
+    hysteresis: z.number().finite().nonnegative(),
+    lowEndBias: z.number().int().min(0).max(MAX_LOW_END_LOD_BIAS),
+    fallbackAsset: AssetIdSchema,
+    levels: z.array(AssetLodLevelSchema).min(1),
+  })
+  .strict()
+  .superRefine((group, context) => {
+    const seenLevels = new Set<number>();
+    let previousLevel = -1;
+    let previousMinDistance = -Infinity;
+
+    group.levels.forEach((level, index) => {
+      if (seenLevels.has(level.level)) {
+        context.addIssue({
+          code: 'custom',
+          path: ['levels', index, 'level'],
+          message: `Duplicate LOD level "${level.level}".`,
+        });
+      }
+      seenLevels.add(level.level);
+
+      if (level.level <= previousLevel) {
+        context.addIssue({
+          code: 'custom',
+          path: ['levels', index, 'level'],
+          message: 'LOD levels must be ordered by ascending level.',
+        });
+      }
+
+      if (level.minDistance <= previousMinDistance) {
+        context.addIssue({
+          code: 'custom',
+          path: ['levels', index, 'minDistance'],
+          message: 'LOD minDistance thresholds must increase.',
+        });
+      }
+
+      previousLevel = level.level;
+      previousMinDistance = level.minDistance;
+    });
+
+    if (group.levels[0]?.level !== 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['levels', 0, 'level'],
+        message: 'LOD groups must start at level 0.',
+      });
+    }
+
+    if (group.levels[0]?.minDistance !== 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['levels', 0, 'minDistance'],
+        message: 'LOD groups must start at minDistance 0.',
+      });
+    }
+
+    if (group.lowEndBias >= group.levels.length) {
+      context.addIssue({
+        code: 'custom',
+        path: ['lowEndBias'],
+        message: 'lowEndBias must be lower than the number of LOD levels.',
+      });
+    }
+
+    if (!group.levels.some((level) => level.asset === group.fallbackAsset)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['fallbackAsset'],
+        message: 'fallbackAsset must reference one of the LOD levels.',
+      });
+    }
+  });
+
 export const AssetTextureColorSpaceSchema = z.enum(['srgb', 'linear', 'none']);
 
 export const AssetTextureUsageSchema = z.enum([
@@ -139,10 +228,14 @@ export const AssetManifestSchema = z
   .object({
     schemaVersion: SchemaVersionSchema,
     assets: z.record(AssetIdSchema, AssetEntrySchema),
+    lodGroups: z.record(AssetIdSchema, AssetLodGroupSchema).optional(),
   })
   .strict();
 
 export type AssetType = z.infer<typeof AssetTypeSchema>;
+export type AssetLodStrategyData = z.infer<typeof AssetLodStrategySchema>;
+export type AssetLodLevelData = z.infer<typeof AssetLodLevelSchema>;
+export type AssetLodGroupData = z.infer<typeof AssetLodGroupSchema>;
 export type AssetMetadataData = z.infer<typeof AssetMetadataSchema>;
 export type AssetEntryData = z.infer<typeof AssetEntrySchema>;
 export type AssetManifestData = z.infer<typeof AssetManifestSchema>;

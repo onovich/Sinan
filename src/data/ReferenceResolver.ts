@@ -49,6 +49,8 @@ export function validateProjectReferences(
   const entityMaterialSlots = new Map<string, RenderableMaterialSlotsData>();
   const entityModelAssetIds = new Map<string, string>();
 
+  addLodGroupAssetReferenceIssues(input.assets, assetIds, issues);
+
   addDuplicateIdIssues(
     input.prefabs.map((prefab) => prefab.id),
     'data/prefabs',
@@ -728,6 +730,30 @@ function addAssetTypeIssue(
     path,
     message: `Asset "${assetId}" must be type "${expectedType}", got "${asset.type}".`,
   });
+}
+
+function addLodGroupAssetReferenceIssues(
+  assets: AssetManifestData,
+  assetIds: ReadonlySet<string>,
+  issues: ReferenceValidationIssue[],
+): void {
+  if (!assets.lodGroups) {
+    return;
+  }
+
+  for (const [groupId, group] of Object.entries(assets.lodGroups)) {
+    const groupPath = `data/assets.manifest.json.lodGroups.${groupId}`;
+
+    addMissingAssetIssue(group.fallbackAsset, assetIds, `${groupPath}.fallbackAsset`, issues);
+    addAssetTypeIssue(group.fallbackAsset, assets, 'model', `${groupPath}.fallbackAsset`, issues);
+
+    group.levels.forEach((level, index) => {
+      const levelAssetPath = `${groupPath}.levels.${index}.asset`;
+
+      addMissingAssetIssue(level.asset, assetIds, levelAssetPath, issues);
+      addAssetTypeIssue(level.asset, assets, 'model', levelAssetPath, issues);
+    });
+  }
 }
 
 function addAnimationClipReferenceIssue(
