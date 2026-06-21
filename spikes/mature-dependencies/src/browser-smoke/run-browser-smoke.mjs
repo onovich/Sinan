@@ -1,34 +1,34 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync } from "node:fs";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { writeBrowserSmokeSummary } from "./result-writer.mjs";
 
 const packageRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
-const reportDir = join(packageRoot, "reports", "browser-smoke");
-const summaryPath = join(reportDir, "browser-baseline-summary.json");
 const headed = process.argv.includes("--headed");
-
-mkdirSync(reportDir, { recursive: true });
-
-function writeSummary(summary) {
-  writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");
-}
+const startedAt = Date.now();
 
 function nowIso() {
   return new Date().toISOString();
 }
 
+function durationMs() {
+  return Date.now() - startedAt;
+}
+
 const expectedExecutable = chromium.executablePath();
 
 if (!existsSync(expectedExecutable)) {
-  writeSummary({
+  writeBrowserSmokeSummary(packageRoot, "browser-baseline-summary.json", {
     candidate: "browser-baseline",
     status: "ENVIRONMENT-BLOCKED",
     layer: "environment",
     browser: "Playwright Chromium",
     port: 5184,
+    durationMs: durationMs(),
     command: "npm exec -- playwright test -c playwright.config.ts",
+    consoleErrors: [],
     diagnostics: [
       `Expected Playwright Chromium executable is missing: ${expectedExecutable}`,
       "Run npm exec -- playwright install chromium from spikes/mature-dependencies."
@@ -54,13 +54,15 @@ const result = spawnSync("npm", args, {
 const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`.trim();
 
 if (result.status === 0) {
-  writeSummary({
+  writeBrowserSmokeSummary(packageRoot, "browser-baseline-summary.json", {
     candidate: "browser-baseline",
     status: "PASS",
     layer: "environment",
     browser: "Playwright Chromium",
     port: 5184,
+    durationMs: durationMs(),
     command: `npm ${args.join(" ")}`,
+    consoleErrors: [],
     diagnostics: ["Page load smoke passed and registry was visible."],
     artifacts: [],
     timestamp: nowIso()
@@ -73,13 +75,17 @@ if (
   output.includes("Executable doesn't exist") ||
   output.includes("Looks like Playwright was just installed or updated")
 ) {
-  writeSummary({
+  writeBrowserSmokeSummary(packageRoot, "browser-baseline-summary.json", {
     candidate: "browser-baseline",
     status: "ENVIRONMENT-BLOCKED",
     layer: "environment",
     browser: "Playwright Chromium",
     port: 5184,
+    durationMs: durationMs(),
     command: `npm ${args.join(" ")}`,
+    consoleErrors: output
+      .split(/\r?\n/)
+      .filter((line) => line.toLowerCase().includes("error") || line.includes("Executable doesn't exist")),
     diagnostics: output.split(/\r?\n/).filter(Boolean).slice(-12),
     artifacts: [],
     timestamp: nowIso()
