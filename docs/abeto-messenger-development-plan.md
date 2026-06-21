@@ -535,3 +535,5 @@ Phase 21.5 is PASS in `docs/phase-21-5-engine-maturity-external-infrastructure-c
 ```txt
 Complete Phase 22 from docs/abeto-messenger-development-plan.md: LOD, Instancing, And Vegetation. Start only after Phase 21.5 is PASS and pushed. Keep LOD and instancing data source-of-truth JSON with schema and validation; keep Three InstancedMesh, GLTF, texture, and compression details under src/runtime/three/**. Do not make Indirection, InputFlow, ViewRig, LudoWeave, Inscape, Physics, or Audio a hard dependency unless a scoped Phase 22 guide explicitly expands scope while preserving Phase 21.5 boundaries.
 ```
+
+Use `docs/phase-22-lod-instancing-and-vegetation-goal-mode-execution-guide.md` before implementation. The guide uses 12 rounds: 8 implementation rounds, 2 buffer rounds, 1 integrated validation/hardening round, and 1 final validation/handoff round. Phase 22 should use traditional data-driven LOD with preauthored or offline-generated LOD assets; runtime dynamic mesh reduction, Nanite-style virtualized geometry, external asset-pipeline dependencies, Phase 23 spherical world work, and unrelated external adapters remain out of scope.
