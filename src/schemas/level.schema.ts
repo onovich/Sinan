@@ -10,6 +10,7 @@ import {
   TimelineIdSchema,
 } from './common.schema';
 import { EntitySchema } from './entity.schema';
+import { ScatterGroupSchema } from './scatter.schema';
 
 const LevelEnvironmentFogSchema = z
   .object({
@@ -56,8 +57,12 @@ export const LevelSchema = z
     events: z.array(EventIdSchema).default([]),
     timelines: z.array(TimelineIdSchema).default([]),
     cameraShots: z.array(CameraShotIdSchema).default([]),
+    scatterGroups: z.array(ScatterGroupSchema).default([]),
   })
   .strict();
 
 export type LevelEnvironmentData = z.infer<typeof LevelEnvironmentSchema>;
-export type LevelData = z.infer<typeof LevelSchema>;
+type LevelSchemaData = z.infer<typeof LevelSchema>;
+export type LevelData = Omit<LevelSchemaData, 'scatterGroups'> & {
+  scatterGroups?: LevelSchemaData['scatterGroups'];
+};

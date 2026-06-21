@@ -104,10 +104,18 @@ export function validateProjectReferences(
   );
 
   for (const level of input.levels) {
+    const scatterGroups = level.scatterGroups ?? [];
+
     addDuplicateIdIssues(
       level.entities.map((entity) => entity.id),
       `data/levels/${level.id}.json.entities`,
       'entity',
+      issues,
+    );
+    addDuplicateIdIssues(
+      scatterGroups.map((group) => group.id),
+      `data/levels/${level.id}.json.scatterGroups`,
+      'scatter group',
       issues,
     );
 
@@ -162,6 +170,17 @@ export function validateProjectReferences(
         input.materialRegistry,
         input.assets,
         `data/levels/${level.id}.json.entities.${entity.id}.components.Renderable.materials`,
+        issues,
+      );
+    }
+
+    for (const scatterGroup of scatterGroups) {
+      addScatterGroupReferenceIssues(
+        scatterGroup,
+        `data/levels/${level.id}.json.scatterGroups.${scatterGroup.id}`,
+        input,
+        prefabIds,
+        assetIds,
         issues,
       );
     }
@@ -752,6 +771,52 @@ function addLodGroupAssetReferenceIssues(
 
       addMissingAssetIssue(level.asset, assetIds, levelAssetPath, issues);
       addAssetTypeIssue(level.asset, assets, 'model', levelAssetPath, issues);
+    });
+  }
+}
+
+function addScatterGroupReferenceIssues(
+  scatterGroup: NonNullable<LevelData['scatterGroups']>[number],
+  path: string,
+  input: ReferenceValidationInput,
+  prefabIds: ReadonlySet<string>,
+  assetIds: ReadonlySet<string>,
+  issues: ReferenceValidationIssue[],
+): void {
+  if (scatterGroup.source.type === 'asset') {
+    addMissingAssetIssue(scatterGroup.source.asset, assetIds, `${path}.source.asset`, issues);
+    addAssetTypeIssue(
+      scatterGroup.source.asset,
+      input.assets,
+      'model',
+      `${path}.source.asset`,
+      issues,
+    );
+  } else if (!prefabIds.has(scatterGroup.source.prefab)) {
+    issues.push({
+      severity: 'error',
+      path: `${path}.source.prefab`,
+      message: `Missing prefab "${scatterGroup.source.prefab}".`,
+    });
+  }
+
+  if (scatterGroup.fallback?.asset) {
+    addMissingAssetIssue(scatterGroup.fallback.asset, assetIds, `${path}.fallback.asset`, issues);
+    addAssetTypeIssue(
+      scatterGroup.fallback.asset,
+      input.assets,
+      'model',
+      `${path}.fallback.asset`,
+      issues,
+    );
+  }
+
+  const lodGroup = scatterGroup.quality?.lodGroup;
+  if (lodGroup && !input.assets.lodGroups?.[lodGroup]) {
+    issues.push({
+      severity: 'error',
+      path: `${path}.quality.lodGroup`,
+      message: `Missing LOD group "${lodGroup}".`,
     });
   }
 }

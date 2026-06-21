@@ -120,6 +120,63 @@ export interface RuntimeLodSelectedLevel {
 
 export type RuntimeLodSelectionResult = RuntimeLodDisabledSelection | RuntimeLodSelectedLevel;
 
+export type RuntimeScatterSource =
+  | {
+      type: 'asset';
+      asset: string;
+    }
+  | {
+      type: 'prefab';
+      prefab: string;
+    };
+
+export interface RuntimeScatterRange {
+  min: number;
+  max: number;
+}
+
+export interface RuntimeScatterPlacement {
+  shape: 'box';
+  center: Vec3;
+  size: Vec3;
+}
+
+export type RuntimeScatterAlignment = 'none' | 'y-up';
+
+export interface RuntimeScatterTransformRanges {
+  yaw?: RuntimeScatterRange;
+  uniformScale?: RuntimeScatterRange;
+}
+
+export interface RuntimeScatterQuality {
+  lodGroup?: string;
+  lowEndCountScale?: number;
+}
+
+export interface RuntimeScatterFallback {
+  mode: 'skip' | 'placeholder';
+  asset?: string;
+}
+
+export interface RuntimeScatterGroup {
+  id: string;
+  source: RuntimeScatterSource;
+  count: number;
+  seed: string | number;
+  placement: RuntimeScatterPlacement;
+  alignment?: RuntimeScatterAlignment;
+  transform?: RuntimeScatterTransformRanges;
+  quality?: RuntimeScatterQuality;
+  fallback?: RuntimeScatterFallback;
+}
+
+export interface RuntimeScatterInstance {
+  id: string;
+  groupId: string;
+  source: RuntimeScatterSource;
+  transform: RuntimeTransform;
+}
+
 export interface RuntimeRenderStyle {
   profile: RuntimeRenderStyleProfile;
   palette?: string;
