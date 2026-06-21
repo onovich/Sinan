@@ -379,12 +379,14 @@ Scope:
 - Add RFC-007 Audio System Boundary.
 - Define adapter boundary policy for future `src/assets/adapters/**`, `src/input/adapters/**`, `src/camera/adapters/**`, `src/ui/adapters/**`, `src/physics/adapters/**`, `src/audio/adapters/**`, and `src/narrative/adapters/**`.
 - Add partner POC brief, mature dependency evaluation, and compatibility matrix templates.
+- Route future POCs through `docs/phase-21-5-poc-sequencing-and-roadmap-routing.md` without making them hard dependencies for Phase 22.
 - Update roadmap entry points and produce a Phase 21.5 final report.
 
 Acceptance:
 
 - Sinan-owned RFCs and templates exist before external infrastructure enters implementation phases.
 - Future early partners and mature dependencies are evaluated through adapter, fallback, validation, and compatibility gates.
+- Phase 21.5: Engine Maturity And External Infrastructure Contract Gate provides the roadmap routing between Phase 21 and Phase 22.
 - No external dependency is installed and no runtime adapter is implemented in Phase 21.5.
 - Phase 22 remains the next implementation phase after this contract gate passes.
 
@@ -521,6 +523,8 @@ Complete Phase 21.5 from docs/abeto-messenger-development-plan.md: Engine Maturi
 Use `docs/phase-21-5-engine-maturity-external-infrastructure-contract-gate-goal-mode-execution-guide.md` before implementation. The guide uses 6 rounds: 4 documentation/architecture rounds, 1 buffer round, and 1 final validation/handoff round. Phase 21.5 should create Sinan-owned RFCs, adapter boundary policy, POC briefs, mature dependency evaluation templates, and compatibility matrix documents before Phase 22.
 
 Start only after confirming `docs/phase-21-shader-production-quality-gate-final-report.md` is PASS and pushed. Phase 21.5 must remain a contract/documentation gate and must not implement LOD, input, physics, Runtime UI, audio, narrative importers, real external adapters, or runtime dependency integrations.
+
+Use `docs/phase-21-5-poc-sequencing-and-roadmap-routing.md` to decide which future POCs belong before, beside, or after Phase 22. Phase 22 is still LOD, Instancing, And Vegetation by default; external infrastructure POCs require their own scoped guide unless a later phase explicitly adopts one.
 
 Before starting Phase 21.5, re-read `AGENTS.md`, the main architecture guide, `docs/engine-positioning-architecture-adjustment-plan.md`, the Phase 18, Phase 18.5, Phase 19, Phase 20, and Phase 21 final reports, both Web3D Shader GLSL MVP docs, and the current runtime/editor architecture.
 
