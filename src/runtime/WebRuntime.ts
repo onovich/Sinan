@@ -16,6 +16,8 @@ import type {
   RuntimeRenderEnvironmentStyle,
   RuntimeRenderableMaterialSlots,
   RuntimeRenderStyle,
+  RuntimeScatterDiagnostics,
+  RuntimeScatterGroup,
   RuntimeStyleQualityProfile,
   RuntimeStyleResources,
 } from './RuntimeTypes';
@@ -37,6 +39,8 @@ export interface WebRuntime {
   setCameraPose(pose: RuntimeCameraPose): void;
   setDebugAabb(entityId: string, bounds: RuntimeDebugAabb | undefined): void;
   setEntityLodGroup?(entityId: string, group: RuntimeLodGroup | undefined): void;
+  setScatterGroups?(groups: readonly RuntimeScatterGroup[]): void;
+  getScatterDiagnostics?(): readonly RuntimeScatterDiagnostics[];
   setStyleResources?(resources: RuntimeStyleResources): void;
   setRenderStyle?(entityId: string, style: RuntimeRenderStyle | undefined): void;
   setRenderableMaterials?(

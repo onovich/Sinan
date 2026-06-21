@@ -6,6 +6,7 @@ import type {
   RuntimeLodGroup,
   RuntimeRenderStyle,
   RuntimeRenderableMaterialSlots,
+  RuntimeScatterGroup,
   RuntimeShaderGlobals,
   RuntimeSize,
   RuntimeStyleQualityProfile,
@@ -229,11 +230,58 @@ describe('EngineSession', () => {
       },
     });
   });
+
+  it('passes level scatter groups to the runtime after project load', async () => {
+    const calls: unknown[] = [];
+    const session = new EngineSession({
+      runtime: createRuntimeProbe(calls, { recordScatterGroups: true }),
+    });
+
+    await session.loadProject(createScatterProject());
+
+    expect(calls).toContainEqual({
+      type: 'setScatterGroups',
+      groups: [
+        {
+          id: 'scatter_switch_markers',
+          source: {
+            type: 'asset',
+            asset: 'model.switch_wall.lod2',
+          },
+          count: 6,
+          seed: 'gate-demo-switch-markers',
+          placement: {
+            shape: 'box',
+            center: [1.2, 0.7, 6.2],
+            size: [2.4, 0, 1.6],
+          },
+          alignment: 'y-up',
+          transform: {
+            uniformScale: {
+              min: 0.55,
+              max: 0.85,
+            },
+          },
+          quality: {
+            lowEndCountScale: 0.5,
+          },
+          fallback: {
+            mode: 'placeholder',
+            asset: 'model.switch_wall.lod2',
+          },
+        },
+      ],
+    });
+  });
 });
 
 function createRuntimeProbe(
   calls: unknown[],
-  options: { recordLodGroups?: boolean; recordShaderGlobals?: boolean } = {},
+  options: {
+    recordLodGroups?: boolean;
+    recordScatterGroups?: boolean;
+    recordShaderGlobals?: boolean;
+  } = {},
 ): WebRuntime {
   const runtime: WebRuntime = {
     init: () => undefined,
@@ -306,6 +354,11 @@ function createRuntimeProbe(
   if (options.recordLodGroups) {
     runtime.setEntityLodGroup = (entityId: string, group: RuntimeLodGroup | undefined) => {
       calls.push({ type: 'setEntityLodGroup', entityId, group });
+    };
+  }
+  if (options.recordScatterGroups) {
+    runtime.setScatterGroups = (groups: readonly RuntimeScatterGroup[]) => {
+      calls.push({ type: 'setScatterGroups', groups });
     };
   }
 
@@ -437,6 +490,57 @@ function createLodProject(): ProjectData {
           ],
         },
       },
+    },
+  };
+}
+
+function createScatterProject(): ProjectData {
+  const project = createProject();
+
+  return {
+    ...project,
+    assets: {
+      schemaVersion: 1,
+      assets: {
+        ...project.assets.assets,
+        'model.switch_wall.lod2': {
+          type: 'model',
+          url: '/models/props/switch_wall_lod2.glb',
+        },
+      },
+    },
+    level: {
+      ...project.level,
+      scatterGroups: [
+        {
+          id: 'scatter_switch_markers',
+          source: {
+            type: 'asset',
+            asset: 'model.switch_wall.lod2',
+          },
+          count: 6,
+          seed: 'gate-demo-switch-markers',
+          placement: {
+            shape: 'box',
+            center: [1.2, 0.7, 6.2],
+            size: [2.4, 0, 1.6],
+          },
+          alignment: 'y-up',
+          transform: {
+            uniformScale: {
+              min: 0.55,
+              max: 0.85,
+            },
+          },
+          quality: {
+            lowEndCountScale: 0.5,
+          },
+          fallback: {
+            mode: 'placeholder',
+            asset: 'model.switch_wall.lod2',
+          },
+        },
+      ],
     },
   };
 }

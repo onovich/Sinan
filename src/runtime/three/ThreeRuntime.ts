@@ -15,6 +15,8 @@ import type {
   RuntimeRenderEnvironmentStyle,
   RuntimeRenderableMaterialSlots,
   RuntimeRenderStyle,
+  RuntimeScatterDiagnostics,
+  RuntimeScatterGroup,
   RuntimeInitOptions,
   RuntimeShaderGlobals,
   RuntimeSize,
@@ -47,6 +49,7 @@ import {
 import { disposeObjectResources } from './ThreeObjectResources';
 import { pickThreeObject } from './ThreePicking';
 import { ThreePostProcessRuntime } from './ThreePostProcessRuntime';
+import { ThreeScatterRuntime } from './ThreeScatterRuntime';
 import { ThreeStyleDecorators } from './ThreeStyleDecorators';
 
 export interface ThreeRuntimeOptions {
@@ -90,6 +93,7 @@ export class ThreeRuntime implements WebRuntime {
   private objectByEntityId = new Map<string, THREE.Object3D>();
   private readonly materialRegistry: ThreeMaterialRegistry;
   private readonly materialRuntime: ThreeMaterialRuntime;
+  private readonly scatterRuntime: ThreeScatterRuntime;
   private styleDecorators: ThreeStyleDecorators | undefined;
   private debugAabbByEntityId = new Map<string, THREE.LineSegments>();
   private animationStateByEntityId = new Map<
@@ -118,6 +122,7 @@ export class ThreeRuntime implements WebRuntime {
     this.postProcessRuntime = options.postProcessRuntime ?? new ThreePostProcessRuntime();
     this.materialRegistry = new ThreeMaterialRegistry({ logger: this.logger });
     this.materialRuntime = new ThreeMaterialRuntime();
+    this.scatterRuntime = new ThreeScatterRuntime({ modelAssets: this.modelAssets });
   }
 
   init(options: RuntimeInitOptions): void {
@@ -198,6 +203,7 @@ export class ThreeRuntime implements WebRuntime {
     this.camera = camera;
     this.editorCamera = editorCamera;
     this.styleDecorators = new ThreeStyleDecorators(styleHelperRoot);
+    this.scatterRuntime.setRoot(objectRoot);
     this.styleDecorators.setQualityProfile(this.styleQualityProfile);
     this.materialRegistry.setQualityProfile(this.styleQualityProfile);
     this.transformControls = transformControls;
@@ -508,6 +514,14 @@ export class ThreeRuntime implements WebRuntime {
     this.updateEntityLod(entityId);
   }
 
+  setScatterGroups(groups: readonly RuntimeScatterGroup[]): void {
+    this.scatterRuntime.setGroups(groups);
+  }
+
+  getScatterDiagnostics(): readonly RuntimeScatterDiagnostics[] {
+    return this.scatterRuntime.getDiagnostics();
+  }
+
   private applyRenderableMaterials(
     entityId: string,
     materials: RuntimeRenderableMaterialSlots,
@@ -578,6 +592,7 @@ export class ThreeRuntime implements WebRuntime {
     this.styleQualityProfile = profile;
     this.materialRegistry.setQualityProfile(profile);
     this.styleDecorators?.setQualityProfile(profile);
+    this.scatterRuntime.setQualityProfile(profile);
     for (const entityId of this.objectByEntityId.keys()) {
       this.applyEntityRenderStyle(entityId);
     }
@@ -733,6 +748,8 @@ export class ThreeRuntime implements WebRuntime {
       this.materialRegistry.applyStyle(object, { profile: 'standard' });
     }
     this.styleDecorators?.dispose();
+    this.scatterRuntime.dispose();
+    this.scatterRuntime.setRoot(undefined);
     this.postProcessRuntime.dispose();
     this.scene?.traverse((object) => {
       disposeObjectResources(object);

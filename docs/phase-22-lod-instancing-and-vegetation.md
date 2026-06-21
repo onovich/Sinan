@@ -172,6 +172,8 @@ The first instancing implementation should:
 - dispose instanced geometry/material resources
 - document picking/selection limitations for instanced groups
 
+Phase 22 instanced scatter groups are rendered as non-selectable batches. Picking remains entity-based; scatter group observability comes from runtime diagnostics and smoke counters until a later phase defines per-instance selection semantics.
+
 Phase 22 should not build a full vegetation authoring tool. It should prove deterministic data, one instanced render path, and practical smoke/perf evidence.
 
 ## 9. Perf And Smoke Decision

@@ -17,6 +17,7 @@ import type {
   RuntimePalette,
   RuntimeRenderEnvironmentStyle,
   RuntimeRenderStyle,
+  RuntimeScatterGroup,
   RuntimeSize,
   RuntimeStyleQualityProfile,
 } from '../runtime/RuntimeTypes';
@@ -160,6 +161,7 @@ export class EngineSession {
       );
     }
 
+    this.options.runtime.setScatterGroups?.(toRuntimeScatterGroups(project.level.scatterGroups));
     this.loadedEntityIds = nextEntityIds;
     this.syncTriggerDebug();
     this.status = 'loaded';
@@ -341,4 +343,20 @@ function toRuntimeLodGroup(
       minDistance: level.minDistance,
     })),
   };
+}
+
+function toRuntimeScatterGroups(
+  scatterGroups: ProjectData['level']['scatterGroups'],
+): RuntimeScatterGroup[] {
+  return (scatterGroups ?? []).map((group) => ({
+    id: group.id,
+    source: group.source,
+    count: group.count,
+    seed: group.seed,
+    placement: group.placement,
+    alignment: group.alignment,
+    transform: group.transform,
+    quality: group.quality,
+    fallback: group.fallback,
+  }));
 }

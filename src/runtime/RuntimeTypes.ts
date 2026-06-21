@@ -177,6 +177,13 @@ export interface RuntimeScatterInstance {
   transform: RuntimeTransform;
 }
 
+export interface RuntimeScatterDiagnostics {
+  groupId: string;
+  instanceCount: number;
+  sourceAsset: string;
+  fallbackUsed: boolean;
+}
+
 export interface RuntimeRenderStyle {
   profile: RuntimeRenderStyleProfile;
   palette?: string;
