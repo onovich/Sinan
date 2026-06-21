@@ -1,0 +1,49 @@
+# Mature Dependency Adapter Compatibility Matrix
+
+Date: 2026-06-21
+Scope: docs-only adapter contract classification for the mature dependency spike branch.
+Status: Draft contract matrix for RFC-006 through RFC-013.
+
+## Status Enum
+
+| Status | Meaning | Allowed next action |
+| --- | --- | --- |
+| `accept-for-contract` | Spike evidence supports a Sinan-owned adapter contract, but not direct dependency adoption. | Write or keep an RFC contract before implementation. |
+| `adapter-spike-ready` | Contract is plausible and the next safe action is an isolated adapter spike. | Prepare a narrow implementation spike after RFC approval. |
+| `dev-only` | Candidate may be used for diagnostics or tooling only. | Keep out of production runtime and data semantics. |
+| `hold-for-rfc` | Candidate has useful evidence but needs another boundary RFC or policy before implementation. | Do not implement until the missing RFC is accepted. |
+| `hold-for-showcase` | Candidate is better evaluated inside a specific playable/editor showcase. | Revisit when the showcase acceptance target exists. |
+| `blocked` | Candidate cannot proceed because an environmental, licensing, browser, or architecture blocker remains. | Resolve blocker and update this matrix before any spike. |
+| `reject` | Candidate should not be adopted for the current architecture. | Keep only as negative evidence. |
+
+## Matrix
+
+| Sinan contract | Candidate dependency | Prior spike evidence | Contract status | Runtime target | Browser smoke stance | Fallback stance | Approval gate | Exit strategy |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `PhysicsAdapter` | Rapier JS/WASM | Isolated smoke covered world stepping, rigid body movement, collider queries, and deterministic fixed-step shape. | `accept-for-contract` | Runtime world system behind adapter. | Required before mainline integration because WASM init and browser packaging must be proven outside docs. | Null physics adapter with no dynamic collision, plus diagnostic reason. | RFC-006 and RFC-011 accepted, then isolated adapter spike. | Remove adapter binding and keep authored JSON unchanged. |
+| `AudioSystem` | Web Audio API first, optional wrappers later | Fake AudioContext smoke validated command sequencing; real browser unlock/autoplay remains a policy concern. | `accept-for-contract` | Runtime audio service and timeline cue playback. | Required for unlock, decode, spatial panner, and scheduling behavior. | Silent audio system with visible diagnostics and stable timeline completion. | RFC-007 accepted and browser smoke policy satisfied. | Keep `AudioCue` data; replace implementation behind service boundary. |
+| `StorageAdapter` | Dexie / IndexedDB | Isolated Dexie smoke validated CRUD, versioned stores, export/import shape, and cleanup path. | `accept-for-contract` | Browser persistence for saves, drafts, cache metadata, and recent files. | Required for quota, upgrade, private-mode failure, and cleanup behavior. | In-memory volatile storage with quota/error diagnostic. | RFC-008 accepted and migration ownership documented. | Export saves, drop generated stores, preserve canonical `data/**/*.json`. |
+| `AssetPipelineAdapter` | glTF Transform, meshoptimizer | Node-side smoke validated inspect/transform/report style without runtime imports. | `adapter-spike-ready` | Offline build or content pipeline only. | Optional for rendered output inspection; primary validation is artifact diff/report. | Raw asset pass-through plus budget warning. | RFC-009 and RFC-011 accepted before root dependency changes. | Remove generated artifacts and regenerate from source assets. |
+| `WorkerTaskAdapter` | Comlink | Smoke validated worker RPC ergonomics and error propagation in isolation. | `adapter-spike-ready` | Long-running editor/runtime tasks behind registered task API. | Required for bundler worker URL, transferable payload, cancellation, and timeout behavior. | Main-thread task runner for small jobs with performance warning. | RFC-010 accepted and task registry defined. | Disable worker transport while preserving task contract. |
+| `DiagnosticsAdapter` | Spector.js | Useful for GPU frame capture but not part of player/runtime semantics. | `dev-only` | Editor/debug builds only. | Required before enabling any capture UI; production bundle must prove exclusion. | Diagnostics unavailable state. | RFC-012 accepted. | Strip dynamic import and debug UI without data migration. |
+| `NavigationAdapter` | recast-navigation / Recast WASM | Useful capability but spike evidence leaves WASM, bundle, authoring, and navmesh ownership unresolved. | `hold-for-rfc` | Future navigation service only. | Required after a dedicated navigation RFC and WASM bundle policy pass. | Static waypoint graph or no navigation service. | RFC-013 accepted, then a new RFC/spike pair. | Keep authored levels unchanged and remove generated navmesh artifacts. |
+
+## Matrix Rules
+
+- A status of `accept-for-contract` approves only the boundary document, not a root dependency or runtime integration.
+- A status of `adapter-spike-ready` still requires an isolated spike that cannot modify `src/**`, `data/**`, root package manifests, or editor state without a later implementation guide.
+- `dev-only` dependencies must use lazy/dynamic loading and must be absent from production behavior.
+- `hold-for-rfc`, `hold-for-showcase`, and `blocked` are stop signs for implementation.
+- `reject` evidence should remain documented so the same dependency is not repeatedly re-evaluated without new facts.
+
+## Contract Fields Required In Each RFC
+
+- Background and spike evidence.
+- Sinan-owned contract and data model.
+- Candidate-owned responsibilities.
+- Forbidden leakage to JSON, editor state, runtime world state, and migrations.
+- Adapter inputs and outputs.
+- Lifecycle, errors, diagnostics, and fallback behavior.
+- Validation strategy and browser smoke stance.
+- Gate for a future implementation guide.
+- Hold, reject, and blocker rules.
