@@ -20,22 +20,41 @@ function durationMs() {
 const expectedExecutable = chromium.executablePath();
 
 if (!existsSync(expectedExecutable)) {
-  writeBrowserSmokeSummary(packageRoot, "browser-baseline-summary.json", {
-    candidate: "browser-baseline",
-    status: "ENVIRONMENT-BLOCKED",
-    layer: "environment",
-    browser: "Playwright Chromium",
-    port: 5184,
-    durationMs: durationMs(),
-    command: "npm exec -- playwright test -c playwright.config.ts",
-    consoleErrors: [],
-    diagnostics: [
-      `Expected Playwright Chromium executable is missing: ${expectedExecutable}`,
-      "Run npm exec -- playwright install chromium from spikes/mature-dependencies."
-    ],
-    artifacts: [],
-    timestamp: nowIso()
-  });
+  const diagnostics = [
+    `Expected Playwright Chromium executable is missing: ${expectedExecutable}`,
+    "Run npm exec -- playwright install chromium from spikes/mature-dependencies."
+  ];
+  const blockedCandidates = [
+    {
+      fileName: "browser-baseline-summary.json",
+      candidate: "browser-baseline",
+      diagnostics
+    },
+    {
+      fileName: "web-audio-summary.json",
+      candidate: "Web Audio",
+      diagnostics: [
+        ...diagnostics,
+        "AudioContext unlock, autoplay, fallback, and diagnostic smoke cannot run until Playwright Chromium launches."
+      ]
+    }
+  ];
+
+  for (const blocked of blockedCandidates) {
+    writeBrowserSmokeSummary(packageRoot, blocked.fileName, {
+      candidate: blocked.candidate,
+      status: "ENVIRONMENT-BLOCKED",
+      layer: "environment",
+      browser: "Playwright Chromium",
+      port: 5184,
+      durationMs: durationMs(),
+      command: "npm exec -- playwright test -c playwright.config.ts",
+      consoleErrors: [],
+      diagnostics: blocked.diagnostics,
+      artifacts: [],
+      timestamp: nowIso()
+    });
+  }
   console.log(`ENVIRONMENT-BLOCKED: missing Playwright Chromium executable at ${expectedExecutable}`);
   process.exit(0);
 }
