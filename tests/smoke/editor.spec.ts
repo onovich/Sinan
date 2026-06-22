@@ -49,6 +49,74 @@ test('design review mode loads a deterministic reference state', async ({ page }
   expect(browserErrors).toEqual([]);
 });
 
+test('showcase mode editor shell hides authoring panels and returns to edit', async ({ page }) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/');
+  const shell = page.getByTestId('editor-shell');
+  const modeNav = page.getByRole('navigation', { name: 'Editor modes' });
+  await expect(shell).toBeVisible();
+  await expect(shell).toHaveAttribute('data-mode', 'edit');
+  await expect(page.getByTestId('timeline-panel')).toBeVisible();
+
+  await modeNav.getByRole('button', { name: 'Showcase', exact: true }).click();
+  await expect(shell).toHaveAttribute('data-mode', 'showcase');
+  await expect(page.getByTestId('showcase-hud')).toBeVisible();
+  await expect(page.getByTestId('showcase-hud')).toContainText('Hill Mail Run');
+  await expect(page.locator('.editor-panel-left')).toHaveCount(0);
+  await expect(page.locator('.editor-panel-right')).toHaveCount(0);
+  await expect(page.getByTestId('timeline-panel')).toHaveCount(0);
+  await expect(page.getByTestId('viewport-placeholder')).toHaveAttribute(
+    'data-selection-enabled',
+    'false',
+  );
+  await expect(page.getByTestId('viewport-placeholder')).toHaveAttribute('data-mode', 'showcase');
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.activeElement?.classList.contains('runtime-canvas') === true),
+    )
+    .toBe(true);
+
+  const showcaseLayout = await page.evaluate(() => {
+    const shellElement = document.querySelector('[data-testid="editor-shell"]');
+    const topbar = document.querySelector('.editor-topbar');
+    const viewport = document.querySelector('.viewport-region');
+    const canvas = document.querySelector('canvas.runtime-canvas');
+    const shellRect = shellElement?.getBoundingClientRect();
+    const topbarRect = topbar?.getBoundingClientRect();
+    const viewportRect = viewport?.getBoundingClientRect();
+    const canvasRect = canvas?.getBoundingClientRect();
+
+    return {
+      canvasContained:
+        viewportRect && canvasRect
+          ? canvasRect.top >= viewportRect.top - 1 && canvasRect.bottom <= viewportRect.bottom + 1
+          : false,
+      pageScrollHeight: document.documentElement.scrollHeight,
+      pageScrollWidth: document.documentElement.scrollWidth,
+      shellHeight: shellRect?.height ?? 0,
+      topbarHeight: topbarRect?.height ?? 0,
+      viewportHeight: document.documentElement.clientHeight,
+      viewportTop: viewportRect?.top ?? 0,
+      viewportWidth: document.documentElement.clientWidth,
+    };
+  });
+  expect(showcaseLayout.pageScrollHeight).toBeLessThanOrEqual(showcaseLayout.viewportHeight + 1);
+  expect(showcaseLayout.pageScrollWidth).toBeLessThanOrEqual(showcaseLayout.viewportWidth + 1);
+  expect(showcaseLayout.shellHeight).toBeLessThanOrEqual(showcaseLayout.viewportHeight + 1);
+  expect(showcaseLayout.viewportTop).toBeGreaterThanOrEqual(showcaseLayout.topbarHeight - 1);
+  expect(showcaseLayout.canvasContained).toBe(true);
+
+  await modeNav.getByRole('button', { name: 'Edit', exact: true }).click();
+  await expect(shell).toHaveAttribute('data-mode', 'edit');
+  await expect(page.locator('.editor-panel-left')).toBeVisible();
+  await expect(page.locator('.editor-panel-right')).toBeVisible();
+  await expect(page.getByTestId('timeline-panel')).toBeVisible();
+  await expect(page.getByTestId('viewport-placeholder')).toHaveAttribute('data-mode', 'edit');
+  expect(browserErrors).toEqual([]);
+});
+
 test('timeline direct manipulation previews during the gesture and commits once', async ({
   page,
 }) => {

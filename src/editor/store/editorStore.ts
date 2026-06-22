@@ -1,4 +1,6 @@
-export type EditorMode = 'edit' | 'play' | 'preview';
+import type { EngineMode } from '../../engine/EngineMode';
+
+export type EditorMode = EngineMode;
 export type ActiveTool = 'select' | 'move' | 'rotate' | 'scale' | 'camera';
 export type InspectorTab = 'components' | 'events' | 'timeline' | 'camera';
 

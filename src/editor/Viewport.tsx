@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { ProjectData } from '../data/DataRepository';
 import { EngineSession } from '../engine/EngineSession';
+import type { EngineMode } from '../engine/EngineMode';
 import type {
   RuntimeCameraPose,
   RuntimeLodDiagnostics,
@@ -52,6 +53,8 @@ interface RuntimeDiagnosticsWindow {
 const viewportDragThresholdPx = 4;
 
 export interface ViewportProps {
+  autoFocus?: boolean;
+  mode: EngineMode;
   project: ProjectData | null;
   selectionEnabled: boolean;
   showTriggerDebug: boolean;
@@ -64,6 +67,8 @@ export interface ViewportProps {
 }
 
 export function Viewport({
+  autoFocus = false,
+  mode,
   project,
   selectionEnabled,
   showTriggerDebug,
@@ -78,6 +83,7 @@ export function Viewport({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const bridgeRef = useRef<EditorSessionBridge | null>(null);
   const sessionRef = useRef<EngineSession | null>(null);
+  const modeRef = useRef(mode);
   const selectEntityRef = useRef(onSelectEntity);
   const transformPreviewRef = useRef(onTransformPreview);
   const transformCommitRef = useRef(onTransformCommit);
@@ -114,6 +120,11 @@ export function Viewport({
   }, [selectedEntityId]);
 
   useEffect(() => {
+    modeRef.current = mode;
+    sessionRef.current?.setMode(mode);
+  }, [mode]);
+
+  useEffect(() => {
     const host = hostRef.current;
     const canvas = canvasRef.current;
 
@@ -146,6 +157,7 @@ export function Viewport({
       activeRuntime.init({ canvas, ...readSize() });
 
       const activeSession = new EngineSession({
+        mode: modeRef.current,
         runtime: activeRuntime,
         styleQualityProfile: readEditorRuntimeStyleQualityProfile(),
       });
@@ -222,6 +234,18 @@ export function Viewport({
   }, [project, showTriggerDebug]);
 
   useEffect(() => {
+    if (!autoFocus) {
+      return undefined;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      canvasRef.current?.focus({ preventScroll: true });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [autoFocus, mode, project, runtimeVersion]);
+
+  useEffect(() => {
     bridgeRef.current?.setSelectedEntity(selectedEntityId);
   }, [selectedEntityId]);
 
@@ -252,6 +276,7 @@ export function Viewport({
     <div
       ref={hostRef}
       className="viewport-placeholder"
+      data-mode={mode}
       data-testid="viewport-placeholder"
       data-tool={activeTool}
       data-nav-mode={navigationMode}

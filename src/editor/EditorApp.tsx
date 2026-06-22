@@ -49,7 +49,12 @@ import {
   UpdateTimelineTrackCommand,
 } from './commands/UpdateTimelineTrackCommand';
 import { Viewport } from './Viewport';
-import { editorPanelLayout } from './editorLayout';
+import {
+  createEditorShellModeState,
+  createShowcaseModeHud,
+  editorModeOptions,
+  editorPanelLayout,
+} from './editorLayout';
 import { getSaveStatusPill, type EditorSaveStatus } from './editorStatus';
 import { AssetPanel } from './panels/AssetPanel';
 import { CameraShotPanel, type CameraShotSaveStatus } from './panels/CameraShotPanel';
@@ -173,6 +178,12 @@ export function EditorApp() {
     saveStatus: cameraShotSaveStatus,
     isDirty: selectedCameraShotIsDirty,
   });
+  const shellModeState = createEditorShellModeState({
+    activeTool: editorState.activeTool,
+    mode: editorState.mode,
+    triggerDebugVisible: showTriggerDebug,
+  });
+  const showcaseHud = createShowcaseModeHud(project);
   const commandContext: EditorCommandContext = {
     updateLevel: (level) => {
       setProject((current) => updateProjectLevel(current, level));
@@ -1254,7 +1265,7 @@ export function EditorApp() {
           <div className="toolbar-cluster toolbar-cluster-mode">
             <span className="toolbar-label">Mode</span>
             <nav className="segmented-control" aria-label="Editor modes">
-              {(['edit', 'play', 'preview'] as const).map((mode) => (
+              {editorModeOptions.map((mode) => (
                 <button
                   key={mode}
                   type="button"
@@ -1267,119 +1278,136 @@ export function EditorApp() {
               ))}
             </nav>
           </div>
-          <div className="toolbar-cluster">
-            <span className="toolbar-label">Tool</span>
-            <div className="segmented-control" role="group" aria-label="Transform tools">
-              {(['select', 'move', 'rotate', 'scale'] as const).map((activeTool) => (
-                <button
-                  key={activeTool}
-                  type="button"
-                  aria-pressed={editorState.activeTool === activeTool}
-                  disabled={editorState.mode !== 'edit'}
-                  onClick={() => dispatch({ type: 'setActiveTool', activeTool })}
-                >
-                  {formatTool(activeTool)}
-                </button>
-              ))}
+          {shellModeState.showEditorToolbarControls ? (
+            <>
+              <div className="toolbar-cluster">
+                <span className="toolbar-label">Tool</span>
+                <div className="segmented-control" role="group" aria-label="Transform tools">
+                  {(['select', 'move', 'rotate', 'scale'] as const).map((activeTool) => (
+                    <button
+                      key={activeTool}
+                      type="button"
+                      aria-pressed={editorState.activeTool === activeTool}
+                      disabled={editorState.mode !== 'edit'}
+                      onClick={() => dispatch({ type: 'setActiveTool', activeTool })}
+                    >
+                      {formatTool(activeTool)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="toolbar-cluster">
+                <span className="toolbar-label">History</span>
+                <div className="toolbar-group" role="group" aria-label="Command history">
+                  <button type="button" onClick={undo} disabled={!historyState.canUndo}>
+                    Undo
+                  </button>
+                  <button type="button" onClick={redo} disabled={!historyState.canRedo}>
+                    Redo
+                  </button>
+                </div>
+              </div>
+              <div className="toolbar-cluster toolbar-cluster-project">
+                <span className="toolbar-label">Project</span>
+                <div className="toolbar-group" role="group" aria-label="Project commands">
+                  <button
+                    type="button"
+                    className={showTriggerDebug ? 'is-active' : undefined}
+                    aria-pressed={showTriggerDebug}
+                    onClick={() => setShowTriggerDebug((current) => !current)}
+                  >
+                    Trigger Bounds
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveLevel}
+                    disabled={!project || saveStatus === 'saving'}
+                  >
+                    Save
+                  </button>
+                  <span
+                    className={`save-status ${levelStatusPill.className}`}
+                    role="status"
+                    aria-label={`Level save state: ${levelStatusPill.text}`}
+                  >
+                    {levelStatusPill.text}
+                  </span>
+                  <span
+                    className={`domain-status ${timelineStatusPill.className}`}
+                    role="status"
+                    aria-label={`Timeline save state: ${timelineStatusPill.text}`}
+                    title={`Timeline: ${timelineStatusPill.text}`}
+                  >
+                    TL
+                  </span>
+                  <span
+                    className={`domain-status ${eventStatusPill.className}`}
+                    role="status"
+                    aria-label={`Event save state: ${eventStatusPill.text}`}
+                    title={`Event: ${eventStatusPill.text}`}
+                  >
+                    EV
+                  </span>
+                  <span
+                    className={`domain-status ${cameraStatusPill.className}`}
+                    role="status"
+                    aria-label={`Camera save state: ${cameraStatusPill.text}`}
+                    title={`Camera: ${cameraStatusPill.text}`}
+                  >
+                    CAM
+                  </span>
+                  {saveErrors.level ? (
+                    <span className="save-error" role="alert" title={saveErrors.level}>
+                      {saveErrors.level}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div
+              className="toolbar-cluster toolbar-cluster-showcase"
+              data-testid="showcase-topbar-status"
+            >
+              <span className="toolbar-label">Status</span>
+              <span className="showcase-topbar-pill">{showcaseHud.jobCount} jobs</span>
+              <span className="showcase-topbar-pill">{showcaseHud.endpointCount} endpoints</span>
             </div>
-          </div>
-          <div className="toolbar-cluster">
-            <span className="toolbar-label">History</span>
-            <div className="toolbar-group" role="group" aria-label="Command history">
-              <button type="button" onClick={undo} disabled={!historyState.canUndo}>
-                Undo
-              </button>
-              <button type="button" onClick={redo} disabled={!historyState.canRedo}>
-                Redo
-              </button>
-            </div>
-          </div>
-          <div className="toolbar-cluster toolbar-cluster-project">
-            <span className="toolbar-label">Project</span>
-            <div className="toolbar-group" role="group" aria-label="Project commands">
-              <button
-                type="button"
-                className={showTriggerDebug ? 'is-active' : undefined}
-                aria-pressed={showTriggerDebug}
-                onClick={() => setShowTriggerDebug((current) => !current)}
-              >
-                Trigger Bounds
-              </button>
-              <button
-                type="button"
-                onClick={saveLevel}
-                disabled={!project || saveStatus === 'saving'}
-              >
-                Save
-              </button>
-              <span
-                className={`save-status ${levelStatusPill.className}`}
-                role="status"
-                aria-label={`Level save state: ${levelStatusPill.text}`}
-              >
-                {levelStatusPill.text}
-              </span>
-              <span
-                className={`domain-status ${timelineStatusPill.className}`}
-                role="status"
-                aria-label={`Timeline save state: ${timelineStatusPill.text}`}
-                title={`Timeline: ${timelineStatusPill.text}`}
-              >
-                TL
-              </span>
-              <span
-                className={`domain-status ${eventStatusPill.className}`}
-                role="status"
-                aria-label={`Event save state: ${eventStatusPill.text}`}
-                title={`Event: ${eventStatusPill.text}`}
-              >
-                EV
-              </span>
-              <span
-                className={`domain-status ${cameraStatusPill.className}`}
-                role="status"
-                aria-label={`Camera save state: ${cameraStatusPill.text}`}
-                title={`Camera: ${cameraStatusPill.text}`}
-              >
-                CAM
-              </span>
-              {saveErrors.level ? (
-                <span className="save-error" role="alert" title={saveErrors.level}>
-                  {saveErrors.level}
-                </span>
-              ) : null}
-            </div>
-          </div>
+          )}
         </div>
       </header>
 
       <main className="editor-workbench">
-        <aside className="editor-panel editor-panel-left" aria-labelledby="hierarchy-heading">
-          <HierarchyPanel
-            level={project?.level ?? null}
-            selectedEntityId={editorState.selectedEntityId}
-            onSelectEntity={(entityId) => {
-              dispatch({ type: 'selectEntity', entityId });
-              setTransformPreview(undefined);
-              setRightRailTab('inspector');
-            }}
-            onReorderEntity={reorderEntity}
-          />
-          <AssetPanel
-            assets={project?.assets ?? null}
-            selectedAssetId={selectedAssetId}
-            onSelectAsset={setSelectedAssetId}
-          />
-          {projectError ? <p className="panel-error">{projectError}</p> : null}
-        </aside>
+        {shellModeState.showEditorPanels ? (
+          <aside className="editor-panel editor-panel-left" aria-labelledby="hierarchy-heading">
+            <HierarchyPanel
+              level={project?.level ?? null}
+              selectedEntityId={editorState.selectedEntityId}
+              onSelectEntity={(entityId) => {
+                dispatch({ type: 'selectEntity', entityId });
+                setTransformPreview(undefined);
+                setRightRailTab('inspector');
+              }}
+              onReorderEntity={reorderEntity}
+            />
+            <AssetPanel
+              assets={project?.assets ?? null}
+              selectedAssetId={selectedAssetId}
+              onSelectAsset={setSelectedAssetId}
+            />
+            {projectError ? <p className="panel-error">{projectError}</p> : null}
+          </aside>
+        ) : null}
 
         <section className="viewport-region" aria-label={editorPanelLayout[1].title}>
           <Viewport
+            autoFocus={shellModeState.viewportAutoFocus}
+            mode={shellModeState.mode}
             project={project}
-            selectionEnabled={editorState.mode === 'edit' && editorState.activeTool === 'select'}
-            showTriggerDebug={editorState.mode === 'edit' && showTriggerDebug}
+            selectionEnabled={shellModeState.selectionEnabled}
+            showTriggerDebug={shellModeState.showTriggerDebug}
             selectedEntityId={editorState.selectedEntityId}
-            activeTool={editorState.activeTool}
+            activeTool={shellModeState.viewportActiveTool}
             onSelectEntity={(entityId) => {
               dispatch({ type: 'selectEntity', entityId });
               setTransformPreview(undefined);
@@ -1393,22 +1421,46 @@ export function EditorApp() {
               runtimeRef.current = runtime;
             }}
           />
-          <div className="viewport-overlay" aria-label="Viewport selection summary">
-            <div className="selection-tag">
-              {visibleSelectedEntity
-                ? `Selected: ${visibleSelectedEntity.id} [${formatOverlayPosition(
-                    visibleSelectedEntity.transform.position,
-                  )}]`
-                : 'No entity selected'}
+          {shellModeState.isShowcase ? (
+            <div className="showcase-hud" data-testid="showcase-hud" role="status">
+              <div className="showcase-hud-title">
+                <span>Showcase Mode</span>
+                <strong>{showcaseHud.title}</strong>
+              </div>
+              <dl className="showcase-hud-stats">
+                <div>
+                  <dt>Job</dt>
+                  <dd>{showcaseHud.activeJobId ?? 'none'}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>{formatDeliveryStatus(showcaseHud.activeJobStatus)}</dd>
+                </div>
+                <div>
+                  <dt>Endpoints</dt>
+                  <dd>{showcaseHud.endpointCount}</dd>
+                </div>
+              </dl>
+              <p>{showcaseHud.prompt}</p>
             </div>
-            <div className="telemetry-line">
-              {`Mode: ${formatMode(editorState.mode).toUpperCase()} / ${formatTool(
-                editorState.activeTool,
-              ).toUpperCase()} | timeline: ${
-                selectedTimeline ? selectedTimeline.id : 'none'
-              } @ ${editorState.timelineTime.toFixed(2)}s`}
+          ) : (
+            <div className="viewport-overlay" aria-label="Viewport selection summary">
+              <div className="selection-tag">
+                {visibleSelectedEntity
+                  ? `Selected: ${visibleSelectedEntity.id} [${formatOverlayPosition(
+                      visibleSelectedEntity.transform.position,
+                    )}]`
+                  : 'No entity selected'}
+              </div>
+              <div className="telemetry-line">
+                {`Mode: ${formatMode(editorState.mode).toUpperCase()} / ${formatTool(
+                  editorState.activeTool,
+                ).toUpperCase()} | timeline: ${
+                  selectedTimeline ? selectedTimeline.id : 'none'
+                } @ ${editorState.timelineTime.toFixed(2)}s`}
+              </div>
             </div>
-          </div>
+          )}
           {subtitleHud ? (
             <div className="runtime-subtitle" role="status" data-testid="runtime-subtitle">
               {subtitleHud.speaker ? <span>{subtitleHud.speaker}</span> : null}
@@ -1427,137 +1479,143 @@ export function EditorApp() {
           ) : null}
         </section>
 
-        <aside className="editor-panel editor-panel-right" aria-label="Editor details">
-          <div className="right-rail-tabs" role="tablist" aria-label="Editor detail panels">
-            <RightRailTabButton
-              tab="inspector"
-              label="Inspector"
-              activeTab={rightRailTab}
-              tone={visibleDirtyState.level ? 'warning' : undefined}
-              onSelect={setRightRailTab}
-            />
-            <RightRailTabButton
-              tab="event"
-              label="Event"
-              activeTab={rightRailTab}
-              tone={selectedEventSaveError ? 'error' : selectedEventIsDirty ? 'warning' : undefined}
-              onSelect={setRightRailTab}
-            />
-            <RightRailTabButton
-              tab="camera"
-              label="Camera"
-              activeTab={rightRailTab}
-              tone={
-                selectedCameraShotSaveError
-                  ? 'error'
-                  : selectedCameraShotIsDirty
-                    ? 'warning'
-                    : undefined
-              }
-              onSelect={setRightRailTab}
-            />
-            <RightRailTabButton
-              tab="debug"
-              label="Debug"
-              activeTab={rightRailTab}
-              onSelect={setRightRailTab}
-            />
-          </div>
-
-          <div className="right-rail-panel" role="tabpanel">
-            {rightRailTab === 'inspector' ? (
-              <InspectorPanel
-                entity={visibleSelectedEntity}
-                onApplyTransform={commitTransform}
-                onApplyComponent={commitEntityComponent}
-                onTranslateSelected={translateSelectedEntity}
-                onInteractSelected={selectedEntity ? interactSelectedEntity : undefined}
+        {shellModeState.showEditorPanels ? (
+          <aside className="editor-panel editor-panel-right" aria-label="Editor details">
+            <div className="right-rail-tabs" role="tablist" aria-label="Editor detail panels">
+              <RightRailTabButton
+                tab="inspector"
+                label="Inspector"
+                activeTab={rightRailTab}
+                tone={visibleDirtyState.level ? 'warning' : undefined}
+                onSelect={setRightRailTab}
               />
-            ) : null}
-            {rightRailTab === 'event' ? (
-              <EventInspector
-                events={events}
-                selectedEvent={selectedEvent}
-                saveStatus={eventSaveStatus}
-                isDirty={selectedEventIsDirty}
-                saveError={selectedEventSaveError}
-                entityIds={getEntityIds(project)}
-                timelineIds={timelines.map((timeline) => timeline.id)}
-                cameraShotIds={cameraShots.map((shot) => shot.id)}
-                soundAssetIds={getSoundAssetIds(project)}
-                runtimeState={eventRuntimePreviewState}
-                onSelectEvent={(eventId) => dispatch({ type: 'selectEvent', eventId })}
-                onApplyEvent={applyEvent}
-                onSaveEvent={saveEvent}
-              />
-            ) : null}
-            {rightRailTab === 'camera' ? (
-              <CameraShotPanel
-                shots={cameraShots}
-                selectedShot={selectedCameraShot}
-                selectedEntityId={selectedEntity?.id}
-                saveStatus={cameraShotSaveStatus}
-                isDirty={selectedCameraShotIsDirty}
-                saveError={selectedCameraShotSaveError}
-                previewStatus={cameraPreviewStatus}
-                onSelectShot={(cameraShotId) =>
-                  dispatch({ type: 'selectCameraShot', cameraShotId })
+              <RightRailTabButton
+                tab="event"
+                label="Event"
+                activeTab={rightRailTab}
+                tone={
+                  selectedEventSaveError ? 'error' : selectedEventIsDirty ? 'warning' : undefined
                 }
-                onCreateShot={createCameraShot}
-                onApplyShot={applyCameraShot}
-                onSaveShot={saveCameraShot}
-                onSetKeyFromView={setCameraKeyFromView}
-                onPreviewShot={previewCameraShot}
+                onSelect={setRightRailTab}
               />
-            ) : null}
-            {rightRailTab === 'debug' ? (
-              <EventDebugPanel
-                debugState={eventDebugState}
-                selectedEventId={selectedEvent?.id}
-                selectedTimelineId={selectedTimeline?.id}
-                copyStatus={debugCopyStatus}
-                onClearDebug={clearDebugState}
-                onSetFlag={setRuntimeFlag}
-                onToggleFlag={toggleRuntimeFlag}
-                onFireSelectedEvent={fireSelectedEvent}
-                onReplayTimeline={replaySelectedTimeline}
-                onCopySnapshot={copyDebugSnapshot}
+              <RightRailTabButton
+                tab="camera"
+                label="Camera"
+                activeTab={rightRailTab}
+                tone={
+                  selectedCameraShotSaveError
+                    ? 'error'
+                    : selectedCameraShotIsDirty
+                      ? 'warning'
+                      : undefined
+                }
+                onSelect={setRightRailTab}
               />
-            ) : null}
-          </div>
-        </aside>
+              <RightRailTabButton
+                tab="debug"
+                label="Debug"
+                activeTab={rightRailTab}
+                onSelect={setRightRailTab}
+              />
+            </div>
+
+            <div className="right-rail-panel" role="tabpanel">
+              {rightRailTab === 'inspector' ? (
+                <InspectorPanel
+                  entity={visibleSelectedEntity}
+                  onApplyTransform={commitTransform}
+                  onApplyComponent={commitEntityComponent}
+                  onTranslateSelected={translateSelectedEntity}
+                  onInteractSelected={selectedEntity ? interactSelectedEntity : undefined}
+                />
+              ) : null}
+              {rightRailTab === 'event' ? (
+                <EventInspector
+                  events={events}
+                  selectedEvent={selectedEvent}
+                  saveStatus={eventSaveStatus}
+                  isDirty={selectedEventIsDirty}
+                  saveError={selectedEventSaveError}
+                  entityIds={getEntityIds(project)}
+                  timelineIds={timelines.map((timeline) => timeline.id)}
+                  cameraShotIds={cameraShots.map((shot) => shot.id)}
+                  soundAssetIds={getSoundAssetIds(project)}
+                  runtimeState={eventRuntimePreviewState}
+                  onSelectEvent={(eventId) => dispatch({ type: 'selectEvent', eventId })}
+                  onApplyEvent={applyEvent}
+                  onSaveEvent={saveEvent}
+                />
+              ) : null}
+              {rightRailTab === 'camera' ? (
+                <CameraShotPanel
+                  shots={cameraShots}
+                  selectedShot={selectedCameraShot}
+                  selectedEntityId={selectedEntity?.id}
+                  saveStatus={cameraShotSaveStatus}
+                  isDirty={selectedCameraShotIsDirty}
+                  saveError={selectedCameraShotSaveError}
+                  previewStatus={cameraPreviewStatus}
+                  onSelectShot={(cameraShotId) =>
+                    dispatch({ type: 'selectCameraShot', cameraShotId })
+                  }
+                  onCreateShot={createCameraShot}
+                  onApplyShot={applyCameraShot}
+                  onSaveShot={saveCameraShot}
+                  onSetKeyFromView={setCameraKeyFromView}
+                  onPreviewShot={previewCameraShot}
+                />
+              ) : null}
+              {rightRailTab === 'debug' ? (
+                <EventDebugPanel
+                  debugState={eventDebugState}
+                  selectedEventId={selectedEvent?.id}
+                  selectedTimelineId={selectedTimeline?.id}
+                  copyStatus={debugCopyStatus}
+                  onClearDebug={clearDebugState}
+                  onSetFlag={setRuntimeFlag}
+                  onToggleFlag={toggleRuntimeFlag}
+                  onFireSelectedEvent={fireSelectedEvent}
+                  onReplayTimeline={replaySelectedTimeline}
+                  onCopySnapshot={copyDebugSnapshot}
+                />
+              ) : null}
+            </div>
+          </aside>
+        ) : null}
       </main>
 
-      <footer className="sequencer" aria-label={editorPanelLayout[3].title}>
-        <TimelinePanel
-          timelines={timelines}
-          selectedTimeline={selectedTimeline}
-          selectedTrackId={editorState.selectedTimelineTrackId}
-          currentTime={editorState.timelineTime}
-          saveStatus={timelineSaveStatus}
-          isDirty={selectedTimelineIsDirty}
-          saveError={selectedTimelineSaveError}
-          playbackStatus={timelinePlaybackStatus}
-          previewStatus={timelinePreviewStatus}
-          entityIds={getEntityIds(project)}
-          cameraShotIds={cameraShots.map((shot) => shot.id)}
-          soundAssetIds={getSoundAssetIds(project)}
-          onSelectTimeline={selectTimeline}
-          onSelectTrack={(trackId) => dispatch({ type: 'selectTimelineTrack', trackId })}
-          onScrubTimeline={scrubTimeline}
-          onPlayTimeline={playTimeline}
-          onPauseTimeline={pauseTimeline}
-          onResumeTimeline={resumeTimeline}
-          onStopTimeline={stopTimeline}
-          onSeekTimeline={seekTimeline}
-          onAddTrack={addTimelineTrack}
-          onAddSoundTrackFromAsset={addSoundTrackFromAsset}
-          onApplyTrack={applyTimelineTrack}
-          onApplyTrackItem={applyTimelineTrackItem}
-          onRemoveTrack={removeTimelineTrack}
-          onSaveTimeline={saveTimeline}
-        />
-      </footer>
+      {shellModeState.showTimeline ? (
+        <footer className="sequencer" aria-label={editorPanelLayout[3].title}>
+          <TimelinePanel
+            timelines={timelines}
+            selectedTimeline={selectedTimeline}
+            selectedTrackId={editorState.selectedTimelineTrackId}
+            currentTime={editorState.timelineTime}
+            saveStatus={timelineSaveStatus}
+            isDirty={selectedTimelineIsDirty}
+            saveError={selectedTimelineSaveError}
+            playbackStatus={timelinePlaybackStatus}
+            previewStatus={timelinePreviewStatus}
+            entityIds={getEntityIds(project)}
+            cameraShotIds={cameraShots.map((shot) => shot.id)}
+            soundAssetIds={getSoundAssetIds(project)}
+            onSelectTimeline={selectTimeline}
+            onSelectTrack={(trackId) => dispatch({ type: 'selectTimelineTrack', trackId })}
+            onScrubTimeline={scrubTimeline}
+            onPlayTimeline={playTimeline}
+            onPauseTimeline={pauseTimeline}
+            onResumeTimeline={resumeTimeline}
+            onStopTimeline={stopTimeline}
+            onSeekTimeline={seekTimeline}
+            onAddTrack={addTimelineTrack}
+            onAddSoundTrackFromAsset={addSoundTrackFromAsset}
+            onApplyTrack={applyTimelineTrack}
+            onApplyTrackItem={applyTimelineTrackItem}
+            onRemoveTrack={removeTimelineTrack}
+            onSaveTimeline={saveTimeline}
+          />
+        </footer>
+      ) : null}
     </div>
   );
 }
@@ -1659,6 +1717,18 @@ function formatMode(mode: EditorMode): string {
 
 function formatTool(tool: ActiveTool): string {
   return tool[0].toUpperCase() + tool.slice(1);
+}
+
+function formatDeliveryStatus(status: string): string {
+  if (status === 'readyToDeliver') {
+    return 'Ready';
+  }
+
+  if (status === 'inProgress') {
+    return 'In progress';
+  }
+
+  return status[0].toUpperCase() + status.slice(1);
 }
 
 function formatOverlayPosition(position: readonly number[]): string {
