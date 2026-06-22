@@ -431,6 +431,7 @@ export class ThreeRuntime implements WebRuntime {
     }
 
     this.camera.position.set(...pose.position);
+    this.camera.up.set(...(pose.up ?? [0, 1, 0]));
 
     if (pose.lookAt) {
       this.camera.lookAt(...pose.lookAt);

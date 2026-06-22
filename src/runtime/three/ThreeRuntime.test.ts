@@ -257,6 +257,38 @@ describe('ThreeRuntime postprocessing boundary', () => {
   });
 });
 
+describe('ThreeRuntime camera pose', () => {
+  it('applies surface-relative up vectors before lookAt and resets to y-up fallback', () => {
+    const runtime = new ThreeRuntime();
+    const renderer = createRendererProbe();
+
+    setRuntimeRenderState(runtime, renderer.renderer);
+    const camera = getRuntimeCamera(runtime);
+
+    runtime.setCameraPose({
+      far: 120,
+      fov: 50,
+      lookAt: [0, 0, 11],
+      near: 0.2,
+      position: [0, -4, 13],
+      up: [0, 0, 1],
+    });
+
+    expect(camera.up.toArray()).toEqual([0, 0, 1]);
+    expect(camera.fov).toBe(50);
+    expect(camera.near).toBe(0.2);
+    expect(camera.far).toBe(120);
+
+    runtime.setCameraPose({
+      fov: 64,
+      lookAt: [0, 0, 0],
+      position: [1, 2, 3],
+    });
+
+    expect(camera.up.toArray()).toEqual([0, 1, 0]);
+  });
+});
+
 class FakeModelLoader implements ThreeModelLoader {
   constructor(
     private readonly loadImplementation: (url: string) => Promise<ThreeModelLoadResult>,
@@ -389,4 +421,12 @@ function setRuntimeRenderState(runtime: ThreeRuntime, renderer: THREE.WebGLRende
   runtimeInternals.camera = new THREE.PerspectiveCamera();
   runtimeInternals.renderer = renderer;
   runtimeInternals.scene = new THREE.Scene();
+}
+
+function getRuntimeCamera(runtime: ThreeRuntime): THREE.PerspectiveCamera {
+  return (
+    runtime as unknown as {
+      camera: THREE.PerspectiveCamera;
+    }
+  ).camera;
 }

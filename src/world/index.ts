@@ -14,6 +14,17 @@ export {
   type SphericalPlacementSnapshot,
 } from './SphericalPlacement';
 export {
+  sampleSurfaceFollowCamera,
+  type FlatSurfaceFollowCameraInput,
+  type FlatSurfaceCameraTarget,
+  type SurfaceCameraTarget,
+  type SurfaceFollowCameraFailureReason,
+  type SurfaceFollowCameraInput,
+  type SurfaceFollowCameraResult,
+  type SphericalSurfaceFollowCameraInput,
+  type SphericalSurfaceCameraTarget,
+} from './SphericalCamera';
+export {
   stepSurfaceMovement,
   type SurfaceMovementCommand,
   type SurfaceMovementEdgeStatus,

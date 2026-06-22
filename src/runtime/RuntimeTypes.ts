@@ -98,6 +98,7 @@ export interface RuntimeCameraPose {
   position: Vec3;
   rotation?: Quat;
   lookAt?: Vec3;
+  up?: Vec3;
   fov: number;
   near?: number;
   far?: number;
