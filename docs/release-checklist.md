@@ -1,24 +1,25 @@
-# Release Candidate Checklist
+# Phase 26 Vertical Slice RC Checklist
 
-Use this checklist before calling a Sinan Scene Director checkout demo-ready.
+Use this checklist before calling the current Sinan checkout demo-ready as a local vertical-slice release candidate.
 
-## Phase 14 Finalization Result
+## Current RC Scope
 
-Status: PASS on 2026-06-18.
+Status target: Phase 26 Vertical Slice RC Hardening.
 
-Evidence is recorded in `docs/phase-14-release-candidate-finalization.md`.
+The RC includes:
 
-Summary:
+- Phase 24 Showcase Mode delivery flow.
+- Phase 25 multiplayer-lite local social simulator, social HUD diagnostics, and local replaceable WebSocket prototype evidence.
+- Shader/postprocess production quality gates and local low-end Chromium baseline.
+- LOD/scatter/spherical world diagnostics and standard/low-end budget evidence.
+- Asset report and vertical-slice budget report gates.
+- README, developer guide, release validation profile, release checklist, and final report evidence.
 
-- `npm ci` passed from the current lockfile.
-- `npm audit --audit-level=moderate` passed; one low severity `esbuild` advisory remains below the release threshold.
-- `Validate.cmd` passed.
-- `Smoke.cmd` passed with 13 Playwright tests after starting the persistent wrapper dev server for the final health check.
-- A browser demo gate confirmed runtime ready state, `switch_a` Inspector selection, `tl_open_gate` scrub feedback, subtitle feedback, and no console errors.
+The RC does not include production backend, auth, persistence, text chat, voice chat, production matchmaking, production WebSocket deployment, Physics/Rapier, external InputFlow/ViewRig/LudoWeave/Inscape adapters, production Runtime UI framework, Audio runtime, or unrelated external adapters.
 
 ## Fresh Checkout
 
-- [ ] Clone the repository.
+- [ ] Clone the repository or create an isolated local clone from the pushed commit.
 - [ ] Confirm Node.js and npm are available.
 - [ ] Install dependencies:
 
@@ -32,21 +33,7 @@ npm ci
 npm run generate:dev-assets
 ```
 
-- [ ] Review dependency audit output and confirm no moderate-or-higher vulnerability blocks the release:
-
-```powershell
-npm audit --audit-level=moderate
-```
-
-## Required Validation
-
-- [ ] Run the configured validation wrapper:
-
-```powershell
-C:\Users\Administrator\.codex\skills\project-ops-workflow\scripts\ops\Validate.cmd
-```
-
-- [ ] Confirm direct validation passes when wrappers are not available:
+- [ ] Run the direct validation profile when Codex wrappers are unavailable in the fresh checkout:
 
 ```powershell
 npm run format:check
@@ -57,16 +44,37 @@ npm run test
 npm run check-boundaries
 npm run validate-data
 npm run report-assets
+npm run perf:smoke
 npm run migrate-data -- --check
+npm run test:smoke
+git diff --check
 ```
 
-- [ ] Run browser smoke:
+- [ ] Record the exact commit, commands, PASS/FAIL results, and any limitation in the Phase 26 final report.
+
+## Required Local Validation
+
+- [ ] Run the configured validation wrapper from the main worktree:
+
+```powershell
+C:\Users\Administrator\.codex\skills\project-ops-workflow\scripts\ops\Validate.cmd
+```
+
+- [ ] Run browser smoke from the main worktree:
 
 ```powershell
 C:\Users\Administrator\.codex\skills\project-ops-workflow\scripts\ops\Smoke.cmd
 ```
 
-- [ ] Confirm Playwright smoke covers desktop workflow, save/reload workflow, and narrow viewport workflow.
+- [ ] Confirm `npm run report-assets` passes with zero issues.
+- [ ] Confirm `npm run perf:smoke` passes and reports:
+  - shader/postprocess low-end Chromium baseline evidence,
+  - LOD/scatter low-end budget evidence,
+  - spherical world readability and scatter budget evidence,
+  - delivery showcase route feedback budget evidence,
+  - multiplayer-lite social remote and stamp budget evidence,
+  - asset budget PASS.
+- [ ] Confirm `git diff --check` passes.
 
 ## Demo Workflow
 
@@ -76,43 +84,50 @@ C:\Users\Administrator\.codex\skills\project-ops-workflow\scripts\ops\Smoke.cmd
 npm run dev -- --port 5174 --strictPort
 ```
 
-- [ ] Open `http://127.0.0.1:5174/`.
-- [ ] Confirm the viewport reaches `Level loaded`.
-- [ ] Confirm the room, gate, switch, player marker, and trigger bounds are visually distinguishable.
-- [ ] Select `switch_a` and confirm structured component editing is visible.
-- [ ] Play or scrub `tl_open_gate` and confirm visible camera/timeline/runtime feedback.
-- [ ] Confirm event, timeline, and camera shot panels can save valid data and reject invalid data through schema validation.
-- [ ] Confirm no browser console errors appear during the common demo flow.
+- [ ] Open `http://127.0.0.1:5174/?runtimeDiagnostics=1`.
+- [ ] Confirm the editor reaches runtime-ready state.
+- [ ] Switch to `Showcase`.
+- [ ] Confirm the HUD shows `Hill Mail Run`, ten local social remotes, active stamp diagnostics, and runtime-ready status.
+- [ ] Accept and complete the delivery job.
+- [ ] Confirm delivery route/target feedback and completion HUD update.
+- [ ] Return to edit mode and inspect delivery job data in the editor.
+- [ ] Open `http://127.0.0.1:5174/?runtimeDiagnostics=1&styleQuality=low-end`.
+- [ ] Confirm low-end LOD/scatter diagnostics remain readable.
+
+## Mobile And Low-End Evidence
+
+- [ ] Confirm the smoke suite includes the 390x844 narrow editor viewport.
+- [ ] Confirm the shader smoke suite includes the 360x640 low-end Chromium baseline.
+- [ ] Confirm release notes and final report state that this is local Chromium evidence only, not real mobile hardware certification.
 
 ## Architecture Gate
 
 - [ ] `npm run check-boundaries` passes.
 - [ ] No Three.js imports appear in renderer-neutral layers.
+- [ ] Three runtime visuals, renderer counters, shader/postprocess bindings, delivery route visuals, social visuals, LOD/scatter visuals, and disposal stay inside `src/runtime/three/**` or smoke/test-only fixtures.
+- [ ] `data/**/*.json` remains the source of truth for vertical-slice semantics.
+- [ ] WebSocket/browser/server details remain behind adapter or smoke tooling boundaries.
 - [ ] No dynamic-code execution patterns appear in project source, data, scripts, or tests.
-- [ ] New actions and conditions have schema entries, registry entries, tests, and validation coverage.
-- [ ] Timeline preview still skips unsafe runtime-only/destructive effects.
 
 ## Data And Asset Gate
 
 - [ ] `npm run validate-data` passes.
 - [ ] `npm run report-assets` passes and reports zero critical issues.
-- [ ] Save or reference the latest asset report summary in the release notes when asset budgets change.
+- [ ] `npm run perf:smoke` passes.
+- [ ] Asset report summary is recorded in the final report.
+- [ ] Stable ids are used for entities, prefabs, assets, events, timelines, tracks, camera shots, delivery jobs, social avatars, emotes, stamps, and presets.
 - [ ] `data/assets.manifest.json` references existing files under `public/`.
-- [ ] Model assets use `.glb` or `.gltf`; audio assets use `.mp3`, `.ogg`, or `.wav`.
-- [ ] Every manifest asset declares `metadata.sizeBudgetBytes`; model assets declare triangle, texture, material profile, and compression metadata.
-- [ ] Animation clips referenced by actions or timelines are declared in `metadata.clips` when clip metadata is known.
-- [ ] Stable ids are used for entities, prefabs, assets, events, timelines, tracks, and camera shots.
 
 ## Documentation Gate
 
-- [ ] `README.md` explains setup, validation, architecture boundaries, and docs map.
-- [ ] `docs/developer-guide.md` covers assets, actions, conditions, timelines, camera shots, and editor authoring.
-- [ ] `docs/phase-13-testing-performance-boundaries.md` documents smoke scope, boundary automation, bundle hygiene, and runtime lifecycle coverage.
-- [ ] Any new release limitation is written down before the release is tagged or shared.
+- [ ] `README.md` explains setup, validation, current Phase 26 status, vertical-slice demo flow, architecture boundaries, and docs map.
+- [ ] `docs/developer-guide.md` covers vertical-slice validation, asset/budget guidance, low-end/mobile evidence, social/delivery demo flow, and smoke/perf triage.
+- [ ] `docs/vertical-slice-release-validation-profile.md` matches actual wrapper and direct commands.
+- [ ] `docs/phase-26-vertical-slice-rc-hardening-final-report.md` records validation, smoke, perf/budget, fresh-checkout evidence, commits, push status, known limitations, and recommended next route.
 
 ## Git Gate
 
-- [ ] Commit all release-candidate changes.
+- [ ] Commit all Phase 26 release-candidate changes with explicit path staging.
 - [ ] Push to `origin/main`.
-- [ ] Confirm no unrelated or generated files are accidentally staged.
-- [ ] Confirm `git status --short --branch` is clean for the release worktree.
+- [ ] Confirm no unrelated or generated files are staged.
+- [ ] Confirm tracked status is clean after the final push; unrelated untracked planning/strategy files may remain unstaged if they predate or sit outside Phase 26.
