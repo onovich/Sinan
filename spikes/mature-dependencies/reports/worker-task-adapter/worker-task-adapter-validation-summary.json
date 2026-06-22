@@ -1,0 +1,81 @@
+{
+  "candidate": "WorkerTaskAdapter aggregate smoke",
+  "status": "PASS",
+  "decision": "PASS",
+  "layer": "candidate",
+  "durationMs": 2720,
+  "command": "npm run smoke:worker-task",
+  "diagnostics": [
+    "typecheck: PASS",
+    "typecheck: > sinan-mature-dependency-spikes@1.0.0 typecheck",
+    "typecheck: > tsc --noEmit",
+    "worker-task unit tests: PASS",
+    "worker-task unit tests: > sinan-mature-dependency-spikes@1.0.0 test",
+    "worker-task unit tests: > vitest run worker-task",
+    "worker-task unit tests:  RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
+    "worker-task unit tests:  Test Files  4 passed (4)",
+    "worker-task unit tests:       Tests  27 passed (27)",
+    "worker-task unit tests:    Start at  14:56:15",
+    "worker-task unit tests:    Duration  531ms (transform 158ms, setup 0ms, import 260ms, tests 112ms, environment 0ms)",
+    "worker-task boundary guard: PASS",
+    "worker-task boundary guard: imports and dynamic-code scan passed",
+    "worker-task browser summary: PASS",
+    "worker-task browser summary: status: PASS",
+    "worker-task browser summary: decision: PASS",
+    "worker-task browser summary: console errors: 0",
+    "worker-task browser summary: diagnostics: catalog entry available: true | Worker supported: true | boot/load: true/true | echo/sum/transfer: true/true/true | invalid-input/timeout/cancel/dispose: true/true/true/true | boot: success | load: success | echo: success | sum: success | invalidInput: invalid-input | timeout: timeout | cancel: cancelled | cancelled: cancelled | dispose: disposed | adapter boundary: Sinan WorkerTaskAdapter contract -> Comlink RPC -> Web Worker"
+  ],
+  "checks": [
+    {
+      "name": "typecheck",
+      "ok": true,
+      "details": [
+        "> sinan-mature-dependency-spikes@1.0.0 typecheck",
+        "> tsc --noEmit"
+      ]
+    },
+    {
+      "name": "worker-task unit tests",
+      "ok": true,
+      "details": [
+        "> sinan-mature-dependency-spikes@1.0.0 test",
+        "> vitest run worker-task",
+        " RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
+        " Test Files  4 passed (4)",
+        "      Tests  27 passed (27)",
+        "   Start at  14:56:15",
+        "   Duration  531ms (transform 158ms, setup 0ms, import 260ms, tests 112ms, environment 0ms)"
+      ]
+    },
+    {
+      "name": "worker-task boundary guard",
+      "ok": true,
+      "details": [
+        "imports and dynamic-code scan passed"
+      ]
+    },
+    {
+      "name": "worker-task browser summary",
+      "ok": true,
+      "details": [
+        "status: PASS",
+        "decision: PASS",
+        "console errors: 0",
+        "diagnostics: catalog entry available: true | Worker supported: true | boot/load: true/true | echo/sum/transfer: true/true/true | invalid-input/timeout/cancel/dispose: true/true/true/true | boot: success | load: success | echo: success | sum: success | invalidInput: invalid-input | timeout: timeout | cancel: cancelled | cancelled: cancelled | dispose: disposed | adapter boundary: Sinan WorkerTaskAdapter contract -> Comlink RPC -> Web Worker"
+      ]
+    }
+  ],
+  "artifactPolicy": {
+    "committed": [
+      "reports/worker-task-adapter/worker-task-adapter-validation-summary.json"
+    ],
+    "notCommitted": [
+      "test-results",
+      "playwright-report",
+      "dist",
+      "coverage",
+      "browser binaries"
+    ]
+  },
+  "timestamp": "2026-06-22T06:56:16.336Z"
+}

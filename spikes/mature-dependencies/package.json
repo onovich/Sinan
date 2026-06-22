@@ -11,7 +11,8 @@
     "dev": "vite --host 127.0.0.1",
     "smoke:browser": "node src/browser-smoke/run-browser-smoke.mjs",
     "smoke:browser:headed": "node src/browser-smoke/run-browser-smoke.mjs --headed",
-    "smoke:storage": "node src/storage-adapter/run-storage-smoke.mjs"
+    "smoke:storage": "node src/storage-adapter/run-storage-smoke.mjs",
+    "smoke:worker-task": "node src/worker-task/run-worker-task-smoke.mjs"
   },
   "keywords": [
     "sinan",
