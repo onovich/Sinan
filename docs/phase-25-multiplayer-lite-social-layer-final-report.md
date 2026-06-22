@@ -83,6 +83,7 @@ PASS. Phase 25 completed the local multiplayer-lite social prototype and preserv
 - `ab59fb3` test: integrate multiplayer-lite social flow, pushed to `origin/main`.
 - `86b1667` test: add multiplayer-lite social smoke gate, pushed to `origin/main`.
 - `f9cba54` docs: finalize phase 25 multiplayer-lite social layer, pushed to `origin/main`.
+- `ca8e292` docs: repair phase 25 whitespace gate, pushed to `origin/main`.
 
 ## Buffer
 
