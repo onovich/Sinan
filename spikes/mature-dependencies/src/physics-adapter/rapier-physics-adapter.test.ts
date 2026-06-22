@@ -45,10 +45,11 @@ function bodySpec(overrides: Partial<PhysicsBodySpec> = {}): PhysicsBodySpec {
 }
 
 function colliderSpec(overrides: Partial<PhysicsColliderSpec> = {}): PhysicsColliderSpec {
+  const bodyId = overrides.bodyId ?? "body-rapier";
   const result = normalizePhysicsColliderSpec(
     {
       colliderId: "collider-rapier",
-      bodyId: "body-rapier",
+      bodyId,
       sceneId: "scene-rapier",
       shape: {
         type: "ball",
@@ -56,7 +57,7 @@ function colliderSpec(overrides: Partial<PhysicsColliderSpec> = {}): PhysicsColl
       },
       ...overrides
     },
-    new Set(["body-rapier"])
+    new Set([bodyId])
   );
   expect(result.ok).toBe(true);
   expect(result.value).toBeDefined();
@@ -120,5 +121,80 @@ describe("RapierPhysicsAdapter lifecycle", () => {
     expect(afterDispose.status).toBe("disposed");
     expect(snapshot.lifecycle).toBe("disposed");
     expect(snapshot.bodies).toHaveLength(0);
+  });
+
+  it("steps Rapier world with Sinan fixed-step policy and returns body transforms", async () => {
+    const adapter = createRapierPhysicsAdapter();
+    await adapter.createWorld(
+      normalizePhysicsWorldConfig({
+        worldId: "rapier-step-world",
+        sceneId: "scene-rapier",
+        gravity: {
+          x: 0,
+          y: -10,
+          z: 0
+        },
+        fixedStep: {
+          stepMs: 10,
+          maxCatchUpSteps: 4,
+          accumulatorMs: 0
+        }
+      })
+    );
+    await adapter.addBody(bodySpec({ bodyId: "falling-body", sleep: "prevent" }));
+    await adapter.addCollider(colliderSpec({ bodyId: "falling-body", colliderId: "falling-collider" }));
+
+    const result = await adapter.step({
+      worldId: "rapier-step-world",
+      deltaMs: 40,
+      nowMs: 100
+    });
+
+    expect(result.status).toBe("success");
+    expect(result.simulatedSteps).toBe(4);
+    expect(result.remainingAccumulatorMs).toBe(0);
+    expect(result.transforms[0]?.bodyId).toBe("falling-body");
+    expect(result.transforms[0]?.transform.position.y).toBeLessThan(2);
+  });
+
+  it("clamps fixed-step catch-up and preserves remaining accumulator", async () => {
+    const adapter = createRapierPhysicsAdapter();
+    await adapter.createWorld(
+      normalizePhysicsWorldConfig({
+        worldId: "rapier-clamp-world",
+        sceneId: "scene-rapier",
+        fixedStep: {
+          stepMs: 10,
+          maxCatchUpSteps: 2,
+          accumulatorMs: 0
+        }
+      })
+    );
+    await adapter.addBody(bodySpec({ bodyId: "clamped-body" }));
+
+    const result = await adapter.step({
+      worldId: "rapier-clamp-world",
+      deltaMs: 55,
+      nowMs: 100
+    });
+
+    expect(result.status).toBe("success");
+    expect(result.simulatedSteps).toBe(2);
+    expect(result.remainingAccumulatorMs).toBe(35);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain("max-catch-up-clamped");
+  });
+
+  it("removes colliders when a body is removed", async () => {
+    const adapter = createRapierPhysicsAdapter();
+    await adapter.createWorld(worldConfig());
+    await adapter.addBody(bodySpec());
+    await adapter.addCollider(colliderSpec());
+
+    const remove = await adapter.removeBody("body-rapier");
+    const snapshot = await adapter.snapshot();
+
+    expect(remove.status).toBe("success");
+    expect(snapshot.bodies).toHaveLength(0);
+    expect(snapshot.colliders).toHaveLength(0);
   });
 });

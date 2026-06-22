@@ -320,21 +320,68 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
   }
 
   async step(request: PhysicsStepRequest): Promise<PhysicsStepResult> {
+    const ready = this.requireWorld();
+    if (!ready.ok) {
+      return this.stepFailure(request.worldId, ready.result.status, ready.result.diagnostics);
+    }
+
+    if (request.worldId !== this.config.worldId) {
+      return this.stepFailure(request.worldId, "invalid-spec", [
+        createPhysicsDiagnostic("invalid-spec", `Step request worldId ${request.worldId} does not match ${this.config.worldId}.`, "error", false, {
+          requestedWorldId: request.worldId,
+          worldId: this.config.worldId
+        })
+      ]);
+    }
+
+    const policy = this.config.fixedStep;
+    let accumulator = policy.accumulatorMs + Math.max(0, request.deltaMs);
+    const possibleSteps = Math.floor(accumulator / policy.stepMs);
+    const simulatedSteps = Math.min(possibleSteps, policy.maxCatchUpSteps);
+    const diagnostics: PhysicsDiagnostic[] = [];
+
+    if (possibleSteps > policy.maxCatchUpSteps) {
+      diagnostics.push(
+        createPhysicsDiagnostic("max-catch-up-clamped", "Physics fixed-step catch-up was clamped by adapter policy.", "warning", true, {
+          possibleSteps,
+          maxCatchUpSteps: policy.maxCatchUpSteps
+        })
+      );
+    }
+
+    for (let index = 0; index < simulatedSteps; index += 1) {
+      try {
+        ready.world.timestep = policy.stepMs / 1000;
+        ready.world.step(ready.events);
+        ready.events.drainCollisionEvents(() => undefined);
+        this.stepIndex += 1;
+        accumulator -= policy.stepMs;
+      } catch (error) {
+        const diagnostic = createPhysicsDiagnostic("step-failed", "Rapier world step failed.", "error", true, {
+          error: error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+        });
+        this.diagnostics.push(diagnostic);
+        return this.stepFailure(this.config.worldId, "unsupported", [diagnostic]);
+      }
+    }
+
+    this.config.fixedStep.accumulatorMs = Math.max(0, accumulator);
+
     return {
-      status: "ignored",
+      status: "success",
       ok: true,
-      worldId: request.worldId,
+      worldId: this.config.worldId,
       stepIndex: this.stepIndex,
-      simulatedSteps: 0,
+      simulatedSteps,
       remainingAccumulatorMs: this.config.fixedStep.accumulatorMs,
       transforms: this.bodySnapshots(),
       events: {
-        worldId: request.worldId,
+        worldId: this.config.worldId,
         stepIndex: this.stepIndex,
         events: [],
-        diagnostics: []
+        diagnostics: cloneJson(diagnostics)
       },
-      diagnostics: [createPhysicsDiagnostic("fallback-used", "Rapier adapter step integration is staged for the next implementation round.", "info")]
+      diagnostics
     };
   }
 
@@ -519,6 +566,25 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     return createPhysicsResult("invalid-spec", {
       diagnostics: [createPhysicsDiagnostic("unknown-body", `Physics body ${bodyId} is not registered.`, "error", false, { bodyId })]
     });
+  }
+
+  private stepFailure(worldId: string, status: PhysicsResult["status"], diagnostics: PhysicsDiagnostic[]): PhysicsStepResult {
+    return {
+      status,
+      ok: false,
+      worldId,
+      stepIndex: this.stepIndex,
+      simulatedSteps: 0,
+      remainingAccumulatorMs: this.config.fixedStep.accumulatorMs,
+      transforms: [],
+      events: {
+        worldId,
+        stepIndex: this.stepIndex,
+        events: [],
+        diagnostics: cloneJson(diagnostics)
+      },
+      diagnostics
+    };
   }
 
   private freeWorld(): void {
