@@ -5,7 +5,7 @@
   "layer": "candidate",
   "browser": "Playwright Chromium",
   "port": 5184,
-  "durationMs": 293,
+  "durationMs": 280,
   "command": "npm exec -- playwright test -c playwright.config.ts",
   "consoleErrors": [],
   "artifacts": [
@@ -34,7 +34,7 @@
     "overlap hits: browser-ground-collider,browser-ball-collider,browser-trigger-collider",
     "PhysicsAdapter contract -> RapierPhysicsAdapter -> mature physics backend"
   ],
-  "timestamp": "2026-06-22T10:11:58.125Z",
+  "timestamp": "2026-06-22T10:15:26.327Z",
   "result": {
     "adapter": "RapierPhysicsAdapter",
     "supported": true,

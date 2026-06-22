@@ -3,7 +3,7 @@
   "status": "PASS",
   "decision": "PASS",
   "layer": "candidate",
-  "durationMs": 2625,
+  "durationMs": 2429,
   "command": "npm run smoke:physics-adapter",
   "diagnostics": [
     "typecheck: PASS",
@@ -15,8 +15,8 @@
     "physics-adapter unit tests:  RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
     "physics-adapter unit tests:  Test Files  4 passed (4)",
     "physics-adapter unit tests:       Tests  23 passed (23)",
-    "physics-adapter unit tests:    Start at  18:14:44",
-    "physics-adapter unit tests:    Duration  527ms (transform 219ms, setup 0ms, import 336ms, tests 163ms, environment 0ms)",
+    "physics-adapter unit tests:    Start at  18:15:29",
+    "physics-adapter unit tests:    Duration  277ms (transform 167ms, setup 0ms, import 247ms, tests 85ms, environment 0ms)",
     "physics-adapter boundary guard: PASS",
     "physics-adapter boundary guard: imports, dynamic-code, and dependency-ownership scans passed",
     "physics-adapter browser summary: PASS",
@@ -26,7 +26,7 @@
     "physics-adapter browser summary: boot/world/body-collider/step: true/true/true/true",
     "physics-adapter browser summary: event/query/fallback/dispose/contract-clean: true/true/true/true/true",
     "physics-adapter generated artifact cleanup: PASS",
-    "physics-adapter generated artifact cleanup: test-results not present",
+    "physics-adapter generated artifact cleanup: removed test-results",
     "physics-adapter generated artifact cleanup: playwright-report not present",
     "physics-adapter generated artifact guard: PASS",
     "physics-adapter generated artifact guard: no generated Playwright artifact directories present"
@@ -49,8 +49,8 @@
         " RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
         " Test Files  4 passed (4)",
         "      Tests  23 passed (23)",
-        "   Start at  18:14:44",
-        "   Duration  527ms (transform 219ms, setup 0ms, import 336ms, tests 163ms, environment 0ms)"
+        "   Start at  18:15:29",
+        "   Duration  277ms (transform 167ms, setup 0ms, import 247ms, tests 85ms, environment 0ms)"
       ]
     },
     {
@@ -75,7 +75,7 @@
       "name": "physics-adapter generated artifact cleanup",
       "ok": true,
       "details": [
-        "test-results not present",
+        "removed test-results",
         "playwright-report not present"
       ]
     },
@@ -100,5 +100,5 @@
       "browser binaries"
     ]
   },
-  "timestamp": "2026-06-22T10:14:45.317Z"
+  "timestamp": "2026-06-22T10:15:29.772Z"
 }
