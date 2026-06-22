@@ -94,6 +94,14 @@ if (!existsSync(expectedExecutable)) {
       ]
     },
     {
+      fileName: "worker-task-adapter-summary.json",
+      candidate: "WorkerTaskAdapter / Comlink / Worker",
+      diagnostics: [
+        ...diagnostics,
+        "WorkerTaskAdapter boot, task submit, transfer policy, timeout, cancellation, and dispose smoke cannot run until Playwright Chromium launches."
+      ]
+    },
+    {
       fileName: "spector-dev-only-summary.json",
       candidate: "Spector.js",
       diagnostics: [

@@ -5,12 +5,14 @@ import { runSpectorSmoke } from "./spector/spector-smoke";
 import { runWebAudioSmoke } from "./web-audio/web-audio-smoke";
 import { runComlinkBrowserSmoke } from "./workers/comlink-smoke";
 import { runStorageAdapterBrowserSmoke } from "./storage-adapter/storage-adapter-browser-smoke";
+import { runWorkerTaskAdapterBrowserSmoke } from "./worker-task/worker-task-browser-smoke";
 
 export const matureDependencySmokeCatalog = {
   rapier: runRapierSmoke,
   webAudio: runWebAudioSmoke,
   dexie: runDexieSmoke,
   storageAdapter: runStorageAdapterBrowserSmoke,
+  workerTaskAdapter: runWorkerTaskAdapterBrowserSmoke,
   spector: runSpectorSmoke,
   comlink: runComlinkBrowserSmoke,
   recast: runRecastNavigationSmoke

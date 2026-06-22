@@ -1,0 +1,68 @@
+{
+  "candidate": "WorkerTaskAdapter / Comlink / Worker",
+  "status": "PASS",
+  "decision": "PASS",
+  "layer": "candidate",
+  "browser": "Playwright Chromium",
+  "port": 5184,
+  "durationMs": 340,
+  "command": "npm exec -- playwright test -c playwright.config.ts",
+  "consoleErrors": [],
+  "artifacts": [
+    "reports/browser-smoke/worker-task-adapter-summary.json"
+  ],
+  "diagnostics": [
+    "catalog entry available: true",
+    "Worker supported: true",
+    "boot/load: true/true",
+    "echo/sum/transfer: true/true/true",
+    "invalid-input/timeout/cancel/dispose: true/true/true/true",
+    "boot: success",
+    "load: success",
+    "echo: success",
+    "sum: success",
+    "invalidInput: invalid-input",
+    "timeout: timeout",
+    "cancel: cancelled",
+    "cancelled: cancelled",
+    "dispose: disposed",
+    "adapter boundary: Sinan WorkerTaskAdapter contract -> Comlink RPC -> Web Worker"
+  ],
+  "timestamp": "2026-06-22T06:53:33.981Z",
+  "result": {
+    "adapter": "ComlinkWorkerTaskAdapter",
+    "workerSupported": true,
+    "bootOk": true,
+    "loadReady": true,
+    "echoOk": true,
+    "sumOk": true,
+    "transferPolicyOk": true,
+    "invalidInputOk": true,
+    "timeoutOk": true,
+    "cancellationOk": true,
+    "disposeOk": true,
+    "statuses": {
+      "boot": "success",
+      "load": "success",
+      "echo": "success",
+      "sum": "success",
+      "invalidInput": "invalid-input",
+      "timeout": "timeout",
+      "cancel": "cancelled",
+      "cancelled": "cancelled",
+      "dispose": "disposed"
+    },
+    "diagnostics": [
+      "boot: success",
+      "load: success",
+      "echo: success",
+      "sum: success",
+      "invalidInput: invalid-input",
+      "timeout: timeout",
+      "cancel: cancelled",
+      "cancelled: cancelled",
+      "dispose: disposed",
+      "adapter boundary: Sinan WorkerTaskAdapter contract -> Comlink RPC -> Web Worker"
+    ]
+  }
+}
