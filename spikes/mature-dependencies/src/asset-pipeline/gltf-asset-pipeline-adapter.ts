@@ -28,6 +28,8 @@ import {
 export interface GltfAssetPipelineAdapterOptions {
   config?: AssetPipelineConfigInput;
   packageRoot?: string;
+  existingManifestIds?: string[];
+  usedArtifactPaths?: string[];
 }
 
 interface SourceReadResult {
@@ -72,12 +74,16 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
   readonly config: AssetPipelineConfig;
 
   private readonly packageRoot: string;
+  private readonly existingManifestIds: string[];
+  private readonly usedArtifactPaths: string[];
   private state: AssetPipelineLifecycleState = "idle";
   private io?: NodeIO;
 
   constructor(options: GltfAssetPipelineAdapterOptions = {}) {
     this.config = normalizeAssetPipelineConfig(options.config ?? defaultAssetPipelineConfig);
     this.packageRoot = options.packageRoot ?? process.cwd();
+    this.existingManifestIds = options.existingManifestIds ?? [];
+    this.usedArtifactPaths = options.usedArtifactPaths ?? [];
   }
 
   get lifecycle(): AssetPipelineLifecycleState {
@@ -216,7 +222,9 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
         sourcePath: request.sourcePath.replace(`${this.config.sourceRoot}/`, ""),
         outputArtifactPath: request.outputArtifactPath.replace(`${this.config.generatedArtifactPolicy.outputRoot}/`, "")
       },
-      this.config
+      this.config,
+      this.existingManifestIds,
+      this.usedArtifactPaths
     );
   }
 
@@ -314,7 +322,7 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
       sourcePath: request.sourcePath,
       variantId: request.variantId,
       profileId: request.profileId,
-      status: budgetResult.status === "fail" ? "budget-failed" : status,
+      status: budgetResult.status === "fail" ? "budget-failed" : budgetResult.status === "warning" ? "warning" : status,
       sourceHash: source.hash,
       profileHash: digest,
       metrics,

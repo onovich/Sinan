@@ -121,4 +121,69 @@ describe("GltfAssetPipelineAdapter inspect", () => {
     expect(sourceBytes.toString("utf8")).toContain("triangle-mesh");
     expect(JSON.stringify(report)).not.toMatch(/NodeIO|Document|MeshoptEncoder|Property|Transform\b/);
   });
+
+  test("normalizes manifest conflicts before tool execution", async () => {
+    const adapter = createGltfAssetPipelineAdapter({
+      existingManifestIds: ["asset:minimal-triangle:runtime"]
+    });
+    const normalized = normalizeAssetBuildRequest(
+      {
+        assetId: "asset:minimal-triangle",
+        sourcePath: "minimal-triangle.gltf",
+        expectedManifestId: "asset:minimal-triangle:runtime"
+      },
+      adapter.config,
+      ["asset:minimal-triangle:runtime"]
+    );
+    expect(normalized.ok).toBe(false);
+
+    const report = await adapter.inspect({
+      ...request(),
+      expectedManifestId: "asset:minimal-triangle:runtime"
+    });
+
+    expect(normalized.diagnostics[0]?.code).toBe("manifest-conflict");
+    expect(report.status).toBe("manifest-conflict");
+    expect(report.manifestPatch.entries).toEqual([]);
+    expect(report.diagnostics[0]?.code).toBe("manifest-conflict");
+  });
+
+  test("classifies budget warnings and failures in generated reports", async () => {
+    const warningAdapter = createGltfAssetPipelineAdapter({
+      config: {
+        budgets: [
+          {
+            budgetId: "tiny-fixture",
+            maxBytes: 2000,
+            maxMeshes: 2,
+            maxTriangles: 2,
+            warningRatio: 0.5
+          }
+        ]
+      }
+    });
+    const failAdapter = createGltfAssetPipelineAdapter({
+      config: {
+        budgets: [
+          {
+            budgetId: "tiny-fixture",
+            maxBytes: 10,
+            maxMeshes: 1,
+            maxTriangles: 1,
+            warningRatio: 0.8
+          }
+        ]
+      }
+    });
+
+    const warning = await warningAdapter.inspect(request());
+    const fail = await failAdapter.inspect(request());
+
+    expect(warning.status).toBe("warning");
+    expect(warning.budget.status).toBe("warning");
+    expect(warning.diagnostics.map((diagnostic) => diagnostic.code)).toContain("budget-warning");
+    expect(fail.status).toBe("budget-failed");
+    expect(fail.budget.status).toBe("fail");
+    expect(fail.diagnostics.map((diagnostic) => diagnostic.code)).toContain("budget-failed");
+  });
 });

@@ -86,7 +86,9 @@ describe("RawAssetPassThroughAdapter", () => {
 
     expect(report.status).toBe("fallback");
     expect(report.budget.status).toBe("fail");
+    expect(report.manifestPatch.entries[0]?.runtimeLoadHint).toBe("source");
     expect(report.budget.diagnostics.map((diagnostic) => diagnostic.code)).toContain("budget-failed");
+    expect(report.diagnostics.map((diagnostic) => diagnostic.code)).toContain("budget-warning");
     expect(report.generatedArtifacts).toHaveLength(0);
   });
 
