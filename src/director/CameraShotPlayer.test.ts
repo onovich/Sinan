@@ -75,4 +75,42 @@ describe('CameraShotPlayer', () => {
       fov: 52.5,
     });
   });
+
+  it('resolves spherical camera positions and lookAt points through the spatial resolver', () => {
+    const shot: CameraShotData = {
+      schemaVersion: 1,
+      id: 'cam_spherical',
+      type: 'static',
+      pose: {
+        position: {
+          mode: 'spherical-region',
+          region: 'city',
+          localPosition: [0, 0, 0],
+        },
+        lookAt: {
+          mode: 'spherical-region',
+          region: 'beach',
+          localPosition: [0, 0, 0],
+        },
+        fov: 50,
+      },
+    };
+    const player = new CameraShotPlayer({
+      getEntityPosition: () => undefined,
+      resolveSphericalPoint: (point) =>
+        point.region === 'city'
+          ? { position: [0, 0, 10], up: [0, 0, 1] }
+          : { position: [-10, 0, 0], up: [-1, 0, 0] },
+    });
+
+    expect(player.sample(shot, 0)).toEqual({
+      far: undefined,
+      fov: 50,
+      lookAt: [-10, 0, 0],
+      near: undefined,
+      position: [0, 0, 10],
+      rotation: undefined,
+      up: [0, 0, 1],
+    });
+  });
 });

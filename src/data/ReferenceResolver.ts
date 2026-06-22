@@ -1,6 +1,11 @@
 import type { AssetManifestData } from '../schemas/asset.schema';
 import type { ActionData } from '../schemas/action.schema';
-import type { CameraShotData, CameraLookAtData } from '../schemas/cameraShot.schema';
+import type {
+  CameraShotData,
+  CameraLookAtData,
+  CameraPointData,
+  SphericalCameraPointData,
+} from '../schemas/cameraShot.schema';
 import type { ConditionData } from '../schemas/condition.schema';
 import type { EventData } from '../schemas/event.schema';
 import type { LevelData } from '../schemas/level.schema';
@@ -46,6 +51,7 @@ export function validateProjectReferences(
   const assetIds = new Set(Object.keys(input.assets.assets));
   const palettesById = new Map((input.palettes ?? []).map((palette) => [palette.id, palette]));
   const entityIds = new Set<string>();
+  const regionIds = new Set<string>();
   const entityMaterialSlots = new Map<string, RenderableMaterialSlotsData>();
   const entityModelAssetIds = new Map<string, string>();
 
@@ -106,8 +112,10 @@ export function validateProjectReferences(
   for (const level of input.levels) {
     const scatterGroups = level.scatterGroups ?? [];
     const regions = level.worldProjection?.regions ?? [];
-    const regionIds = new Set(regions.map((region) => region.id));
+    const levelRegionIds = new Set(regions.map((region) => region.id));
     const scatterGroupIds = new Set(scatterGroups.map((group) => group.id));
+
+    regions.forEach((region) => regionIds.add(region.id));
 
     addDuplicateIdIssues(
       level.entities.map((entity) => entity.id),
@@ -146,7 +154,7 @@ export function validateProjectReferences(
         });
       }
 
-      addEntityPlacementReferenceIssues(entity, level, regionIds, issues);
+      addEntityPlacementReferenceIssues(entity, level, levelRegionIds, issues);
 
       const modelAssetId = getRenderableModelAssetId(project, entity);
       if (modelAssetId) {
@@ -294,7 +302,7 @@ export function validateProjectReferences(
     );
 
     for (const shot of input.cameraShots) {
-      addCameraShotReferenceIssues(shot, entityIds, issues);
+      addCameraShotReferenceIssues(shot, entityIds, regionIds, issues);
     }
   }
 
@@ -707,6 +715,7 @@ function getMaterialParameterReferenceIssuePath(
 function addCameraShotReferenceIssues(
   shot: CameraShotData,
   entityIds: ReadonlySet<string>,
+  regionIds: ReadonlySet<string>,
   issues: ReferenceValidationIssue[],
 ): void {
   const path = `data/cameraShots/${shot.id}.json`;
@@ -717,31 +726,81 @@ function addCameraShotReferenceIssues(
   }
 
   if (shot.type === 'lookAt') {
-    addCameraLookAtReferenceIssue(shot.target, entityIds, `${path}.target`, issues);
+    addCameraPointReferenceIssue(shot.position, regionIds, `${path}.position`, issues);
+    addCameraLookAtReferenceIssue(shot.target, entityIds, regionIds, `${path}.target`, issues);
     return;
   }
 
   if (shot.type === 'static') {
-    addCameraLookAtReferenceIssue(shot.pose.lookAt, entityIds, `${path}.pose.lookAt`, issues);
+    addCameraPointReferenceIssue(shot.pose.position, regionIds, `${path}.pose.position`, issues);
+    addCameraLookAtReferenceIssue(
+      shot.pose.lookAt,
+      entityIds,
+      regionIds,
+      `${path}.pose.lookAt`,
+      issues,
+    );
     return;
   }
 
-  shot.keys.forEach((key, index) =>
-    addCameraLookAtReferenceIssue(key.lookAt, entityIds, `${path}.keys.${index}.lookAt`, issues),
-  );
+  shot.keys.forEach((key, index) => {
+    addCameraPointReferenceIssue(key.position, regionIds, `${path}.keys.${index}.position`, issues);
+    addCameraLookAtReferenceIssue(
+      key.lookAt,
+      entityIds,
+      regionIds,
+      `${path}.keys.${index}.lookAt`,
+      issues,
+    );
+  });
 }
 
 function addCameraLookAtReferenceIssue(
   lookAt: CameraLookAtData | undefined,
   entityIds: ReadonlySet<string>,
+  regionIds: ReadonlySet<string>,
   path: string,
   issues: ReferenceValidationIssue[],
 ): void {
-  if (!lookAt || Array.isArray(lookAt)) {
+  if (!lookAt) {
+    return;
+  }
+
+  if (Array.isArray(lookAt)) {
+    return;
+  }
+
+  if (isSphericalCameraPoint(lookAt)) {
+    addCameraPointReferenceIssue(lookAt, regionIds, path, issues);
     return;
   }
 
   addMissingEntityReference(lookAt, entityIds, path, 'camera lookAt target', issues);
+}
+
+function addCameraPointReferenceIssue(
+  point: CameraPointData,
+  regionIds: ReadonlySet<string>,
+  path: string,
+  issues: ReferenceValidationIssue[],
+): void {
+  if (Array.isArray(point)) {
+    return;
+  }
+
+  if (regionIds.has(point.region)) {
+    return;
+  }
+
+  issues.push({
+    severity: 'error',
+    path: `${path}.region`,
+    message: `Missing camera spherical region "${point.region}".`,
+  });
+}
+
+function isSphericalCameraPoint(value: CameraLookAtData): value is SphericalCameraPointData {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function addMissingEntityReference(

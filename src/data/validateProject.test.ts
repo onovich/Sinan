@@ -479,6 +479,55 @@ describe('validateProject', () => {
     );
   });
 
+  it('validates spherical camera point region references', () => {
+    const sphericalLevel: LevelData = {
+      ...level,
+      worldProjection: {
+        type: 'cube-sphere',
+        radius: 10,
+        regions: [
+          {
+            id: 'city',
+            name: 'City Region',
+            label: 'City',
+            face: 'front',
+            localBounds: {
+              center: [0, 0, 0],
+              size: [2, 2, 2],
+            },
+          },
+        ],
+      },
+    };
+    const issues = validateProject({
+      assets,
+      prefabs: [switchPrefab],
+      levels: [sphericalLevel],
+      cameraShots: [
+        {
+          schemaVersion: 1,
+          id: 'cam_spherical_missing',
+          type: 'lookAt',
+          position: {
+            mode: 'spherical-region',
+            region: 'beach',
+            localPosition: [0, 0, 0],
+          },
+          target: [0, 0, 0],
+          fov: 50,
+        },
+      ],
+    }).issues;
+
+    expect(issues).toEqual([
+      {
+        severity: 'error',
+        path: 'data/cameraShots/cam_spherical_missing.json.position.region',
+        message: 'Missing camera spherical region "beach".',
+      },
+    ]);
+  });
+
   it('reports schema and registry coverage mismatches', () => {
     const issues = validateProject({
       assets,

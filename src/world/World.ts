@@ -2,6 +2,7 @@ import type { EntityData } from '../schemas/entity.schema';
 import type { LevelData } from '../schemas/level.schema';
 import { TransformSchema, type TransformData } from '../schemas/transform.schema';
 import type { WorldProjectionData } from '../schemas/worldProjection.schema';
+import { projectSphericalRegion, type SphericalSurfaceFrame } from './CubeSphereProjection';
 import { EntityStore, cloneEntityData, cloneTransform } from './EntityStore';
 import {
   deriveSphericalPlacements,
@@ -52,6 +53,12 @@ export type WorldSurfaceMovementResult =
         | 'world_unloaded';
     };
 
+export interface SphericalRegionPoint {
+  localPosition: TransformData['position'];
+  localYaw?: number;
+  region: string;
+}
+
 export class World {
   private readonly entities: EntityStore;
   private readonly worldProjection: WorldProjectionData | undefined;
@@ -79,6 +86,49 @@ export class World {
 
   getTransform(entityId: string): TransformData | undefined {
     return this.entities.getTransform(entityId);
+  }
+
+  getRuntimeTransform(entityId: string): TransformData | undefined {
+    const entity = this.entities.getById(entityId);
+
+    if (!entity) {
+      return undefined;
+    }
+
+    if (entity.placement) {
+      const placement = this.getSphericalPlacements().placements.find(
+        (candidate) => candidate.entityId === entityId,
+      );
+
+      if (placement) {
+        return toTransformData(placement.transform);
+      }
+    }
+
+    return cloneTransform(entity.transform);
+  }
+
+  resolveSphericalRegionFrame(point: SphericalRegionPoint): SphericalSurfaceFrame | undefined {
+    if (!this.worldProjection) {
+      return undefined;
+    }
+
+    const region = this.worldProjection.regions.find((candidate) => candidate.id === point.region);
+
+    if (!region) {
+      return undefined;
+    }
+
+    try {
+      return projectSphericalRegion({
+        localPosition: [...point.localPosition],
+        localYaw: point.localYaw ?? 0,
+        radius: this.worldProjection.radius,
+        region,
+      });
+    } catch {
+      return undefined;
+    }
   }
 
   getSphericalPlacements(): SphericalPlacementSnapshot {
@@ -224,4 +274,16 @@ export class World {
 
 function cloneJsonData<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function toTransformData(transform: {
+  position: readonly [number, number, number];
+  rotation: readonly [number, number, number, number];
+  scale: readonly [number, number, number];
+}): TransformData {
+  return {
+    position: [...transform.position],
+    rotation: [...transform.rotation],
+    scale: [...transform.scale],
+  };
 }

@@ -1,20 +1,29 @@
 import type { Vec3 } from '../runtime/RuntimeTypes';
 import type {
   CameraLookAtData,
+  CameraPointData,
   CameraPoseData,
   CameraShotData,
   CameraShotKeyData,
+  SphericalCameraPointData,
 } from '../schemas/cameraShot.schema';
 import type { Quat } from '../schemas/common.schema';
 
+export interface CameraShotResolvedPoint {
+  position: Vec3;
+  up?: Vec3;
+}
+
 export interface CameraShotEntityResolver {
   getEntityPosition(entityId: string): Vec3 | undefined;
+  resolveSphericalPoint?(point: SphericalCameraPointData): CameraShotResolvedPoint | undefined;
 }
 
 export interface CameraPoseSample {
   position: Vec3;
   rotation?: Quat;
   lookAt?: Vec3;
+  up?: Vec3;
   fov: number;
   near?: number;
   far?: number;
@@ -40,11 +49,10 @@ export class CameraShotPlayer {
         };
       }
       case 'lookAt':
-        return {
-          position: shot.position,
+        return this.applyCameraPoint(shot.position, {
           lookAt: this.resolveLookAt(shot.target),
           fov: shot.fov,
-        };
+        });
     }
   }
 
@@ -88,6 +96,10 @@ export class CameraShotPlayer {
         previousPose.lookAt && nextPose.lookAt
           ? lerpVec3(previousPose.lookAt, nextPose.lookAt, alpha)
           : (nextPose.lookAt ?? previousPose.lookAt),
+      up:
+        previousPose.up && nextPose.up
+          ? normalizeVec3(lerpVec3(previousPose.up, nextPose.up, alpha))
+          : (nextPose.up ?? previousPose.up),
       fov: roundSample(previousPose.fov + (nextPose.fov - previousPose.fov) * alpha),
       near: lerpOptionalNumber(previousPose.near, nextPose.near, alpha),
       far: lerpOptionalNumber(previousPose.far, nextPose.far, alpha),
@@ -95,14 +107,13 @@ export class CameraShotPlayer {
   }
 
   private resolvePose(pose: CameraPoseData): CameraPoseSample {
-    return {
-      position: pose.position,
+    return this.applyCameraPoint(pose.position, {
       rotation: pose.rotation,
       lookAt: pose.lookAt ? this.resolveLookAt(pose.lookAt) : undefined,
       fov: pose.fov,
       near: pose.near,
       far: pose.far,
-    };
+    });
   }
 
   private resolveLookAt(lookAt: CameraLookAtData): Vec3 {
@@ -110,7 +121,32 @@ export class CameraShotPlayer {
       return lookAt;
     }
 
+    if (isSphericalCameraPoint(lookAt)) {
+      return this.resolveCameraPoint(lookAt).position;
+    }
+
     return this.resolver.getEntityPosition(lookAt) ?? [0, 0, 0];
+  }
+
+  private applyCameraPoint(
+    point: CameraPointData,
+    sample: Omit<CameraPoseSample, 'position' | 'up'>,
+  ): CameraPoseSample {
+    const resolved = this.resolveCameraPoint(point);
+
+    return {
+      ...sample,
+      position: resolved.position,
+      up: resolved.up,
+    };
+  }
+
+  private resolveCameraPoint(point: CameraPointData): CameraShotResolvedPoint {
+    if (Array.isArray(point)) {
+      return { position: point };
+    }
+
+    return this.resolver.resolveSphericalPoint?.(point) ?? { position: [0, 0, 0] };
   }
 }
 
@@ -170,6 +206,20 @@ function normalizeQuat(quat: Quat): Quat {
   ];
 }
 
+function normalizeVec3(vector: Vec3): Vec3 {
+  const length = Math.hypot(vector[0], vector[1], vector[2]);
+
+  if (!Number.isFinite(length) || length === 0) {
+    return [0, 1, 0];
+  }
+
+  return [
+    roundSample(vector[0] / length),
+    roundSample(vector[1] / length),
+    roundSample(vector[2] / length),
+  ];
+}
+
 function lerpOptionalNumber(
   left: number | undefined,
   right: number | undefined,
@@ -184,4 +234,8 @@ function lerpOptionalNumber(
 
 function roundSample(value: number): number {
   return Math.round(value * 1_000_000) / 1_000_000;
+}
+
+function isSphericalCameraPoint(value: CameraLookAtData): value is SphericalCameraPointData {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

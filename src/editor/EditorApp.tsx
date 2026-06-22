@@ -16,7 +16,11 @@ import {
 } from '../events/types';
 import type { RuntimeTransform } from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
-import { CameraShotSchema, type CameraShotData } from '../schemas/cameraShot.schema';
+import {
+  CameraShotSchema,
+  type CameraShotData,
+  type CameraShotKeyData,
+} from '../schemas/cameraShot.schema';
 import type { ComponentMapData, ComponentPayloadData } from '../schemas/entity.schema';
 import { EventSchema, type EventData } from '../schemas/event.schema';
 import { LevelSchema, type LevelData } from '../schemas/level.schema';
@@ -731,9 +735,9 @@ export function EditorApp() {
 
     const key = shot.keys[keyIndex];
     const selectedPosition = selectedEntity?.transform.position;
-    const position: [number, number, number] = selectedPosition
+    const position: CameraShotKeyData['position'] = selectedPosition
       ? [selectedPosition[0], selectedPosition[1] + 1.5, selectedPosition[2] - 4]
-      : [...key.position];
+      : cloneCameraPoint(key.position);
     const nextShot: CameraShotData = {
       ...shot,
       keys: shot.keys.map((item, index) =>
@@ -2411,6 +2415,15 @@ function eventDataEqual(left: EventData, right: EventData): boolean {
 
 function cameraShotDataEqual(left: CameraShotData, right: CameraShotData): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function cloneCameraPoint(point: CameraShotKeyData['position']): CameraShotKeyData['position'] {
+  return Array.isArray(point)
+    ? [point[0], point[1], point[2]]
+    : {
+        ...point,
+        localPosition: [point.localPosition[0], point.localPosition[1], point.localPosition[2]],
+      };
 }
 
 function timelineTrackDataEqual(left: TimelineTrackData, right: TimelineTrackData): boolean {

@@ -35,6 +35,46 @@ describe('CameraShotSchema', () => {
     expect(keyframedShot.id).toBe('cam_gate_reveal');
   });
 
+  it('parses spherical camera points while keeping entity lookAt targets valid', () => {
+    const shot = CameraShotSchema.parse({
+      schemaVersion: 1,
+      id: 'cam_spherical_region',
+      type: 'keyframed',
+      duration: 2,
+      keys: [
+        {
+          time: 0,
+          position: {
+            mode: 'spherical-region',
+            region: 'city',
+            localPosition: [0, 0, 0],
+          },
+          lookAt: 'gate_a',
+          fov: 50,
+        },
+        {
+          time: 2,
+          position: [2, 3, 4],
+          lookAt: {
+            mode: 'spherical-region',
+            region: 'beach',
+            localPosition: [0, 0, 0],
+          },
+          fov: 45,
+        },
+      ],
+    });
+
+    expect(shot.type).toBe('keyframed');
+    if (shot.type !== 'keyframed') {
+      throw new Error('Expected keyframed camera shot.');
+    }
+    expect(shot.keys[0].position).toMatchObject({
+      mode: 'spherical-region',
+      region: 'city',
+    });
+  });
+
   it('rejects empty keyframed shots', () => {
     expect(() =>
       CameraShotSchema.parse({

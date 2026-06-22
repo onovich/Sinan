@@ -6,14 +6,25 @@ import {
   EntityIdSchema,
   QuatSchema,
   SchemaVersionSchema,
+  StableIdSchema,
   Vec3Schema,
 } from './common.schema';
 
-export const CameraLookAtSchema = z.union([Vec3Schema, EntityIdSchema]);
+export const SphericalCameraPointSchema = z
+  .object({
+    mode: z.literal('spherical-region'),
+    region: StableIdSchema,
+    localPosition: Vec3Schema,
+    localYaw: z.number().finite().optional(),
+  })
+  .strict();
+
+export const CameraPointSchema = z.union([Vec3Schema, SphericalCameraPointSchema]);
+export const CameraLookAtSchema = z.union([CameraPointSchema, EntityIdSchema]);
 
 export const CameraPoseSchema = z
   .object({
-    position: Vec3Schema,
+    position: CameraPointSchema,
     rotation: QuatSchema.optional(),
     lookAt: CameraLookAtSchema.optional(),
     fov: z.number().positive(),
@@ -66,7 +77,7 @@ export const LookAtCameraShotSchema = z
     id: CameraShotIdSchema,
     name: DisplayNameSchema.optional(),
     type: z.literal('lookAt'),
-    position: Vec3Schema,
+    position: CameraPointSchema,
     target: CameraLookAtSchema,
     fov: z.number().positive(),
   })
@@ -80,6 +91,8 @@ export const CameraShotSchema = z.discriminatedUnion('type', [
 ]);
 
 export type CameraLookAtData = z.infer<typeof CameraLookAtSchema>;
+export type CameraPointData = z.infer<typeof CameraPointSchema>;
 export type CameraPoseData = z.infer<typeof CameraPoseSchema>;
 export type CameraShotKeyData = z.infer<typeof CameraShotKeySchema>;
 export type CameraShotData = z.infer<typeof CameraShotSchema>;
+export type SphericalCameraPointData = z.infer<typeof SphericalCameraPointSchema>;

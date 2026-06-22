@@ -70,6 +70,7 @@ export function CameraShotPanel({
       : currentKey;
   const draftShot =
     keyframedShot && draftKey ? replaceKey(keyframedShot, keyIndex, draftKey) : undefined;
+  const draftPosition = draftKey ? getCameraPointVector(draftKey.position) : undefined;
   const visibleKeys =
     keyframedShot?.keys.map((key, index) =>
       draftKeyState?.shotId === keyframedShot.id &&
@@ -423,24 +424,30 @@ export function CameraShotPanel({
                 key={axis}
                 id={`camera-position-${axis}`}
                 label={axis}
-                value={draftKey.position[axisIndex]}
+                value={draftPosition?.[axisIndex] ?? 0}
                 step={0.1}
                 onChange={(value) => {
-                  const position: [number, number, number] = [...draftKey.position];
+                  const position = getCameraPointVector(draftKey.position);
                   position[axisIndex] = value;
-                  const nextKey = { ...draftKey, position };
-                  updateDraftKey({ position });
+                  const nextPosition = withCameraPointVector(draftKey.position, position);
+                  const nextKey = { ...draftKey, position: nextPosition };
+                  updateDraftKey({ position: nextPosition });
                   previewDraftKey(nextKey);
                 }}
                 onCommit={(value) => {
-                  const position: [number, number, number] = [...draftKey.position];
+                  const position = getCameraPointVector(draftKey.position);
                   position[axisIndex] = value;
-                  commitDraftKey({ ...draftKey, position });
+                  commitDraftKey({
+                    ...draftKey,
+                    position: withCameraPointVector(draftKey.position, position),
+                  });
                 }}
                 onCancel={(value) => {
-                  const position: [number, number, number] = [...draftKey.position];
+                  const position = getCameraPointVector(draftKey.position);
                   position[axisIndex] = value;
-                  updateDraftKey({ position });
+                  updateDraftKey({
+                    position: withCameraPointVector(draftKey.position, position),
+                  });
                 }}
               />
             ))}
@@ -503,6 +510,19 @@ function replaceKey(
     ...shot,
     keys: shot.keys.map((item, index) => (index === keyIndex ? key : item)),
   };
+}
+
+function getCameraPointVector(point: CameraShotKeyData['position']): [number, number, number] {
+  return Array.isArray(point)
+    ? [point[0], point[1], point[2]]
+    : [point.localPosition[0], point.localPosition[1], point.localPosition[2]];
+}
+
+function withCameraPointVector(
+  point: CameraShotKeyData['position'],
+  vector: [number, number, number],
+): CameraShotKeyData['position'] {
+  return Array.isArray(point) ? vector : { ...point, localPosition: vector };
 }
 
 function insertArrayItem<T>(items: readonly T[], index: number, item: T): T[] {

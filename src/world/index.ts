@@ -33,5 +33,10 @@ export {
   type SurfaceMovementState,
   type SurfaceMovementStepInput,
 } from './SurfaceMovement';
-export { World, type WorldSurfaceMovementResult, type WorldTransformResult } from './World';
+export {
+  World,
+  type SphericalRegionPoint,
+  type WorldSurfaceMovementResult,
+  type WorldTransformResult,
+} from './World';
 export type { WorldEntitySnapshot, WorldSnapshot } from './WorldSnapshot';
