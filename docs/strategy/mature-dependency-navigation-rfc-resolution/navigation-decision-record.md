@@ -1,8 +1,9 @@
 # NavigationAdapter Decision Record
 
 Date: 2026-06-22
-Status: in review
-Current matrix status: `hold-for-rfc`
+Status: resolved for checker review
+Starting matrix status: `hold-for-rfc`
+Resolved matrix status: `hold-for-showcase`
 
 ## Decision Question
 
@@ -31,7 +32,7 @@ The decision packet should answer:
 
 ## Current Leaning
 
-The conservative likely outcome is `hold-for-showcase`: RFC-014 can define the boundary, but implementation should still wait for a concrete playable or editor showcase that actually needs navigation.
+The selected outcome is `hold-for-showcase`: RFC-014 defines the boundary, but implementation must still wait for a concrete playable or editor showcase that actually needs navigation.
 
 ## Non-Decisions
 

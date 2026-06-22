@@ -43,6 +43,7 @@ The work is documentation and architecture-contract work only. It creates RFCs, 
 - `docs/rfcs/RFC-011-wasm-bundle-dependency-policy.md`
 - `docs/rfcs/RFC-012-dev-only-diagnostics-policy.md`
 - `docs/rfcs/RFC-013-navigation-adapter-hold-policy.md`
+- `docs/rfcs/RFC-014-navigation-adapter-boundary-proposal.md`
 
 ## Allowed Paths
 
@@ -103,6 +104,7 @@ External object handles never enter Sinan JSON, data source-of-truth, editor com
 | `docs/rfcs/RFC-011-wasm-bundle-dependency-policy.md` | Shared WASM, bundle, dependency, license, and dynamic import approval policy. |
 | `docs/rfcs/RFC-012-dev-only-diagnostics-policy.md` | Dev-only diagnostics policy for Spector-style tooling. |
 | `docs/rfcs/RFC-013-navigation-adapter-hold-policy.md` | Navigation hold policy for recast-style candidates. |
+| `docs/rfcs/RFC-014-navigation-adapter-boundary-proposal.md` | NavigationAdapter boundary proposal that moves the decision to `hold-for-showcase` without authorizing implementation. |
 
 ## Review Buffer Result
 

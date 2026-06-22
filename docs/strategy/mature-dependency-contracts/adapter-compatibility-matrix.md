@@ -26,7 +26,7 @@ Status: Draft contract matrix for RFC-006 through RFC-013.
 | `AssetPipelineAdapter` | glTF Transform, meshoptimizer | Node-side smoke validated inspect/transform/report style without runtime imports. | `adapter-spike-ready` | Offline build or content pipeline only. | Optional for rendered output inspection; primary validation is artifact diff/report. | Raw asset pass-through plus budget warning. | RFC-009 and RFC-011 accepted before root dependency changes. | Remove generated artifacts and regenerate from source assets. |
 | `WorkerTaskAdapter` | Comlink | Smoke validated worker RPC ergonomics and error propagation in isolation. | `adapter-spike-ready` | Long-running editor/runtime tasks behind registered task API. | Required for bundler worker URL, transferable payload, cancellation, and timeout behavior. | Main-thread task runner for small jobs with performance warning. | RFC-010 accepted and task registry defined. | Disable worker transport while preserving task contract. |
 | `DiagnosticsAdapter` | Spector.js | Useful for GPU frame capture but not part of player/runtime semantics. | `dev-only` | Editor/debug builds only. | Required before enabling any capture UI; production bundle must prove exclusion. | Diagnostics unavailable state. | RFC-012 accepted. | Strip dynamic import and debug UI without data migration. |
-| `NavigationAdapter` | recast-navigation / Recast WASM | Useful capability but spike evidence leaves WASM, bundle, authoring, and navmesh ownership unresolved. | `hold-for-rfc` | Future navigation service only. | Required after a dedicated navigation RFC and WASM bundle policy pass. | Static waypoint graph or no navigation service. | RFC-013 accepted, then a new RFC/spike pair. | Keep authored levels unchanged and remove generated navmesh artifacts. |
+| `NavigationAdapter` | recast-navigation / Recast WASM, or a simpler fallback candidate | RFC-014 defines a package-agnostic boundary, source-of-truth policy, generated artifact policy, fallback states, and browser/WASM gates. Prior recast evidence remains useful but not sufficient for implementation. | `hold-for-showcase` | Future navigation service only after a concrete showcase/gameplay acceptance case. | Required after showcase approval; must prove dynamic import, WASM load, path query, reload/cache, fallback failure, disposal, and bundle budget. | No navigation service, static waypoint graph, grid/approximate fallback, or straight-line editor preview. | RFC-014 architect acceptance, RFC-011 dependency/bundle approval, and showcase/gameplay gate before any implementation spike. | Keep authored levels and navigation intent unchanged; remove generated navmesh artifacts and adapter binding. |
 
 ## Matrix Rules
 
@@ -59,7 +59,8 @@ Status: Draft contract matrix for RFC-006 through RFC-013.
 | Worker tasks | `docs/rfcs/RFC-010-worker-task-boundary.md` | `adapter-spike-ready` | Browser smoke policy for worker URL/transfer/timeout. |
 | WASM and dependency policy | `docs/rfcs/RFC-011-wasm-bundle-dependency-policy.md` | `accept-for-contract` | Required by WASM/native or bundle-sensitive candidates. |
 | Dev-only diagnostics | `docs/rfcs/RFC-012-dev-only-diagnostics-policy.md` | `dev-only` | RFC-011 production exclusion proof. |
-| Navigation | `docs/rfcs/RFC-013-navigation-adapter-hold-policy.md` | `hold-for-rfc` | Dedicated navigation RFC plus RFC-011 before implementation. |
+| Navigation hold policy | `docs/rfcs/RFC-013-navigation-adapter-hold-policy.md` | superseded-by-proposal | RFC-014 resolves the RFC gap while preserving implementation hold gates. |
+| Navigation boundary proposal | `docs/rfcs/RFC-014-navigation-adapter-boundary-proposal.md` | `hold-for-showcase` | RFC-011 plus showcase/gameplay acceptance and browser/WASM smoke before implementation. |
 | Browser smoke environment | `docs/strategy/mature-dependency-contracts/browser-smoke-environment-policy.md` | policy | Required by browser-sensitive implementation guides. |
 
 ## Cross-RFC Consistency Decisions
@@ -69,4 +70,5 @@ Status: Draft contract matrix for RFC-006 through RFC-013.
 - A future implementation guide must cite the relevant RFC, the compatibility matrix status, and the browser smoke or bundle evidence required by that RFC.
 - Fallback is not optional. Each accepted or spike-ready candidate must preserve scene/editor review with a null, silent, volatile, raw pass-through, main-thread, or unavailable fallback.
 - Validation must include at least one contract-level test strategy and one leakage guard. Browser-sensitive candidates also require browser smoke evidence.
-- `dev-only` and `hold-for-rfc` statuses are not weaker approvals; they are explicit stops for production/runtime integration.
+- `dev-only`, `hold-for-rfc`, and `hold-for-showcase` statuses are not weaker approvals; they are explicit stops for production/runtime integration.
+- `hold-for-showcase` means the boundary is defined enough for architect review, but implementation must wait for a named playable/editor acceptance case and its validation gates.

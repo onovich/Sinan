@@ -4,6 +4,8 @@ Date: 2026-06-21
 Status: `hold-for-rfc`
 Related matrix row: `NavigationAdapter` / recast-navigation
 
+2026-06-22 update: `docs/rfcs/RFC-014-navigation-adapter-boundary-proposal.md` resolves the dedicated boundary proposal and moves the compatibility matrix recommendation to `hold-for-showcase`. This does not authorize implementation; it preserves the showcase, RFC-011, browser/WASM, bundle, and generated artifact gates before any NavigationAdapter spike.
+
 ## Background And Evidence
 
 The mature dependency spike identified recast-navigation and Recast WASM as plausible future navigation candidates. The evidence is insufficient for implementation because navmesh ownership, authoring workflow, WASM packaging, bundle impact, and gameplay semantics are not yet settled.
