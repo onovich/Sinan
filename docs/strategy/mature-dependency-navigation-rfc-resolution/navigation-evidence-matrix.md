@@ -46,3 +46,11 @@ Decision: `hold-for-showcase`
 - runtime NavigationSystem implementation;
 - browser smoke implementation for navigation in this goal;
 - generated navmesh as canonical source truth.
+
+## Round 6 Consistency Review
+
+The buffer review found no unresolved `TODO` or `TBD` markers in the navigation resolution packet.
+
+Terms such as `root package`, `hard dependency`, `recast import`, and `implementation approved` appear only in forbidden, historical, or future-gated contexts. The packet does not state or imply that navigation implementation is approved.
+
+Historical contract-pack reports still describe the pre-RFC-014 state. The current status is recorded in the compatibility matrix, RFC-013 update note, RFC-014, and this evidence matrix.
