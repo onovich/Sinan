@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 import type { ProjectData } from '../data/DataRepository';
 import { EngineSession } from '../engine/EngineSession';
 import type { EngineMode } from '../engine/EngineMode';
+import type { DeliveryJobRuntimeSnapshot } from '../game/delivery';
 import type {
   RuntimeCameraPose,
+  RuntimeDeliveryRouteFeedbackDiagnostics,
   RuntimeLodDiagnostics,
   RuntimeScatterDiagnostics,
   RuntimeSphericalPlacementDiagnostics,
@@ -35,6 +37,7 @@ interface ViewportPointerInteraction {
 }
 
 interface RuntimeDiagnosticsSnapshot {
+  deliveryRouteFeedback: RuntimeDeliveryRouteFeedbackDiagnostics;
   lod: readonly RuntimeLodDiagnostics[];
   scatter: readonly RuntimeScatterDiagnostics[];
   spherical: RuntimeSphericalPlacementDiagnostics;
@@ -56,6 +59,7 @@ export interface ViewportProps {
   autoFocus?: boolean;
   mode: EngineMode;
   project: ProjectData | null;
+  deliveryJobSnapshot?: DeliveryJobRuntimeSnapshot;
   selectionEnabled: boolean;
   showTriggerDebug: boolean;
   selectedEntityId: string | undefined;
@@ -70,6 +74,7 @@ export function Viewport({
   autoFocus = false,
   mode,
   project,
+  deliveryJobSnapshot,
   selectionEnabled,
   showTriggerDebug,
   selectedEntityId,
@@ -123,6 +128,10 @@ export function Viewport({
     modeRef.current = mode;
     sessionRef.current?.setMode(mode);
   }, [mode]);
+
+  useEffect(() => {
+    sessionRef.current?.setDeliveryJobSnapshot(deliveryJobSnapshot);
+  }, [deliveryJobSnapshot]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -449,6 +458,8 @@ function installRuntimeDiagnostics(runtime: WebRuntime, session: EngineSession):
 
   const diagnosticsWindow = window as unknown as RuntimeDiagnosticsWindow;
   diagnosticsWindow.__SINAN_RUNTIME_DIAGNOSTICS__ = () => ({
+    deliveryRouteFeedback:
+      runtime.getDeliveryRouteFeedbackDiagnostics?.() ?? createEmptyDeliveryRouteDiagnostics(),
     lod: runtime.getLodDiagnostics?.() ?? [],
     scatter: runtime.getScatterDiagnostics?.() ?? [],
     spherical: runtime.getSphericalPlacementDiagnostics?.() ?? {
@@ -476,4 +487,18 @@ function clearRuntimeDiagnostics(): void {
   delete diagnosticsWindow.__SINAN_RUNTIME_DIAGNOSTICS__;
   delete diagnosticsWindow.__SINAN_RUNTIME_STEP_SPHERICAL_MOVEMENT__;
   delete diagnosticsWindow.__SINAN_RUNTIME_APPLY_CAMERA_POSE__;
+}
+
+function createEmptyDeliveryRouteDiagnostics(): RuntimeDeliveryRouteFeedbackDiagnostics {
+  return {
+    activeMarkerCount: 0,
+    completedMarkerCount: 0,
+    issueCount: 0,
+    issues: [],
+    lowEndSuppressedCount: 0,
+    markerCount: 0,
+    markers: [],
+    missingTargetCount: 0,
+    visibleMarkerCount: 0,
+  };
 }

@@ -4,7 +4,10 @@ import {
   getRenderableModelAssetId,
   getRenderableRenderStyle,
 } from '../data/projectDataSelectors';
-import { createDeliveryRouteFeedbackState } from '../game/delivery';
+import {
+  createDeliveryRouteFeedbackState,
+  type DeliveryJobRuntimeSnapshot,
+} from '../game/delivery';
 import {
   createDefaultShaderGlobals,
   normalizeShaderGlobals,
@@ -60,6 +63,7 @@ export class EngineSession {
   private status: EngineSessionStatus = 'idle';
   private triggerDebugVisible = false;
   private world: World | undefined;
+  private deliveryJobSnapshot: DeliveryJobRuntimeSnapshot | undefined;
 
   constructor(private readonly options: EngineSessionOptions) {
     this.loop = new EngineLoop(
@@ -103,6 +107,12 @@ export class EngineSession {
     return this.world;
   }
 
+  setDeliveryJobSnapshot(snapshot: DeliveryJobRuntimeSnapshot | undefined): void {
+    this.ensureActive();
+    this.deliveryJobSnapshot = snapshot ? cloneDeliveryJobRuntimeSnapshot(snapshot) : undefined;
+    this.syncDeliveryRouteFeedback();
+  }
+
   async loadProject(
     project: ProjectData,
     loadOptions: EngineProjectLoadOptions = {},
@@ -113,6 +123,7 @@ export class EngineSession {
     this.currentProject = project;
     this.status = 'loading';
     this.world = World.fromLevel(project.level);
+    this.deliveryJobSnapshot = undefined;
     this.options.runtime.setStyleQualityProfile?.(
       loadOptions.styleQualityProfile ?? this.options.styleQualityProfile ?? 'standard',
     );
@@ -283,6 +294,7 @@ export class EngineSession {
     this.options.runtime.setDeliveryRouteFeedback(
       createDeliveryRouteFeedbackState({
         level: this.currentProject.level,
+        snapshot: this.deliveryJobSnapshot,
         world: this.world,
       }),
     );
@@ -412,4 +424,10 @@ function toRuntimeScatterGroups(
     quality: group.quality,
     fallback: group.fallback,
   }));
+}
+
+function cloneDeliveryJobRuntimeSnapshot(
+  snapshot: DeliveryJobRuntimeSnapshot,
+): DeliveryJobRuntimeSnapshot {
+  return JSON.parse(JSON.stringify(snapshot)) as DeliveryJobRuntimeSnapshot;
 }

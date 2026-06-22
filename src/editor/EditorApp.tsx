@@ -10,10 +10,18 @@ import { EventSystem } from '../events/EventSystem';
 import { TriggerSystem } from '../events/TriggerSystem';
 import {
   createEventRuntimeState,
+  syncDeliveryJobRuntimeState,
+  type ActionExecutionContext,
   type DirectorCommand,
   type EventRuntimeState,
   type FlagValue,
 } from '../events/types';
+import {
+  createDeliveryJobRuntimeFromLevel,
+  createDeliveryRouteFeedbackState,
+  type DeliveryJobRuntime,
+  type DeliveryJobRuntimeSnapshot,
+} from '../game/delivery';
 import type { RuntimeTransform } from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
 import {
@@ -112,15 +120,16 @@ export function EditorApp() {
     entityId: string;
     transform: TransformData;
   }>();
-  const [eventRuntimePreviewState, setEventRuntimePreviewState] = useState<EventRuntimeState>(() =>
-    createEventRuntimeState({
-      flags: { power_enabled: true },
-      inventory: new Set(['gate_key']),
-    }),
+  const [deliveryJobSnapshot, setDeliveryJobSnapshot] = useState<
+    DeliveryJobRuntimeSnapshot | undefined
+  >(undefined);
+  const [eventRuntimePreviewState, setEventRuntimePreviewState] = useState<EventRuntimeState>(
+    createEditorEventRuntimeState,
   );
   const projectRef = useRef<ProjectData | null>(null);
   const commandHistoryRef = useRef(new CommandHistory());
   const eventRuntimeStateRef = useRef<EventRuntimeState>(eventRuntimePreviewState);
+  const deliveryJobRuntimeRef = useRef<DeliveryJobRuntime | null>(null);
   const directorCommandsRef = useRef<DirectorCommand[]>([]);
   const runtimeRef = useRef<WebRuntime | null>(null);
   const timelinePlaybackRef = useRef<TimelinePlaybackSession | null>(null);
@@ -186,7 +195,16 @@ export function EditorApp() {
     mode: editorState.mode,
     triggerDebugVisible: showTriggerDebug,
   });
-  const showcaseHud = createShowcaseModeHud(project);
+  const showcaseRouteFeedback = project
+    ? createDeliveryRouteFeedbackState({
+        level: project.level,
+        snapshot: deliveryJobSnapshot,
+      })
+    : undefined;
+  const showcaseHud = createShowcaseModeHud(project, {
+    routeFeedback: showcaseRouteFeedback,
+    snapshot: deliveryJobSnapshot,
+  });
   const commandContext: EditorCommandContext = {
     updateLevel: (level) => {
       setProject((current) => updateProjectLevel(current, level));
@@ -220,6 +238,15 @@ export function EditorApp() {
       .loadProjectLevel('level_01')
       .then((loadedProject) => {
         if (!cancelled) {
+          const deliveryJobRuntime = createDeliveryJobRuntimeFromLevel(loadedProject.level);
+          const deliverySnapshot = deliveryJobRuntime.getSnapshot();
+          const nextEventRuntimeState = createEditorEventRuntimeState(deliverySnapshot);
+
+          deliveryJobRuntimeRef.current = deliveryJobRuntime;
+          eventRuntimeStateRef.current = nextEventRuntimeState;
+          setDeliveryJobSnapshot(deliverySnapshot);
+          setEventRuntimePreviewState(cloneEventRuntimeState(nextEventRuntimeState));
+          setEventDebugState(createEventDebugState([], nextEventRuntimeState, []));
           projectRef.current = loadedProject;
           setProject(loadedProject);
           setProjectError(null);
@@ -1104,20 +1131,7 @@ export function EditorApp() {
       return;
     }
 
-    const context = {
-      state: eventRuntimeStateRef.current,
-      directorCommands: directorCommandsRef.current,
-    };
-    const firedEventIds = new TriggerSystem(
-      new EventSystem(Object.values(project.events)),
-    ).interact(selectedEntity.id, context);
-    const debugCommands = [...directorCommandsRef.current];
-    consumeRuntimeEffectCommands(directorCommandsRef.current);
-    setEventRuntimePreviewState(cloneEventRuntimeState(eventRuntimeStateRef.current));
-
-    setEventDebugState(
-      createEventDebugState(firedEventIds, eventRuntimeStateRef.current, debugCommands),
-    );
+    runDeliveryInteraction(selectedEntity.id);
   };
 
   function consumeRuntimeEffectCommands(commands: DirectorCommand[]): {
@@ -1170,6 +1184,116 @@ export function EditorApp() {
 
     return { subtitles, sounds };
   }
+
+  function runDeliveryInteraction(entityId: string): DeliveryShowcaseSmokeResult {
+    const currentProject = projectRef.current;
+
+    if (!currentProject) {
+      return {
+        message: 'No project loaded.',
+        ok: false,
+        reason: 'project_unloaded',
+      };
+    }
+
+    const context: ActionExecutionContext = {
+      state: eventRuntimeStateRef.current,
+      ...(deliveryJobRuntimeRef.current ? { deliveryJobs: deliveryJobRuntimeRef.current } : {}),
+      directorCommands: directorCommandsRef.current,
+    };
+    let firedEventIds: string[];
+
+    try {
+      firedEventIds = new TriggerSystem(
+        new EventSystem(Object.values(currentProject.events)),
+      ).interact(entityId, context);
+    } catch (error: unknown) {
+      return {
+        message: error instanceof Error ? error.message : String(error),
+        ok: false,
+        reason: 'event_dispatch_failed',
+      };
+    }
+
+    const debugCommands = [...directorCommandsRef.current];
+    const effects = consumeRuntimeEffectCommands(directorCommandsRef.current);
+    const snapshot = deliveryJobRuntimeRef.current?.getSnapshot();
+
+    if (snapshot) {
+      setDeliveryJobSnapshot(snapshot);
+    }
+
+    setEventRuntimePreviewState(cloneEventRuntimeState(eventRuntimeStateRef.current));
+    setEventDebugState(
+      createEventDebugState(firedEventIds, eventRuntimeStateRef.current, debugCommands),
+    );
+
+    return {
+      ...createDeliveryShowcaseSmokeSnapshot(
+        currentProject,
+        snapshot,
+        eventRuntimeStateRef.current,
+      ),
+      directorCommands: debugCommands.map(toSmokeDirectorCommand),
+      effects,
+      firedEventIds,
+      ok: true,
+    };
+  }
+
+  function resetDeliveryRuntimeFromProject(
+    currentProject: ProjectData | null,
+  ): DeliveryJobRuntimeSnapshot | undefined {
+    if (!currentProject) {
+      deliveryJobRuntimeRef.current = null;
+      setDeliveryJobSnapshot(undefined);
+      eventRuntimeStateRef.current = createEditorEventRuntimeState();
+      setEventRuntimePreviewState(eventRuntimeStateRef.current);
+      setEventDebugState(createEventDebugState([], eventRuntimeStateRef.current, []));
+
+      return undefined;
+    }
+
+    const deliveryJobRuntime = createDeliveryJobRuntimeFromLevel(currentProject.level);
+    const snapshot = deliveryJobRuntime.getSnapshot();
+    const nextEventState = createEditorEventRuntimeState(snapshot);
+
+    deliveryJobRuntimeRef.current = deliveryJobRuntime;
+    eventRuntimeStateRef.current = nextEventState;
+    setDeliveryJobSnapshot(snapshot);
+    setEventRuntimePreviewState(cloneEventRuntimeState(nextEventState));
+    setEventDebugState(createEventDebugState([], nextEventState, []));
+
+    return snapshot;
+  }
+
+  useEffect(() => {
+    if (!isRuntimeDiagnosticsModeEnabled()) {
+      return undefined;
+    }
+
+    return installDeliveryShowcaseSmokeHook((command) => {
+      if (command.type === 'reset') {
+        const snapshot = resetDeliveryRuntimeFromProject(projectRef.current);
+
+        return createDeliveryShowcaseSmokeSnapshot(
+          projectRef.current,
+          snapshot,
+          eventRuntimeStateRef.current,
+        );
+      }
+
+      if (command.type === 'snapshot') {
+        return createDeliveryShowcaseSmokeSnapshot(
+          projectRef.current,
+          deliveryJobRuntimeRef.current?.getSnapshot(),
+          eventRuntimeStateRef.current,
+        );
+      }
+
+      return runDeliveryInteraction(command.entityId);
+    });
+  });
 
   const showSubtitle = (command: Extract<DirectorCommand, { type: 'subtitle.show' }>) => {
     if (subtitleTimerRef.current !== undefined) {
@@ -1426,6 +1550,7 @@ export function EditorApp() {
             autoFocus={shellModeState.viewportAutoFocus}
             mode={shellModeState.mode}
             project={project}
+            deliveryJobSnapshot={deliveryJobSnapshot}
             selectionEnabled={shellModeState.selectionEnabled}
             showTriggerDebug={shellModeState.showTriggerDebug}
             selectedEntityId={editorState.selectedEntityId}
@@ -2622,6 +2747,88 @@ function tupleEqual(left: readonly number[], right: readonly number[]): boolean 
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
+function createEditorEventRuntimeState(
+  deliverySnapshot?: DeliveryJobRuntimeSnapshot,
+): EventRuntimeState {
+  const state = createEventRuntimeState({
+    flags: { power_enabled: true },
+    inventory: new Set(['gate_key']),
+  });
+
+  if (deliverySnapshot) {
+    syncDeliveryJobRuntimeState(state, deliverySnapshot);
+  }
+
+  return state;
+}
+
+function createDeliveryShowcaseSmokeSnapshot(
+  project: ProjectData | null,
+  snapshot: DeliveryJobRuntimeSnapshot | undefined,
+  state: EventRuntimeState,
+): DeliveryShowcaseSmokeSnapshot {
+  const routeFeedback = project
+    ? createDeliveryRouteFeedbackState({
+        level: project.level,
+        snapshot,
+      })
+    : undefined;
+  const hud = createShowcaseModeHud(project, {
+    routeFeedback,
+    snapshot,
+  });
+
+  return {
+    activeDeliveryJobId: state.activeDeliveryJobId,
+    deliveryJobSequence: state.deliveryJobSequence,
+    deliveryJobs: { ...state.deliveryJobs },
+    endpointCount: hud.endpointCount,
+    flags: { ...state.flags },
+    hud: {
+      activeJobId: hud.activeJobId,
+      activeJobStatus: hud.activeJobStatus,
+      completionText: hud.completionText,
+      prompt: hud.prompt,
+      routeMarkerCount: hud.routeMarkerCount,
+      statusLabel: hud.statusLabel,
+      targetLabel: hud.targetLabel,
+      targetVisible: hud.targetVisible,
+      title: hud.title,
+      tone: hud.tone,
+    },
+    jobCount: hud.jobCount,
+    ok: true,
+    routeFeedback: {
+      activeMarkerCount: routeFeedback?.markers.filter((marker) => marker.active).length ?? 0,
+      completedMarkerCount: routeFeedback?.markers.filter((marker) => marker.completed).length ?? 0,
+      issueCount: routeFeedback?.issueCount ?? 0,
+      markerCount: routeFeedback?.markerCount ?? 0,
+      status: routeFeedback?.status ?? 'inactive',
+    },
+  };
+}
+
+function toSmokeDirectorCommand(command: DirectorCommand): Record<string, unknown> {
+  return JSON.parse(JSON.stringify(command)) as Record<string, unknown>;
+}
+
+function isRuntimeDiagnosticsModeEnabled(
+  search = typeof window === 'undefined' ? '' : window.location.search,
+): boolean {
+  return new URLSearchParams(search).get('runtimeDiagnostics') === '1';
+}
+
+function installDeliveryShowcaseSmokeHook(
+  runCommand: (command: DeliveryShowcaseSmokeCommand) => DeliveryShowcaseSmokeResult,
+): () => void {
+  const smokeWindow = window as unknown as DeliveryShowcaseSmokeWindow;
+  smokeWindow.__SINAN_DELIVERY_SHOWCASE_SMOKE__ = runCommand;
+
+  return () => {
+    delete smokeWindow.__SINAN_DELIVERY_SHOWCASE_SMOKE__;
+  };
+}
+
 function createEventDebugState(
   firedEventIds: readonly string[],
   state: {
@@ -2641,6 +2848,61 @@ function createEventDebugState(
     ),
     directorCommands: [...directorCommands],
   };
+}
+
+type DeliveryShowcaseSmokeCommand =
+  | { type: 'interact'; entityId: string }
+  | { type: 'reset' }
+  | { type: 'snapshot' };
+
+type DeliveryShowcaseSmokeResult =
+  | (DeliveryShowcaseSmokeSnapshot & {
+      directorCommands?: readonly Record<string, unknown>[];
+      effects?: {
+        sounds: number;
+        subtitles: number;
+      };
+      firedEventIds?: readonly string[];
+    })
+  | {
+      message: string;
+      ok: false;
+      reason: 'event_dispatch_failed' | 'project_unloaded';
+    };
+
+interface DeliveryShowcaseSmokeSnapshot {
+  activeDeliveryJobId?: string;
+  deliveryJobSequence: number;
+  deliveryJobs: Record<string, string | undefined>;
+  endpointCount: number;
+  flags: Record<string, FlagValue | undefined>;
+  hud: {
+    activeJobId?: string;
+    activeJobStatus: string;
+    completionText?: string;
+    prompt: string;
+    routeMarkerCount: number;
+    statusLabel: string;
+    targetLabel?: string;
+    targetVisible: boolean;
+    title: string;
+    tone: string;
+  };
+  jobCount: number;
+  ok: true;
+  routeFeedback: {
+    activeMarkerCount: number;
+    completedMarkerCount: number;
+    issueCount: number;
+    markerCount: number;
+    status: string;
+  };
+}
+
+interface DeliveryShowcaseSmokeWindow {
+  __SINAN_DELIVERY_SHOWCASE_SMOKE__?: (
+    command: DeliveryShowcaseSmokeCommand,
+  ) => DeliveryShowcaseSmokeResult;
 }
 
 function cloneEventRuntimeState(state: EventRuntimeState): EventRuntimeState {

@@ -117,6 +117,171 @@ test('showcase mode editor shell hides authoring panels and returns to edit', as
   expect(browserErrors).toEqual([]);
 });
 
+test('delivery showcase smoke completes a job flow and editor can inspect job data', async ({
+  page,
+}) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/?runtimeDiagnostics=1');
+  const shell = page.getByTestId('editor-shell');
+  const modeNav = page.getByRole('navigation', { name: 'Editor modes' });
+  await expect(shell).toBeVisible();
+  await expect(page.locator('.viewport-status')).toContainText('runtime ready');
+
+  await modeNav.getByRole('button', { name: 'Showcase', exact: true }).click();
+  await expect(shell).toHaveAttribute('data-mode', 'showcase');
+  const hud = page.getByTestId('showcase-hud');
+  await expect(hud).toHaveAttribute('data-job-status', 'available');
+  await expect(hud).toHaveAttribute('data-tone', 'neutral');
+  await expect(hud).toContainText('Carry the gate permit packet');
+
+  const initialSignals = await readSphericalRuntimeSmokeSignals(page);
+  expect(initialSignals.playerPosition).toBeDefined();
+  await expect(runDeliveryShowcaseSmokeCommand(page, { type: 'snapshot' })).resolves.toMatchObject({
+    deliveryJobs: {
+      'job.hill_mail_run': 'available',
+    },
+    hud: {
+      activeJobStatus: 'available',
+      routeMarkerCount: 3,
+    },
+    jobCount: 1,
+    ok: true,
+  });
+
+  await expect(
+    stepSphericalMovementSmoke(page, {
+      deltaSeconds: 0.5,
+      forward: 1,
+      moveSpeed: 0.35,
+      turn: 0,
+    }),
+  ).resolves.toMatchObject({
+    entityId: 'player_spawn_01',
+    ok: true,
+  });
+
+  const accepted = await runDeliveryShowcaseSmokeCommand(page, {
+    type: 'interact',
+    entityId: 'courier_hill_01',
+  });
+  expect(accepted).toMatchObject({
+    deliveryJobs: {
+      'job.hill_mail_run': 'inProgress',
+    },
+    effects: {
+      subtitles: 1,
+    },
+    firedEventIds: ['ev_delivery_accept', 'ev_delivery_progress'],
+    hud: {
+      activeJobStatus: 'inProgress',
+      prompt: 'Head to the hill mailbox.',
+      targetLabel: 'Hill Mailbox',
+      tone: 'active',
+    },
+    ok: true,
+    routeFeedback: {
+      activeMarkerCount: 2,
+      markerCount: 3,
+      status: 'inProgress',
+    },
+  });
+  await expect(hud).toHaveAttribute('data-job-status', 'inProgress');
+  await expect(hud).toHaveAttribute('data-tone', 'active');
+  await expect(hud).toContainText('Head to the hill mailbox.');
+  await expect(hud).toContainText('Hill Mailbox');
+  await expect(page.getByTestId('runtime-subtitle')).toContainText('Gate permit packet accepted.');
+  await expect
+    .poll(() => readDeliveryRouteFeedbackSmokeSignals(page))
+    .toMatchObject({
+      activeMarkerCount: 2,
+      issueCount: 0,
+      lowEndSuppressedCount: 0,
+      markerCount: 3,
+      visibleMarkerCount: 3,
+    });
+
+  await expect(
+    stepSphericalMovementSmoke(page, {
+      deltaSeconds: 0.75,
+      forward: 1,
+      moveSpeed: 0.45,
+      turn: 1,
+    }),
+  ).resolves.toMatchObject({
+    entityId: 'player_spawn_01',
+    ok: true,
+  });
+  const targetSignals = await readSphericalRuntimeSmokeSignals(page);
+  expect(targetSignals.playerPosition).not.toEqual(initialSignals.playerPosition);
+
+  const completed = await runDeliveryShowcaseSmokeCommand(page, {
+    type: 'interact',
+    entityId: 'mailbox_hill_01',
+  });
+  expect(completed).toMatchObject({
+    deliveryJobs: {
+      'job.hill_mail_run': 'completed',
+    },
+    effects: {
+      subtitles: 1,
+    },
+    firedEventIds: ['ev_delivery_ready', 'ev_delivery_complete'],
+    flags: {
+      job_hill_mail_run_complete: true,
+    },
+    hud: {
+      activeJobStatus: 'completed',
+      completionText: 'Hill mail run complete.',
+      prompt: 'Hill mail run complete.',
+      tone: 'success',
+    },
+    ok: true,
+    routeFeedback: {
+      completedMarkerCount: 3,
+      markerCount: 3,
+      status: 'completed',
+    },
+  });
+  await expect(hud).toHaveAttribute('data-job-status', 'completed');
+  await expect(hud).toHaveAttribute('data-tone', 'success');
+  await expect(hud).toContainText('Hill mail run complete.');
+  await expect
+    .poll(() => readDeliveryRouteFeedbackSmokeSignals(page))
+    .toMatchObject({
+      activeMarkerCount: 0,
+      completedMarkerCount: 3,
+      issueCount: 0,
+      markerCount: 3,
+      visibleMarkerCount: 3,
+    });
+
+  await expect(runDeliveryShowcaseSmokeCommand(page, { type: 'reset' })).resolves.toMatchObject({
+    deliveryJobs: {
+      'job.hill_mail_run': 'available',
+    },
+    hud: {
+      activeJobStatus: 'available',
+    },
+    ok: true,
+  });
+
+  await modeNav.getByRole('button', { name: 'Edit', exact: true }).click();
+  await expect(shell).toHaveAttribute('data-mode', 'edit');
+  const deliveryPanel = page.locator('.delivery-job-panel');
+  await expect(deliveryPanel).toBeVisible();
+  await expect(deliveryPanel).toContainText('Hill Mail Run');
+  await expect(deliveryPanel).toContainText('Hill Mailbox (delivery.mailbox_hill)');
+  const deliveryTitle = page.locator('#delivery-job-title');
+  await expect(deliveryTitle).toHaveValue('Hill Mail Run');
+  await deliveryTitle.fill('Hill Mail Run Smoke');
+  await deliveryPanel.getByRole('button', { name: 'Apply Job' }).click();
+  await expect(page.locator('.save-status')).toHaveText('Unsaved');
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(deliveryTitle).toHaveValue('Hill Mail Run');
+  expect(browserErrors).toEqual([]);
+});
+
 test('timeline direct manipulation previews during the gesture and commits once', async ({
   page,
 }) => {
@@ -1466,6 +1631,25 @@ function collectBrowserErrors(page: Page): string[] {
 }
 
 interface RuntimeSmokeDiagnostics {
+  deliveryRouteFeedback: {
+    activeMarkerCount: number;
+    completedMarkerCount: number;
+    issueCount: number;
+    lowEndSuppressedCount: number;
+    markerCount: number;
+    markers: Array<{
+      active: boolean;
+      completed: boolean;
+      fallbackUsed: boolean;
+      id: string;
+      kind: string;
+      status: string;
+      target: boolean;
+      visible: boolean;
+    }>;
+    missingTargetCount: number;
+    visibleMarkerCount: number;
+  };
   lod: Array<{
     currentAsset: string | undefined;
     currentLevel: number | undefined;
@@ -1490,6 +1674,52 @@ interface RuntimeSmokeDiagnostics {
   };
 }
 
+type DeliveryShowcaseSmokeCommand =
+  | { type: 'interact'; entityId: string }
+  | { type: 'reset' }
+  | { type: 'snapshot' };
+
+type DeliveryShowcaseSmokeResult =
+  | {
+      activeDeliveryJobId?: string;
+      deliveryJobSequence: number;
+      deliveryJobs: Record<string, string | undefined>;
+      directorCommands?: readonly Record<string, unknown>[];
+      effects?: {
+        sounds: number;
+        subtitles: number;
+      };
+      endpointCount: number;
+      firedEventIds?: readonly string[];
+      flags: Record<string, unknown>;
+      hud: {
+        activeJobId?: string;
+        activeJobStatus: string;
+        completionText?: string;
+        prompt: string;
+        routeMarkerCount: number;
+        statusLabel: string;
+        targetLabel?: string;
+        targetVisible: boolean;
+        title: string;
+        tone: string;
+      };
+      jobCount: number;
+      ok: true;
+      routeFeedback: {
+        activeMarkerCount: number;
+        completedMarkerCount: number;
+        issueCount: number;
+        markerCount: number;
+        status: string;
+      };
+    }
+  | {
+      message: string;
+      ok: false;
+      reason: string;
+    };
+
 async function readRuntimeDiagnostics(page: Page): Promise<RuntimeSmokeDiagnostics | undefined> {
   return page.evaluate(() => {
     const runtimeDiagnostics = (
@@ -1500,6 +1730,73 @@ async function readRuntimeDiagnostics(page: Page): Promise<RuntimeSmokeDiagnosti
 
     return runtimeDiagnostics?.();
   });
+}
+
+async function runDeliveryShowcaseSmokeCommand(
+  page: Page,
+  command: DeliveryShowcaseSmokeCommand,
+): Promise<DeliveryShowcaseSmokeResult> {
+  return page.evaluate((input) => {
+    const runSmokeCommand = (
+      window as unknown as {
+        __SINAN_DELIVERY_SHOWCASE_SMOKE__?: (
+          command: DeliveryShowcaseSmokeCommand,
+        ) => DeliveryShowcaseSmokeResult;
+      }
+    ).__SINAN_DELIVERY_SHOWCASE_SMOKE__;
+
+    if (!runSmokeCommand) {
+      throw new Error('Missing delivery showcase smoke hook.');
+    }
+
+    return runSmokeCommand(input);
+  }, command);
+}
+
+async function stepSphericalMovementSmoke(
+  page: Page,
+  command: {
+    deltaSeconds: number;
+    forward: number;
+    moveSpeed?: number;
+    turn: number;
+  },
+): Promise<unknown> {
+  return page.evaluate((input) => {
+    const stepMovement = (
+      window as unknown as {
+        __SINAN_RUNTIME_STEP_SPHERICAL_MOVEMENT__?: (
+          entityId: string,
+          command: { deltaSeconds: number; forward: number; turn: number },
+          options?: { moveSpeed?: number },
+        ) => unknown;
+      }
+    ).__SINAN_RUNTIME_STEP_SPHERICAL_MOVEMENT__;
+
+    if (!stepMovement) {
+      throw new Error('Missing spherical movement smoke hook.');
+    }
+
+    return stepMovement(
+      'player_spawn_01',
+      {
+        deltaSeconds: input.deltaSeconds,
+        forward: input.forward,
+        turn: input.turn,
+      },
+      {
+        moveSpeed: input.moveSpeed,
+      },
+    );
+  }, command);
+}
+
+async function readDeliveryRouteFeedbackSmokeSignals(
+  page: Page,
+): Promise<RuntimeSmokeDiagnostics['deliveryRouteFeedback'] | undefined> {
+  const diagnostics = await readRuntimeDiagnostics(page);
+
+  return diagnostics?.deliveryRouteFeedback;
 }
 
 async function readRuntimeSmokeSignals(page: Page): Promise<{
