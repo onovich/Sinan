@@ -1,0 +1,16 @@
+export {
+  ShowcaseController,
+  createShowcaseControllerSessionHost,
+  mapShowcaseKeyToControl,
+  type ShowcaseControllerControl,
+  type ShowcaseControllerEngineSession,
+  type ShowcaseControllerHost,
+  type ShowcaseControllerInputEvent,
+  type ShowcaseControllerOptions,
+  type ShowcaseControllerSessionHostOptions,
+  type ShowcaseControllerSmokeCommand,
+  type ShowcaseControllerSnapshot,
+  type ShowcaseControllerStepResult,
+  type ShowcaseInteractionCommand,
+  type ShowcaseInteractionResult,
+} from './ShowcaseController';
