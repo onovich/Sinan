@@ -483,6 +483,8 @@ Goal: make the Messenger-like slice reproducible, measurable, and demo-ready.
 
 Estimated rounds: 3.
 
+Execution: `docs/phase-26-vertical-slice-rc-hardening-goal-mode-execution-guide.md` expands this into a 10-round goal-mode plan.
+
 Scope:
 
 - Add mobile and low-end profile validation.
@@ -554,4 +556,4 @@ Phase 24 is PASS in `docs/phase-24-delivery-gameplay-showcase-final-report.md`. 
 Complete Phase 26 from docs/abeto-messenger-development-plan.md: Vertical Slice RC Hardening. Start only after Phase 25 is PASS and pushed. Preserve Showcase Mode, delivery job smoke, the multiplayer-lite social simulator/WebSocket smoke, low-end budgets, and the data-first runtime boundaries while preparing release-candidate documentation and reproducible validation.
 ```
 
-Use the Phase 26 goal-mode guide once the planner creates it. Phase 26 should harden the vertical slice only: release validation, low-end/mobile budgets, smoke coverage, demo documentation, and final RC checklist. Production backend, auth, persistence, text/voice chat, Physics/Rapier, external InputFlow/ViewRig/LudoWeave/Inscape adapters, production Runtime UI framework, Audio runtime, and unrelated external adapters remain out of scope unless a new guide explicitly approves them.
+Use `docs/phase-26-vertical-slice-rc-hardening-goal-mode-execution-guide.md` before implementation. The guide uses 10 rounds: 6 main hardening/documentation rounds, 2 buffer rounds, 1 integrated RC gate, and 1 final validation/handoff round. Phase 26 should harden release validation, low-end/mobile evidence, smoke/perf budget reporting, README/developer/release docs, and fresh-checkout evidence where practical. Production backend, auth, persistence, text/voice chat, Physics/Rapier, external InputFlow/ViewRig/LudoWeave/Inscape adapters, production Runtime UI framework, Audio runtime, new gameplay, and unrelated external adapters remain out of scope unless a later scoped guide explicitly approves them.
