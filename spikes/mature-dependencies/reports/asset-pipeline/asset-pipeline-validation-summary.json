@@ -1,0 +1,109 @@
+{
+  "candidate": "AssetPipelineAdapter aggregate smoke",
+  "status": "PASS",
+  "decision": "PASS",
+  "layer": "candidate",
+  "durationMs": 2365,
+  "command": "npm run smoke:asset-pipeline",
+  "diagnostics": [
+    "typecheck: PASS",
+    "typecheck: > sinan-mature-dependency-spikes@1.0.0 typecheck",
+    "typecheck: > tsc --noEmit",
+    "asset-pipeline unit tests: PASS",
+    "asset-pipeline unit tests: > sinan-mature-dependency-spikes@1.0.0 test",
+    "asset-pipeline unit tests: > vitest run asset-pipeline",
+    "asset-pipeline unit tests:  RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
+    "asset-pipeline unit tests:  Test Files  5 passed (5)",
+    "asset-pipeline unit tests:       Tests  24 passed (24)",
+    "asset-pipeline unit tests:    Start at  22:04:44",
+    "asset-pipeline unit tests:    Duration  294ms (transform 167ms, setup 0ms, import 333ms, tests 54ms, environment 0ms)",
+    "asset-pipeline boundary guard: PASS",
+    "asset-pipeline boundary guard: offline tooling imports and dynamic-code scans passed",
+    "asset-pipeline report surface: PASS",
+    "asset-pipeline report surface: asset pipeline report dir: true",
+    "asset-pipeline report surface: report README: true",
+    "asset-pipeline report surface: source fixture: true",
+    "asset-pipeline report surface: baseline glTF report: true",
+    "asset-pipeline generated artifact cleanup: PASS",
+    "asset-pipeline generated artifact cleanup: test-results not present",
+    "asset-pipeline generated artifact cleanup: playwright-report not present",
+    "asset-pipeline generated artifact cleanup: coverage not present",
+    "asset-pipeline generated artifact cleanup: removed dist",
+    "asset-pipeline generated artifact cleanup: reports/asset-pipeline/generated not present",
+    "asset-pipeline generated artifact guard: PASS",
+    "asset-pipeline generated artifact guard: no forbidden generated artifact directories or large report artifacts present"
+  ],
+  "checks": [
+    {
+      "name": "typecheck",
+      "ok": true,
+      "details": [
+        "> sinan-mature-dependency-spikes@1.0.0 typecheck",
+        "> tsc --noEmit"
+      ]
+    },
+    {
+      "name": "asset-pipeline unit tests",
+      "ok": true,
+      "details": [
+        "> sinan-mature-dependency-spikes@1.0.0 test",
+        "> vitest run asset-pipeline",
+        " RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
+        " Test Files  5 passed (5)",
+        "      Tests  24 passed (24)",
+        "   Start at  22:04:44",
+        "   Duration  294ms (transform 167ms, setup 0ms, import 333ms, tests 54ms, environment 0ms)"
+      ]
+    },
+    {
+      "name": "asset-pipeline boundary guard",
+      "ok": true,
+      "details": [
+        "offline tooling imports and dynamic-code scans passed"
+      ]
+    },
+    {
+      "name": "asset-pipeline report surface",
+      "ok": true,
+      "details": [
+        "asset pipeline report dir: true",
+        "report README: true",
+        "source fixture: true",
+        "baseline glTF report: true"
+      ]
+    },
+    {
+      "name": "asset-pipeline generated artifact cleanup",
+      "ok": true,
+      "details": [
+        "test-results not present",
+        "playwright-report not present",
+        "coverage not present",
+        "removed dist",
+        "reports/asset-pipeline/generated not present"
+      ]
+    },
+    {
+      "name": "asset-pipeline generated artifact guard",
+      "ok": true,
+      "details": [
+        "no forbidden generated artifact directories or large report artifacts present"
+      ]
+    }
+  ],
+  "artifactPolicy": {
+    "committed": [
+      "reports/asset-pipeline/README.md",
+      "reports/asset-pipeline/asset-pipeline-validation-summary.json"
+    ],
+    "notCommitted": [
+      "reports/asset-pipeline/generated",
+      "test-results",
+      "playwright-report",
+      "dist",
+      "coverage",
+      "large GLB/texture artifacts"
+    ]
+  },
+  "timestamp": "2026-06-22T14:04:44.995Z"
+}
