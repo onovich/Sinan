@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ProjectData } from '../data/DataRepository';
+import type { SocialRuntimeSnapshot } from '../game/social';
 import type {
   RuntimeDebugAabb,
   RuntimeDeliveryRouteFeedbackState,
@@ -10,6 +11,7 @@ import type {
   RuntimeScatterGroup,
   RuntimeShaderGlobals,
   RuntimeSize,
+  RuntimeSocialState,
   RuntimeSphericalPlacementDiagnostics,
   RuntimeStyleQualityProfile,
   RuntimeStyleResources,
@@ -346,6 +348,45 @@ describe('EngineSession', () => {
     });
   });
 
+  it('bridges renderer-neutral social runtime snapshots to the runtime', async () => {
+    const calls: unknown[] = [];
+    const session = new EngineSession({
+      runtime: createRuntimeProbe(calls, { recordSocialState: true }),
+    });
+
+    await session.loadProject(createProject());
+    session.setSocialRuntimeSnapshot(createSocialSnapshot());
+
+    expect(calls).toContainEqual({ type: 'setSocialState', state: undefined });
+    const socialCall = calls.find(isSocialStateCall);
+
+    expect(socialCall?.state).toMatchObject({
+      activeStamps: [
+        {
+          id: 'stamp-event.001',
+          stampId: 'stamp.wave_ring',
+        },
+      ],
+      invalidMessageCount: 1,
+      players: [
+        {
+          playerId: 'remote.sky.01',
+          avatarId: 'avatar.courier_sky',
+          status: 'connected',
+        },
+      ],
+      rateLimitedMessageCount: 2,
+      room: {
+        remotePlayerCount: 1,
+        status: 'open',
+      },
+      sequence: 5,
+      stalePlayerCount: 0,
+    });
+    session.setSocialRuntimeSnapshot(undefined);
+    expect(calls).toContainEqual({ type: 'setSocialState', state: undefined });
+  });
+
   it('steps spherical movement through World and refreshes runtime placement diagnostics', async () => {
     const calls: unknown[] = [];
     const session = new EngineSession({
@@ -442,6 +483,7 @@ function createRuntimeProbe(
     recordDeliveryRouteFeedback?: boolean;
     recordScatterGroups?: boolean;
     recordShaderGlobals?: boolean;
+    recordSocialState?: boolean;
     recordSphericalPlacements?: boolean;
   } = {},
 ): WebRuntime {
@@ -533,6 +575,21 @@ function createRuntimeProbe(
       calls.push({ type: 'setSphericalPlacements', diagnostics });
     };
   }
+  if (options.recordSocialState) {
+    runtime.setSocialState = (state: RuntimeSocialState | undefined) => {
+      calls.push({ type: 'setSocialState', state });
+    };
+    runtime.getSocialDiagnostics = () => ({
+      activeStampCount: 1,
+      invalidMessageCount: 1,
+      rateLimitedMessageCount: 2,
+      remoteCount: 1,
+      roomFullCount: 0,
+      roomStatus: 'open',
+      staleRemoteCount: 0,
+      staleSnapshotCount: 0,
+    });
+  }
 
   return runtime;
 }
@@ -558,6 +615,19 @@ function isSphericalPlacementCall(
     'type' in call &&
     call.type === 'setSphericalPlacements' &&
     'diagnostics' in call
+  );
+}
+
+function isSocialStateCall(
+  call: unknown,
+): call is { state: RuntimeSocialState; type: 'setSocialState' } {
+  return (
+    typeof call === 'object' &&
+    call !== null &&
+    'type' in call &&
+    call.type === 'setSocialState' &&
+    'state' in call &&
+    call.state !== undefined
   );
 }
 
@@ -642,6 +712,63 @@ function createProject(): ProjectData {
     events: {},
     timelines: {},
     cameraShots: {},
+  };
+}
+
+function createSocialSnapshot(): SocialRuntimeSnapshot {
+  return {
+    activeStamps: [
+      {
+        createdAtMs: 1000,
+        expiresAtMs: 3200,
+        id: 'stamp-event.001',
+        playerId: 'remote.sky.01',
+        pose: {
+          position: [0, 0.1, 0] as [number, number, number],
+          region: 'hill',
+          rotation: [0, 0, 0, 1] as [number, number, number, number],
+          sequence: 2,
+        },
+        stampId: 'stamp.wave_ring',
+      },
+    ],
+    diagnostics: [
+      {
+        code: 'invalid-message' as const,
+        dropped: true,
+        message: 'Invalid message.',
+      },
+    ],
+    invalidMessageCount: 1,
+    players: [
+      {
+        avatarId: 'avatar.courier_sky',
+        connected: true,
+        displayName: 'Sky 01',
+        lastSeenAtMs: 1000,
+        playerId: 'remote.sky.01',
+        pose: {
+          position: [0, 0.1, 0] as [number, number, number],
+          region: 'hill',
+          rotation: [0, 0, 0, 1] as [number, number, number, number],
+          sequence: 2,
+        },
+        sequence: 2,
+        stale: false,
+        status: 'connected' as const,
+      },
+    ],
+    rateLimitedMessageCount: 2,
+    room: {
+      maxRemotePlayers: 10,
+      rateLimitedPlayerIds: ['remote.sky.01'],
+      remotePlayerCount: 1,
+      status: 'open' as const,
+    },
+    roomFullCount: 0,
+    sequence: 5,
+    stalePlayerCount: 0,
+    staleSnapshotCount: 0,
   };
 }
 

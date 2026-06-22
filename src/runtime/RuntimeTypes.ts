@@ -135,6 +135,71 @@ export interface RuntimeDeliveryRouteFeedbackDiagnostics {
   visibleMarkerCount: number;
 }
 
+export type RuntimeSocialRoomStatus = 'open' | 'full';
+export type RuntimeSocialRemoteStatus = 'connected' | 'disconnected' | 'stale';
+
+export interface RuntimeSocialRemotePlayer {
+  activeEmoteId?: string;
+  avatarId: string;
+  connected: boolean;
+  displayName: string;
+  lastSeenAtMs: number;
+  playerId: string;
+  pose?: {
+    region?: string;
+    position: Vec3;
+    rotation: Quat;
+    sequence: number;
+    velocity?: Vec3;
+  };
+  sequence: number;
+  stale: boolean;
+  status: RuntimeSocialRemoteStatus;
+}
+
+export interface RuntimeSocialStampEvent {
+  createdAtMs: number;
+  expiresAtMs: number;
+  id: string;
+  playerId: string;
+  pose: {
+    region?: string;
+    position: Vec3;
+    rotation: Quat;
+    sequence: number;
+    velocity?: Vec3;
+  };
+  stampId: string;
+}
+
+export interface RuntimeSocialState {
+  activeStamps: readonly RuntimeSocialStampEvent[];
+  invalidMessageCount: number;
+  players: readonly RuntimeSocialRemotePlayer[];
+  rateLimitedMessageCount: number;
+  room: {
+    maxRemotePlayers: number;
+    rateLimitedPlayerIds: readonly string[];
+    remotePlayerCount: number;
+    status: RuntimeSocialRoomStatus;
+  };
+  roomFullCount: number;
+  sequence: number;
+  stalePlayerCount: number;
+  staleSnapshotCount: number;
+}
+
+export interface RuntimeSocialDiagnostics {
+  activeStampCount: number;
+  invalidMessageCount: number;
+  rateLimitedMessageCount: number;
+  remoteCount: number;
+  roomFullCount: number;
+  roomStatus: RuntimeSocialRoomStatus;
+  staleRemoteCount: number;
+  staleSnapshotCount: number;
+}
+
 export interface RuntimeSize {
   width: number;
   height: number;

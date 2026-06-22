@@ -21,6 +21,8 @@ import type {
   RuntimeRenderStyle,
   RuntimeScatterDiagnostics,
   RuntimeScatterGroup,
+  RuntimeSocialDiagnostics,
+  RuntimeSocialState,
   RuntimeStyleQualityProfile,
   RuntimeStyleResources,
   RuntimeSphericalPlacementDiagnostics,
@@ -50,6 +52,8 @@ export interface WebRuntime {
   getSphericalPlacementDiagnostics?(): RuntimeSphericalPlacementDiagnostics;
   setDeliveryRouteFeedback?(state: RuntimeDeliveryRouteFeedbackState): void;
   getDeliveryRouteFeedbackDiagnostics?(): RuntimeDeliveryRouteFeedbackDiagnostics;
+  setSocialState?(state: RuntimeSocialState | undefined): void;
+  getSocialDiagnostics?(): RuntimeSocialDiagnostics;
   setStyleResources?(resources: RuntimeStyleResources): void;
   setRenderStyle?(entityId: string, style: RuntimeRenderStyle | undefined): void;
   setRenderableMaterials?(

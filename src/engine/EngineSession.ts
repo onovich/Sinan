@@ -8,6 +8,7 @@ import {
   createDeliveryRouteFeedbackState,
   type DeliveryJobRuntimeSnapshot,
 } from '../game/delivery';
+import type { SocialRuntimeSnapshot } from '../game/social';
 import {
   createDefaultShaderGlobals,
   normalizeShaderGlobals,
@@ -23,6 +24,7 @@ import type {
   RuntimeRenderStyle,
   RuntimeScatterGroup,
   RuntimeSize,
+  RuntimeSocialState,
   RuntimeStyleQualityProfile,
 } from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
@@ -64,6 +66,7 @@ export class EngineSession {
   private triggerDebugVisible = false;
   private world: World | undefined;
   private deliveryJobSnapshot: DeliveryJobRuntimeSnapshot | undefined;
+  private socialRuntimeSnapshot: SocialRuntimeSnapshot | undefined;
 
   constructor(private readonly options: EngineSessionOptions) {
     this.loop = new EngineLoop(
@@ -92,6 +95,7 @@ export class EngineSession {
     this.loadedEntityIds.clear();
     this.loadRevision += 1;
     this.world = undefined;
+    this.socialRuntimeSnapshot = undefined;
     this.status = 'disposed';
   }
 
@@ -113,6 +117,12 @@ export class EngineSession {
     this.syncDeliveryRouteFeedback();
   }
 
+  setSocialRuntimeSnapshot(snapshot: SocialRuntimeSnapshot | undefined): void {
+    this.ensureActive();
+    this.socialRuntimeSnapshot = snapshot ? cloneSocialRuntimeSnapshot(snapshot) : undefined;
+    this.syncSocialState();
+  }
+
   async loadProject(
     project: ProjectData,
     loadOptions: EngineProjectLoadOptions = {},
@@ -124,6 +134,7 @@ export class EngineSession {
     this.status = 'loading';
     this.world = World.fromLevel(project.level);
     this.deliveryJobSnapshot = undefined;
+    this.socialRuntimeSnapshot = undefined;
     this.options.runtime.setStyleQualityProfile?.(
       loadOptions.styleQualityProfile ?? this.options.styleQualityProfile ?? 'standard',
     );
@@ -181,6 +192,7 @@ export class EngineSession {
     this.options.runtime.setScatterGroups?.(toRuntimeScatterGroups(project.level.scatterGroups));
     this.options.runtime.setSphericalPlacements?.(this.world.getSphericalPlacements());
     this.syncDeliveryRouteFeedback();
+    this.syncSocialState();
     this.loadedEntityIds = nextEntityIds;
     this.syncTriggerDebug();
     this.status = 'loaded';
@@ -297,6 +309,12 @@ export class EngineSession {
         snapshot: this.deliveryJobSnapshot,
         world: this.world,
       }),
+    );
+  }
+
+  private syncSocialState(): void {
+    this.options.runtime.setSocialState?.(
+      this.socialRuntimeSnapshot ? toRuntimeSocialState(this.socialRuntimeSnapshot) : undefined,
     );
   }
 
@@ -430,4 +448,61 @@ function cloneDeliveryJobRuntimeSnapshot(
   snapshot: DeliveryJobRuntimeSnapshot,
 ): DeliveryJobRuntimeSnapshot {
   return JSON.parse(JSON.stringify(snapshot)) as DeliveryJobRuntimeSnapshot;
+}
+
+function cloneSocialRuntimeSnapshot(snapshot: SocialRuntimeSnapshot): SocialRuntimeSnapshot {
+  return JSON.parse(JSON.stringify(snapshot)) as SocialRuntimeSnapshot;
+}
+
+function toRuntimeSocialState(snapshot: SocialRuntimeSnapshot): RuntimeSocialState {
+  return {
+    activeStamps: snapshot.activeStamps.map((stamp) => ({
+      createdAtMs: stamp.createdAtMs,
+      expiresAtMs: stamp.expiresAtMs,
+      id: stamp.id,
+      playerId: stamp.playerId,
+      pose: {
+        ...(stamp.pose.region ? { region: stamp.pose.region } : {}),
+        position: stamp.pose.position,
+        rotation: stamp.pose.rotation,
+        sequence: stamp.pose.sequence,
+        ...(stamp.pose.velocity ? { velocity: stamp.pose.velocity } : {}),
+      },
+      stampId: stamp.stampId,
+    })),
+    invalidMessageCount: snapshot.invalidMessageCount,
+    players: snapshot.players.map((player) => ({
+      ...(player.activeEmoteId ? { activeEmoteId: player.activeEmoteId } : {}),
+      avatarId: player.avatarId,
+      connected: player.connected,
+      displayName: player.displayName,
+      lastSeenAtMs: player.lastSeenAtMs,
+      playerId: player.playerId,
+      ...(player.pose
+        ? {
+            pose: {
+              ...(player.pose.region ? { region: player.pose.region } : {}),
+              position: player.pose.position,
+              rotation: player.pose.rotation,
+              sequence: player.pose.sequence,
+              ...(player.pose.velocity ? { velocity: player.pose.velocity } : {}),
+            },
+          }
+        : {}),
+      sequence: player.sequence,
+      stale: player.stale,
+      status: player.status,
+    })),
+    rateLimitedMessageCount: snapshot.rateLimitedMessageCount,
+    room: {
+      maxRemotePlayers: snapshot.room.maxRemotePlayers,
+      rateLimitedPlayerIds: snapshot.room.rateLimitedPlayerIds,
+      remotePlayerCount: snapshot.room.remotePlayerCount,
+      status: snapshot.room.status,
+    },
+    roomFullCount: snapshot.roomFullCount,
+    sequence: snapshot.sequence,
+    stalePlayerCount: snapshot.stalePlayerCount,
+    staleSnapshotCount: snapshot.staleSnapshotCount,
+  };
 }
