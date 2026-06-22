@@ -375,4 +375,31 @@ describe("WebAudioSystemAdapter", () => {
     expect(context.state).toBe("closed");
     expect(adapter.lifecycle).toBe("disposed");
   });
+
+  test("reuses decoded buffers across preload and play, then disconnects active nodes on disposal", async () => {
+    const context = new FakeAudioContext();
+    const adapter = createWebAudioSystemAdapter({
+      registry: fixtureRegistry(),
+      AudioContextCtor: ctorFor(context),
+      assetData: {
+        "asset:sfx/door-open.wav": bytes(20)
+      }
+    });
+
+    const preload = await adapter.preload(command("preload", { cueId: "door-open" }));
+    const play = await adapter.play(command("play", { cueId: "door-open" }));
+    const source = context.sources[0];
+    const panner = context.panners[0];
+    const cueGain = context.gains.at(-1);
+    const disposed = await adapter.disposeSceneAudio(command("dispose-scene", { sceneId: "scene:buffers" }));
+
+    expect(preload.status).toBe("accepted");
+    expect(play.status).toBe("accepted");
+    expect(context.decodedBuffers).toHaveLength(1);
+    expect(source?.buffer).toBe(context.decodedBuffers[0]);
+    expect(disposed.status).toBe("completed");
+    expect(source?.disconnected).toBe(true);
+    expect(panner?.disconnected).toBe(true);
+    expect(cueGain?.disconnected).toBe(true);
+  });
 });
