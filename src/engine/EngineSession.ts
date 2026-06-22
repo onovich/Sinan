@@ -4,6 +4,7 @@ import {
   getRenderableModelAssetId,
   getRenderableRenderStyle,
 } from '../data/projectDataSelectors';
+import { createDeliveryRouteFeedbackState } from '../game/delivery';
 import {
   createDefaultShaderGlobals,
   normalizeShaderGlobals,
@@ -168,6 +169,7 @@ export class EngineSession {
 
     this.options.runtime.setScatterGroups?.(toRuntimeScatterGroups(project.level.scatterGroups));
     this.options.runtime.setSphericalPlacements?.(this.world.getSphericalPlacements());
+    this.syncDeliveryRouteFeedback();
     this.loadedEntityIds = nextEntityIds;
     this.syncTriggerDebug();
     this.status = 'loaded';
@@ -230,6 +232,7 @@ export class EngineSession {
       } else {
         this.options.runtime.setTransform(entityId, result.placement.transform);
       }
+      this.syncDeliveryRouteFeedback();
     }
 
     return result;
@@ -270,6 +273,19 @@ export class EngineSession {
         this.triggerDebugVisible ? createTriggerDebugAabb(entity) : undefined,
       );
     }
+  }
+
+  private syncDeliveryRouteFeedback(): void {
+    if (!this.currentProject || !this.world || !this.options.runtime.setDeliveryRouteFeedback) {
+      return;
+    }
+
+    this.options.runtime.setDeliveryRouteFeedback(
+      createDeliveryRouteFeedbackState({
+        level: this.currentProject.level,
+        world: this.world,
+      }),
+    );
   }
 
   private syncShaderGlobals(input: ShaderGlobalsInput): void {

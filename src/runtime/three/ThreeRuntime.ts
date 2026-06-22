@@ -9,6 +9,8 @@ import type {
   RuntimeAnimationTimeOptions,
   RuntimeCameraPose,
   RuntimeDebugAabb,
+  RuntimeDeliveryRouteFeedbackDiagnostics,
+  RuntimeDeliveryRouteFeedbackState,
   RuntimeLodDiagnostics,
   RuntimeLodGroup,
   RuntimeMaterialParameterUpdate,
@@ -49,6 +51,7 @@ import {
   type PostProcessRegistry,
 } from '../postprocess';
 import { disposeObjectResources } from './ThreeObjectResources';
+import { ThreeDeliveryRouteFeedbackRuntime } from './ThreeDeliveryRouteFeedbackRuntime';
 import { pickThreeObject } from './ThreePicking';
 import { ThreePostProcessRuntime } from './ThreePostProcessRuntime';
 import { ThreeScatterRuntime } from './ThreeScatterRuntime';
@@ -96,6 +99,7 @@ export class ThreeRuntime implements WebRuntime {
   private readonly materialRegistry: ThreeMaterialRegistry;
   private readonly materialRuntime: ThreeMaterialRuntime;
   private readonly scatterRuntime: ThreeScatterRuntime;
+  private readonly deliveryRouteFeedbackRuntime = new ThreeDeliveryRouteFeedbackRuntime();
   private styleDecorators: ThreeStyleDecorators | undefined;
   private debugAabbByEntityId = new Map<string, THREE.LineSegments>();
   private animationStateByEntityId = new Map<
@@ -208,8 +212,10 @@ export class ThreeRuntime implements WebRuntime {
     this.editorCamera = editorCamera;
     this.styleDecorators = new ThreeStyleDecorators(styleHelperRoot);
     this.scatterRuntime.setRoot(objectRoot);
+    this.deliveryRouteFeedbackRuntime.setRoot(styleHelperRoot);
     this.styleDecorators.setQualityProfile(this.styleQualityProfile);
     this.materialRegistry.setQualityProfile(this.styleQualityProfile);
+    this.deliveryRouteFeedbackRuntime.setQualityProfile(this.styleQualityProfile);
     this.transformControls = transformControls;
     this.transformControlsHelper = transformControlsHelper;
     this.applyRenderEnvironment();
@@ -547,6 +553,14 @@ export class ThreeRuntime implements WebRuntime {
     return cloneSphericalPlacementDiagnostics(this.sphericalPlacementDiagnostics);
   }
 
+  setDeliveryRouteFeedback(state: RuntimeDeliveryRouteFeedbackState): void {
+    this.deliveryRouteFeedbackRuntime.setState(state);
+  }
+
+  getDeliveryRouteFeedbackDiagnostics(): RuntimeDeliveryRouteFeedbackDiagnostics {
+    return this.deliveryRouteFeedbackRuntime.getDiagnostics();
+  }
+
   private applyRenderableMaterials(
     entityId: string,
     materials: RuntimeRenderableMaterialSlots,
@@ -618,6 +632,7 @@ export class ThreeRuntime implements WebRuntime {
     this.materialRegistry.setQualityProfile(profile);
     this.styleDecorators?.setQualityProfile(profile);
     this.scatterRuntime.setQualityProfile(profile);
+    this.deliveryRouteFeedbackRuntime.setQualityProfile(profile);
     for (const entityId of this.objectByEntityId.keys()) {
       this.applyEntityRenderStyle(entityId);
     }
@@ -775,6 +790,8 @@ export class ThreeRuntime implements WebRuntime {
     this.styleDecorators?.dispose();
     this.scatterRuntime.dispose();
     this.scatterRuntime.setRoot(undefined);
+    this.deliveryRouteFeedbackRuntime.dispose();
+    this.deliveryRouteFeedbackRuntime.setRoot(undefined);
     this.postProcessRuntime.dispose();
     this.scene?.traverse((object) => {
       disposeObjectResources(object);

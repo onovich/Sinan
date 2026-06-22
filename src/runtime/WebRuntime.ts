@@ -9,6 +9,8 @@ import type {
   RuntimeAnimationTimeOptions,
   RuntimeCameraPose,
   RuntimeDebugAabb,
+  RuntimeDeliveryRouteFeedbackDiagnostics,
+  RuntimeDeliveryRouteFeedbackState,
   RuntimeLodDiagnostics,
   RuntimeLodGroup,
   RuntimeMaterialParameterUpdate,
@@ -46,6 +48,8 @@ export interface WebRuntime {
   getScatterDiagnostics?(): readonly RuntimeScatterDiagnostics[];
   setSphericalPlacements?(diagnostics: RuntimeSphericalPlacementDiagnostics): void;
   getSphericalPlacementDiagnostics?(): RuntimeSphericalPlacementDiagnostics;
+  setDeliveryRouteFeedback?(state: RuntimeDeliveryRouteFeedbackState): void;
+  getDeliveryRouteFeedbackDiagnostics?(): RuntimeDeliveryRouteFeedbackDiagnostics;
   setStyleResources?(resources: RuntimeStyleResources): void;
   setRenderStyle?(entityId: string, style: RuntimeRenderStyle | undefined): void;
   setRenderableMaterials?(

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { ProjectData } from '../data/DataRepository';
 import type {
   RuntimeDebugAabb,
+  RuntimeDeliveryRouteFeedbackState,
   RuntimeLodGroup,
   RuntimeRenderStyle,
   RuntimeRenderableMaterialSlots,
@@ -314,6 +315,37 @@ describe('EngineSession', () => {
     });
   });
 
+  it('passes delivery route target feedback to the runtime after spherical placement sync', async () => {
+    const calls: unknown[] = [];
+    const session = new EngineSession({
+      runtime: createRuntimeProbe(calls, {
+        recordDeliveryRouteFeedback: true,
+        recordSphericalPlacements: true,
+      }),
+    });
+
+    await session.loadProject(createDeliveryProject());
+
+    const feedbackCall = calls.find(isDeliveryRouteFeedbackCall);
+
+    expect(feedbackCall?.state).toMatchObject({
+      issueCount: 0,
+      jobId: 'job.mail',
+      markerCount: 3,
+      status: 'available',
+    });
+    expect(feedbackCall?.state.markers.map((marker) => marker.kind)).toEqual([
+      'accept',
+      'route',
+      'target',
+    ]);
+    expect(feedbackCall?.state.markers.find((marker) => marker.kind === 'target')).toMatchObject({
+      endpointId: 'delivery.drop',
+      fallbackUsed: false,
+      target: true,
+    });
+  });
+
   it('steps spherical movement through World and refreshes runtime placement diagnostics', async () => {
     const calls: unknown[] = [];
     const session = new EngineSession({
@@ -407,6 +439,7 @@ function createRuntimeProbe(
   calls: unknown[],
   options: {
     recordLodGroups?: boolean;
+    recordDeliveryRouteFeedback?: boolean;
     recordScatterGroups?: boolean;
     recordShaderGlobals?: boolean;
     recordSphericalPlacements?: boolean;
@@ -485,6 +518,11 @@ function createRuntimeProbe(
       calls.push({ type: 'setEntityLodGroup', entityId, group });
     };
   }
+  if (options.recordDeliveryRouteFeedback) {
+    runtime.setDeliveryRouteFeedback = (state: RuntimeDeliveryRouteFeedbackState) => {
+      calls.push({ type: 'setDeliveryRouteFeedback', state });
+    };
+  }
   if (options.recordScatterGroups) {
     runtime.setScatterGroups = (groups: readonly RuntimeScatterGroup[]) => {
       calls.push({ type: 'setScatterGroups', groups });
@@ -497,6 +535,18 @@ function createRuntimeProbe(
   }
 
   return runtime;
+}
+
+function isDeliveryRouteFeedbackCall(
+  call: unknown,
+): call is { state: RuntimeDeliveryRouteFeedbackState; type: 'setDeliveryRouteFeedback' } {
+  return (
+    typeof call === 'object' &&
+    call !== null &&
+    'type' in call &&
+    call.type === 'setDeliveryRouteFeedback' &&
+    'state' in call
+  );
 }
 
 function isSphericalPlacementCall(
@@ -725,6 +775,92 @@ function createSphericalProject(): ProjectData {
           placement: {
             mode: 'spherical-region',
             region: 'city',
+          },
+        },
+      ],
+    },
+  };
+}
+
+function createDeliveryProject(): ProjectData {
+  const project = createSphericalProject();
+
+  return {
+    ...project,
+    level: {
+      ...project.level,
+      deliveryJobs: [
+        {
+          acceptEndpointId: 'delivery.pickup',
+          completion: {
+            endpointId: 'delivery.drop',
+            type: 'deliverToEndpoint',
+          },
+          defaultStatus: 'available',
+          description: 'Carry a packet across the compact world.',
+          feedback: {
+            accepted: 'Accepted.',
+            completed: 'Complete.',
+            inProgress: 'In progress.',
+            readyToDeliver: 'Ready.',
+          },
+          id: 'job.mail',
+          routeHints: [
+            {
+              endpointId: 'delivery.pickup',
+              type: 'endpoint',
+            },
+            {
+              label: 'Follow city path',
+              localPosition: [0, 2, 0],
+              region: 'city',
+              type: 'spherical-region',
+            },
+            {
+              endpointId: 'delivery.drop',
+              type: 'endpoint',
+            },
+          ],
+          targetEndpointId: 'delivery.drop',
+          title: 'Mail Run',
+        },
+      ],
+      entities: [
+        {
+          components: {
+            DeliveryEndpoint: {
+              endpointId: 'delivery.pickup',
+              interactionRadius: 1.2,
+              kind: 'npc',
+              label: 'Pickup',
+            },
+          },
+          id: 'pickup',
+          placement: {
+            mode: 'spherical-region',
+            region: 'city',
+          },
+          transform: transform,
+        },
+        {
+          components: {
+            DeliveryEndpoint: {
+              endpointId: 'delivery.drop',
+              interactionRadius: 1.2,
+              kind: 'mailbox',
+              label: 'Drop',
+            },
+          },
+          id: 'drop',
+          placement: {
+            localPosition: [0.5, 2, 0],
+            mode: 'spherical-region',
+            region: 'city',
+          },
+          transform: {
+            position: [2, 2, 3],
+            rotation: [0, 0, 0, 1],
+            scale: [1, 1, 1],
           },
         },
       ],

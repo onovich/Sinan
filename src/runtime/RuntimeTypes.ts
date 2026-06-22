@@ -45,6 +45,96 @@ export interface RuntimeSphericalPlacementDiagnostics {
   placements: readonly RuntimeSphericalPlacement[];
 }
 
+export type RuntimeDeliveryRouteFeedbackStatus =
+  | 'inactive'
+  | 'available'
+  | 'accepted'
+  | 'inProgress'
+  | 'readyToDeliver'
+  | 'completed'
+  | 'blocked'
+  | 'failed';
+
+export type RuntimeDeliveryRouteFeedbackMarkerKind = 'accept' | 'route' | 'target' | 'completion';
+
+export type RuntimeDeliveryRouteFeedbackMarkerStatus =
+  | 'available'
+  | 'active'
+  | 'completed'
+  | 'blocked'
+  | 'inactive';
+
+export type RuntimeDeliveryRouteFeedbackIssueReason =
+  | 'missing_accept_endpoint'
+  | 'missing_completion_endpoint'
+  | 'missing_route_endpoint'
+  | 'missing_target_endpoint'
+  | 'missing_world_projection'
+  | 'missing_spherical_region'
+  | 'invalid_spherical_region';
+
+export interface RuntimeDeliveryRouteFeedbackIssue {
+  endpointId?: string;
+  jobId: string;
+  markerId?: string;
+  message: string;
+  reason: RuntimeDeliveryRouteFeedbackIssueReason;
+  regionId?: string;
+}
+
+export interface RuntimeDeliveryRouteFeedbackMarker {
+  active: boolean;
+  completed: boolean;
+  endpointId?: string;
+  entityId?: string;
+  fallbackUsed: boolean;
+  id: string;
+  jobId: string;
+  kind: RuntimeDeliveryRouteFeedbackMarkerKind;
+  label?: string;
+  normal?: Vec3;
+  position?: Vec3;
+  regionId?: string;
+  status: RuntimeDeliveryRouteFeedbackMarkerStatus;
+  target: boolean;
+  visible: boolean;
+}
+
+export interface RuntimeDeliveryRouteFeedbackState {
+  activeJobId?: string;
+  issueCount: number;
+  issues: readonly RuntimeDeliveryRouteFeedbackIssue[];
+  jobId?: string;
+  markerCount: number;
+  markers: readonly RuntimeDeliveryRouteFeedbackMarker[];
+  sequence: number;
+  status: RuntimeDeliveryRouteFeedbackStatus;
+}
+
+export interface RuntimeDeliveryRouteFeedbackMarkerDiagnostics {
+  active: boolean;
+  completed: boolean;
+  fallbackUsed: boolean;
+  id: string;
+  kind: RuntimeDeliveryRouteFeedbackMarkerKind;
+  position?: Vec3;
+  status: RuntimeDeliveryRouteFeedbackMarkerStatus;
+  target: boolean;
+  visible: boolean;
+}
+
+export interface RuntimeDeliveryRouteFeedbackDiagnostics {
+  activeMarkerCount: number;
+  completedMarkerCount: number;
+  issueCount: number;
+  issues: readonly RuntimeDeliveryRouteFeedbackIssue[];
+  lowEndSuppressedCount: number;
+  markerCount: number;
+  markers: readonly RuntimeDeliveryRouteFeedbackMarkerDiagnostics[];
+  missingTargetCount: number;
+  visibleMarkerCount: number;
+}
+
 export interface RuntimeSize {
   width: number;
   height: number;
