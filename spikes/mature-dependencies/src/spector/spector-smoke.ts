@@ -56,18 +56,11 @@ export async function loadSpectorDevOnly(enabled: boolean): Promise<SpectorDevOn
     return { loaded: false, reason: "no browser window" };
   }
 
-  const spectorModule = await import("spectorjs");
-  const moduleValue = spectorModule as {
-    default?: { SPECTOR?: { Spector?: new () => unknown } };
-    SPECTOR?: { Spector?: new () => unknown };
-  };
-  const constructorFound =
-    typeof moduleValue.SPECTOR?.Spector === "function" ||
-    typeof moduleValue.default?.SPECTOR?.Spector === "function";
+  const { loadSpectorConstructorFound } = await import("./spector-dev-only-loader");
 
   return {
     loaded: true,
-    constructorFound
+    constructorFound: await loadSpectorConstructorFound()
   };
 }
 

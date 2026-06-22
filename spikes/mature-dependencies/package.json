@@ -15,7 +15,8 @@
     "smoke:worker-task": "node src/worker-task/run-worker-task-smoke.mjs",
     "smoke:audio-system": "node src/audio-system/run-audio-system-smoke.mjs",
     "smoke:physics-adapter": "node src/physics-adapter/run-physics-adapter-smoke.mjs",
-    "smoke:asset-pipeline": "node src/asset-pipeline/run-asset-pipeline-smoke.mjs"
+    "smoke:asset-pipeline": "node src/asset-pipeline/run-asset-pipeline-smoke.mjs",
+    "smoke:diagnostics-adapter": "node src/diagnostics-adapter/run-diagnostics-adapter-smoke.mjs"
   },
   "keywords": [
     "sinan",

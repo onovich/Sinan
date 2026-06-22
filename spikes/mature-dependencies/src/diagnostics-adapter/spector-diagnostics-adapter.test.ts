@@ -24,7 +24,7 @@ describe("SpectorDiagnosticsAdapter dev-only loader", () => {
       browserWindow: {},
       loadSpector: async () => {
         loadCount += 1;
-        return {};
+        return false;
       }
     });
 
@@ -46,7 +46,7 @@ describe("SpectorDiagnosticsAdapter dev-only loader", () => {
       },
       loadSpector: async () => {
         loadCount += 1;
-        return {};
+        return false;
       }
     });
 
@@ -67,7 +67,7 @@ describe("SpectorDiagnosticsAdapter dev-only loader", () => {
       },
       loadSpector: async () => {
         loadCount += 1;
-        return {};
+        return false;
       }
     });
 
@@ -88,11 +88,7 @@ describe("SpectorDiagnosticsAdapter dev-only loader", () => {
       },
       loadSpector: async () => {
         loadCount += 1;
-        return {
-          SPECTOR: {
-            Spector: class DevOnlyFrameCapture {}
-          }
-        };
+        return true;
       }
     });
 

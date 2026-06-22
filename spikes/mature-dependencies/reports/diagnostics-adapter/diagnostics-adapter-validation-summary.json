@@ -1,0 +1,92 @@
+{
+  "candidate": "DiagnosticsAdapter dev-only aggregate smoke",
+  "status": "PASS",
+  "decision": "PASS",
+  "layer": "contract",
+  "durationMs": 0,
+  "command": "npm run smoke:diagnostics-adapter",
+  "diagnostics": [
+    "typecheck: PASS",
+    "typecheck: typecheck completed",
+    "diagnostics-adapter unit tests: PASS",
+    "diagnostics-adapter unit tests: diagnostics-adapter unit tests completed",
+    "diagnostics browser summary: PASS",
+    "diagnostics browser summary: status: PASS",
+    "diagnostics browser summary: adapter: DiagnosticsAdapter",
+    "diagnostics browser summary: performance/disabled/production/contract: true/true/true/true",
+    "diagnostics production exclusion guard: PASS",
+    "diagnostics production exclusion guard: no static spectorjs import, public leak, dynamic code, or production dist marker found",
+    "diagnostics artifact cleanup: PASS",
+    "diagnostics artifact cleanup: cleared test-results",
+    "diagnostics artifact cleanup: cleared playwright-report",
+    "diagnostics artifact cleanup: cleared coverage",
+    "diagnostics artifact cleanup: cleared dist",
+    "diagnostics artifact cleanup: cleared reports/diagnostics-adapter/captures",
+    "diagnostics artifact guard: PASS",
+    "diagnostics artifact guard: no forbidden diagnostics artifacts present"
+  ],
+  "checks": [
+    {
+      "name": "typecheck",
+      "ok": true,
+      "details": [
+        "typecheck completed"
+      ]
+    },
+    {
+      "name": "diagnostics-adapter unit tests",
+      "ok": true,
+      "details": [
+        "diagnostics-adapter unit tests completed"
+      ]
+    },
+    {
+      "name": "diagnostics browser summary",
+      "ok": true,
+      "details": [
+        "status: PASS",
+        "adapter: DiagnosticsAdapter",
+        "performance/disabled/production/contract: true/true/true/true"
+      ]
+    },
+    {
+      "name": "diagnostics production exclusion guard",
+      "ok": true,
+      "details": [
+        "no static spectorjs import, public leak, dynamic code, or production dist marker found"
+      ]
+    },
+    {
+      "name": "diagnostics artifact cleanup",
+      "ok": true,
+      "details": [
+        "cleared test-results",
+        "cleared playwright-report",
+        "cleared coverage",
+        "cleared dist",
+        "cleared reports/diagnostics-adapter/captures"
+      ]
+    },
+    {
+      "name": "diagnostics artifact guard",
+      "ok": true,
+      "details": [
+        "no forbidden diagnostics artifacts present"
+      ]
+    }
+  ],
+  "artifactPolicy": {
+    "committed": [
+      "reports/diagnostics-adapter/diagnostics-adapter-validation-summary.json"
+    ],
+    "notCommitted": [
+      "test-results",
+      "playwright-report",
+      "coverage",
+      "dist",
+      "reports/diagnostics-adapter/captures",
+      "capture artifacts"
+    ]
+  },
+  "timestamp": "deterministic-smoke"
+}

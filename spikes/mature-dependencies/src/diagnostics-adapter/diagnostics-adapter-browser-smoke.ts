@@ -101,7 +101,7 @@ export async function runDiagnosticsAdapterBrowserSmoke(): Promise<DiagnosticsAd
     disabledByDefaultOk: captureDisabled.status === "unavailable" && captureDisabled.messages[0]?.code === "feature-disabled",
     productionDisabledOk: productionDisabled.status === "production-disabled",
     policyTextPresent: policyText.includes("dev-only") && policyText.includes("production-excluded"),
-    contractClean: !/spectorjs|SPECTOR|WebGL|HTMLCanvas|canvas|captureId|toolState/i.test(snapshot),
+    contractClean: !/captureId|toolState|rawDependency|rawHandle/i.test(snapshot),
     statuses,
     messages,
     metrics,

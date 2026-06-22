@@ -17,7 +17,7 @@ import { defaultDiagnosticsConfig } from "./performance-diagnostics-adapter";
 export interface SpectorDiagnosticsAdapterOptions {
   config?: Partial<DiagnosticsConfig>;
   browserWindow?: unknown;
-  loadSpector?: () => Promise<unknown>;
+  loadSpector?: () => Promise<boolean>;
 }
 
 function normalizeDiagnosticsConfig(input: Partial<DiagnosticsConfig> = {}): DiagnosticsConfig {
@@ -32,14 +32,6 @@ function normalizeDiagnosticsConfig(input: Partial<DiagnosticsConfig> = {}): Dia
   };
 }
 
-function hasSpectorConstructor(moduleValue: unknown): boolean {
-  const candidate = moduleValue as {
-    default?: { SPECTOR?: { Spector?: unknown } };
-    SPECTOR?: { Spector?: unknown };
-  };
-  return typeof candidate.SPECTOR?.Spector === "function" || typeof candidate.default?.SPECTOR?.Spector === "function";
-}
-
 export function createSpectorDiagnosticsAdapter(options: SpectorDiagnosticsAdapterOptions = {}): DiagnosticsAdapter {
   return new SpectorDiagnosticsAdapter(options);
 }
@@ -48,7 +40,7 @@ export class SpectorDiagnosticsAdapter implements DiagnosticsAdapter {
   readonly config: DiagnosticsConfig;
 
   private readonly browserWindow: unknown;
-  private readonly loadSpector: () => Promise<unknown>;
+  private readonly loadSpector: () => Promise<boolean>;
   private state: DiagnosticsStatus = "unavailable";
 
   constructor(options: SpectorDiagnosticsAdapterOptions = {}) {
@@ -116,8 +108,8 @@ export class SpectorDiagnosticsAdapter implements DiagnosticsAdapter {
 
     this.state = "loading";
     try {
-      const moduleValue = await this.loadSpector();
-      if (!hasSpectorConstructor(moduleValue)) {
+      const constructorFound = await this.loadSpector();
+      if (!constructorFound) {
         this.state = "failed";
         return createDiagnosticsResult(command.commandId, "failed", {
           capabilityId: command.capabilityId,
