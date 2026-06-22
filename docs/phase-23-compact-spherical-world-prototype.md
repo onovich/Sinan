@@ -248,6 +248,27 @@ Targeted tests should cover:
 - Camera follow/look stability and director compatibility.
 - Three placement bridge behavior, disposal, LOD/scatter continuity, and boundary checks.
 
+## Round 23.11 LOD And Scatter Readability Evidence
+
+The committed compact world keeps Phase 22 LOD/scatter infrastructure as rendering
+infrastructure only:
+
+- Regions `city`, `hill`, and `beach` all reference `gate-demo-props` for LOD readability.
+- Region `city` references `scatter_switch_markers` for deterministic distant markers.
+- `switch_a` remains LOD-driven after spherical placement; standard profile selects
+  `model.switch_wall.lod0`, low-end selects `model.switch_wall.lod1`.
+- `scatter_switch_markers` remains a non-selectable instanced batch with 6 standard instances
+  and 3 low-end instances.
+- Stale spherical placement regions leave the affected entity on its authored transform and
+  report `missing_region` diagnostics; scatter diagnostics continue to report the stable batch.
+
+Current local budget evidence:
+
+| Profile | Switch LOD triangles | Scatter instances | Scatter triangles | Instanced draw-call estimate |
+| --- | ---: | ---: | ---: | ---: |
+| standard | 24 | 6 | 72 | 1 |
+| low-end | 12 | 3 | 36 | 1 |
+
 ## Round Mapping
 
 - Rounds 23.2-23.4 add schema, projection math, and renderer-neutral placement.
