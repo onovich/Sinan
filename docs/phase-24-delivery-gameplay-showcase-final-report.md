@@ -6,7 +6,7 @@ Date: 2026-06-22
 
 PASS.
 
-Phase 24 is complete and pushed through `origin/main` up to `1884374 test: add delivery showcase smoke gate` before this final report was authored. The final documentation commit records this report and roadmap routing.
+Phase 24 is complete and pushed through `origin/main` up to `0ec17b6 docs: repair phase 24 whitespace gate`. The final documentation and repair commits record this report, roadmap routing, and the post-check whitespace cleanup.
 
 ## Completed
 
@@ -90,6 +90,7 @@ Phase 24 is complete and pushed through `origin/main` up to `1884374 test: add d
 - `1884374` test: add delivery showcase smoke gate, pushed to `origin/main`.
 - `77b7eb9` docs: finalize phase 24 delivery showcase, pushed to
   `origin/main`.
+- `0ec17b6` docs: repair phase 24 whitespace gate, pushed to `origin/main`.
 
 ## Buffer
 
