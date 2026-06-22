@@ -11,6 +11,7 @@ import {
 } from './common.schema';
 import { EntitySchema } from './entity.schema';
 import { ScatterGroupSchema } from './scatter.schema';
+import { WorldProjectionSchema } from './worldProjection.schema';
 
 const LevelEnvironmentFogSchema = z
   .object({
@@ -53,6 +54,7 @@ export const LevelSchema = z
     id: StableIdSchema,
     name: DisplayNameSchema,
     environment: LevelEnvironmentSchema.optional(),
+    worldProjection: WorldProjectionSchema.optional(),
     entities: z.array(EntitySchema),
     events: z.array(EventIdSchema).default([]),
     timelines: z.array(TimelineIdSchema).default([]),

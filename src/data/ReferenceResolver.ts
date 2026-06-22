@@ -105,6 +105,9 @@ export function validateProjectReferences(
 
   for (const level of input.levels) {
     const scatterGroups = level.scatterGroups ?? [];
+    const regions = level.worldProjection?.regions ?? [];
+    const regionIds = new Set(regions.map((region) => region.id));
+    const scatterGroupIds = new Set(scatterGroups.map((group) => group.id));
 
     addDuplicateIdIssues(
       level.entities.map((entity) => entity.id),
@@ -118,6 +121,13 @@ export function validateProjectReferences(
       'scatter group',
       issues,
     );
+    addDuplicateIdIssues(
+      regions.map((region) => region.id),
+      `data/levels/${level.id}.json.worldProjection.regions`,
+      'region',
+      issues,
+    );
+    addWorldProjectionReferenceIssues(level, scatterGroupIds, input.assets, issues);
 
     const project = {
       assets: input.assets,
@@ -135,6 +145,8 @@ export function validateProjectReferences(
           message: `Missing prefab "${entity.prefab}".`,
         });
       }
+
+      addEntityPlacementReferenceIssues(entity, level, regionIds, issues);
 
       const modelAssetId = getRenderableModelAssetId(project, entity);
       if (modelAssetId) {
@@ -287,6 +299,71 @@ export function validateProjectReferences(
   }
 
   return issues;
+}
+
+function addWorldProjectionReferenceIssues(
+  level: LevelData,
+  scatterGroupIds: ReadonlySet<string>,
+  assets: AssetManifestData,
+  issues: ReferenceValidationIssue[],
+): void {
+  const projection = level.worldProjection;
+
+  if (!projection) {
+    return;
+  }
+
+  for (const region of projection.regions) {
+    const path = `data/levels/${level.id}.json.worldProjection.regions.${region.id}`;
+
+    if (region.lodGroup && !assets.lodGroups?.[region.lodGroup]) {
+      issues.push({
+        severity: 'error',
+        path: `${path}.lodGroup`,
+        message: `Missing LOD group "${region.lodGroup}".`,
+      });
+    }
+
+    if (region.scatterGroup && !scatterGroupIds.has(region.scatterGroup)) {
+      issues.push({
+        severity: 'error',
+        path: `${path}.scatterGroup`,
+        message: `Missing scatter group "${region.scatterGroup}".`,
+      });
+    }
+  }
+}
+
+function addEntityPlacementReferenceIssues(
+  entity: LevelData['entities'][number],
+  level: LevelData,
+  regionIds: ReadonlySet<string>,
+  issues: ReferenceValidationIssue[],
+): void {
+  const placement = entity.placement;
+
+  if (!placement) {
+    return;
+  }
+
+  const path = `data/levels/${level.id}.json.entities.${entity.id}.placement`;
+
+  if (!level.worldProjection) {
+    issues.push({
+      severity: 'error',
+      path,
+      message: `Entity "${entity.id}" uses spherical placement but level "${level.id}" has no worldProjection.`,
+    });
+    return;
+  }
+
+  if (!regionIds.has(placement.region)) {
+    issues.push({
+      severity: 'error',
+      path: `${path}.region`,
+      message: `Missing region "${placement.region}".`,
+    });
+  }
 }
 
 function addEventTriggerReferenceIssues(

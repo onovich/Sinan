@@ -8,6 +8,7 @@ import {
   type ComponentPayloadData,
 } from './component.schema';
 import { TransformSchema } from './transform.schema';
+import { EntityPlacementSchema } from './worldProjection.schema';
 
 export const EntitySchema = z
   .object({
@@ -15,6 +16,7 @@ export const EntitySchema = z
     name: DisplayNameSchema.optional(),
     prefab: PrefabIdSchema.optional(),
     transform: TransformSchema,
+    placement: EntityPlacementSchema.optional(),
     components: ComponentMapSchema.default({}),
   })
   .strict();

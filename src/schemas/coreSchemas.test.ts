@@ -255,6 +255,95 @@ describe('core data schemas', () => {
     expect(result.success).toBe(true);
   });
 
+  it('parses optional cube-sphere projection and spherical entity placement', () => {
+    const result = LevelSchema.safeParse({
+      schemaVersion: 1,
+      id: 'level_01',
+      name: 'Gate Demo',
+      worldProjection: {
+        type: 'cube-sphere',
+        radius: 12,
+        regions: [
+          {
+            id: 'city',
+            name: 'City Region',
+            label: 'City',
+            face: 'front',
+            localBounds: {
+              center: [0, 0, 0],
+              size: [6, 2, 6],
+            },
+            style: {
+              color: '#5aa7d6',
+              tone: 'accent',
+            },
+            lodGroup: 'gate-demo-props',
+            scatterGroup: 'scatter_city_props',
+          },
+        ],
+      },
+      entities: [
+        {
+          id: 'player_spawn_01',
+          prefab: 'player_spawn',
+          transform: identityTransform,
+          placement: {
+            mode: 'spherical-region',
+            region: 'city',
+            localPosition: [0, 0, 0],
+            localYaw: 0.25,
+          },
+          components: {},
+        },
+      ],
+      events: [],
+      timelines: [],
+      cameraShots: [],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects invalid cube-sphere projection contracts', () => {
+    const result = LevelSchema.safeParse({
+      schemaVersion: 1,
+      id: 'level_01',
+      name: 'Gate Demo',
+      worldProjection: {
+        type: 'cube-sphere',
+        radius: 0,
+        regions: [
+          {
+            id: 'city',
+            name: 'City Region',
+            label: 'City',
+            face: 'front',
+            localBounds: {
+              center: [0, 0, 0],
+              size: [6, 2, 6],
+            },
+          },
+          {
+            id: 'city',
+            name: 'Duplicate City',
+            label: 'City',
+            face: 'diagonal',
+            localBounds: {
+              center: [0, 0, 0],
+              size: [0, 2, 6],
+            },
+          },
+        ],
+      },
+      entities: [],
+      events: [],
+      timelines: [],
+      cameraShots: [],
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   it('rejects invalid level environment render controls', () => {
     const baseLevel = {
       schemaVersion: 1,
