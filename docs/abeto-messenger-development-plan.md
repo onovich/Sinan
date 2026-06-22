@@ -548,16 +548,10 @@ Complete Phase 23 from docs/abeto-messenger-development-plan.md: Compact Spheric
 
 Use `docs/phase-23-compact-spherical-world-prototype-goal-mode-execution-guide.md` before implementation. The guide uses 16 rounds: 12 implementation rounds, 3 buffer rounds, and 1 final validation/handoff round. Phase 23 should produce the compact spherical-world prototype only: projection schema, cube-sphere math, spherical placement, three readable regions, minimal deterministic player surface movement, stable spherical camera behavior, director camera compatibility, and smoke/perf evidence. Delivery jobs, full Showcase Mode, Physics/Rapier, InputFlow, ViewRig, Runtime UI, Audio, multiplayer, and external adapters remain out of scope.
 
-Phase 24 is PASS in `docs/phase-24-delivery-gameplay-showcase-final-report.md`. The next full-route goal should be Phase 25: Multiplayer-lite Social Layer.
+Phase 24 is PASS in `docs/phase-24-delivery-gameplay-showcase-final-report.md`. Phase 25 is PASS in `docs/phase-25-multiplayer-lite-social-layer-final-report.md`. The next full-route goal should be Phase 26: Vertical Slice RC Hardening.
 
 ```txt
-Complete Phase 25 from docs/abeto-messenger-development-plan.md: Multiplayer-lite Social Layer. Start only after Phase 24 is PASS and pushed. Preserve the single-player delivery showcase as the baseline, add local remote-player simulation first, keep avatar/emote/stamp/network schemas data-first and validated, and keep networking scope small enough to avoid regressing Showcase Mode.
+Complete Phase 26 from docs/abeto-messenger-development-plan.md: Vertical Slice RC Hardening. Start only after Phase 25 is PASS and pushed. Preserve Showcase Mode, delivery job smoke, the multiplayer-lite social simulator/WebSocket smoke, low-end budgets, and the data-first runtime boundaries while preparing release-candidate documentation and reproducible validation.
 ```
 
-Use `docs/phase-25-multiplayer-lite-social-layer-goal-mode-execution-guide.md` before implementation. The guide uses 16 rounds: 12 implementation rounds, 3 buffer rounds, and 1 final validation/handoff round. Phase 25 must add local remote-player simulation before WebSocket transport, keep social data/message contracts Sinan-owned and validated, keep Three social visuals under `src/runtime/three/**`, and keep the WebSocket room prototype small, local, and replaceable.
-
-If multiplayer-lite is intentionally skipped, record the Phase 25 skip decision before starting Phase 26. The next core single-player route should then be Phase 26: Vertical Slice RC Hardening.
-
-```txt
-Complete Phase 26 from docs/abeto-messenger-development-plan.md: Vertical Slice RC Hardening. Start only after Phase 24 is PASS and pushed, and only after recording that Phase 25 multiplayer-lite is intentionally skipped. Preserve Showcase Mode and delivery job smoke, lock low-end/mobile budgets, update release docs, and keep hardening focused on the single-player vertical slice.
-```
+Use the Phase 26 goal-mode guide once the planner creates it. Phase 26 should harden the vertical slice only: release validation, low-end/mobile budgets, smoke coverage, demo documentation, and final RC checklist. Production backend, auth, persistence, text/voice chat, Physics/Rapier, external InputFlow/ViewRig/LudoWeave/Inscape adapters, production Runtime UI framework, Audio runtime, and unrelated external adapters remain out of scope unless a new guide explicitly approves them.
