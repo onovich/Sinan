@@ -11,7 +11,7 @@ import {
 } from './ThreeAssetLoader';
 import { ThreeRuntime } from './ThreeRuntime';
 
-describe('spherical LOD scatter low-end integration gate', () => {
+describe('spherical smoke perf low-end LOD scatter integration gate', () => {
   it('keeps projected demo placements readable while preserving LOD and scatter budgets', async () => {
     const project = await createDemoDataRepository().loadProjectLevel('level_01');
     const standardRuntime = createRuntimeAtDemoCamera();

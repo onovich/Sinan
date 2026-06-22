@@ -2,9 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { ProjectData } from '../data/DataRepository';
 import { EngineSession } from '../engine/EngineSession';
-import type { RuntimeLodDiagnostics, RuntimeScatterDiagnostics } from '../runtime/RuntimeTypes';
+import type {
+  RuntimeCameraPose,
+  RuntimeLodDiagnostics,
+  RuntimeScatterDiagnostics,
+  RuntimeSphericalPlacementDiagnostics,
+} from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
 import type { TransformData } from '../schemas/transform.schema';
+import type {
+  SurfaceMovementCommand,
+  SurfaceMovementOptions,
+  WorldSurfaceMovementResult,
+} from '../world';
 import { EditorSessionBridge, readEditorRuntimeStyleQualityProfile } from './EditorSessionBridge';
 import type { ActiveTool } from './store/editorStore';
 
@@ -26,10 +36,17 @@ interface ViewportPointerInteraction {
 interface RuntimeDiagnosticsSnapshot {
   lod: readonly RuntimeLodDiagnostics[];
   scatter: readonly RuntimeScatterDiagnostics[];
+  spherical: RuntimeSphericalPlacementDiagnostics;
 }
 
 interface RuntimeDiagnosticsWindow {
   __SINAN_RUNTIME_DIAGNOSTICS__?: () => RuntimeDiagnosticsSnapshot;
+  __SINAN_RUNTIME_APPLY_CAMERA_POSE__?: (pose: RuntimeCameraPose) => RuntimeCameraPose;
+  __SINAN_RUNTIME_STEP_SPHERICAL_MOVEMENT__?: (
+    entityId: string,
+    command: SurfaceMovementCommand,
+    options?: SurfaceMovementOptions,
+  ) => WorldSurfaceMovementResult;
 }
 
 const viewportDragThresholdPx = 4;
@@ -141,7 +158,7 @@ export function Viewport({
       bridgeRef.current = activeBridge;
       runtimeReadyRef.current?.(activeRuntime);
       if (readEditorRuntimeDiagnosticsEnabled()) {
-        installRuntimeDiagnostics(activeRuntime);
+        installRuntimeDiagnostics(activeRuntime, activeSession);
       }
 
       resizeObserver = new ResizeObserver(() => {
@@ -400,7 +417,7 @@ function readEditorRuntimeDiagnosticsEnabled(
   return new URLSearchParams(search).get('runtimeDiagnostics') === '1';
 }
 
-function installRuntimeDiagnostics(runtime: WebRuntime): void {
+function installRuntimeDiagnostics(runtime: WebRuntime, session: EngineSession): void {
   if (typeof window === 'undefined') {
     return;
   }
@@ -409,7 +426,20 @@ function installRuntimeDiagnostics(runtime: WebRuntime): void {
   diagnosticsWindow.__SINAN_RUNTIME_DIAGNOSTICS__ = () => ({
     lod: runtime.getLodDiagnostics?.() ?? [],
     scatter: runtime.getScatterDiagnostics?.() ?? [],
+    spherical: runtime.getSphericalPlacementDiagnostics?.() ?? {
+      issueCount: 0,
+      issues: [],
+      placementCount: 0,
+      placements: [],
+    },
   });
+  diagnosticsWindow.__SINAN_RUNTIME_STEP_SPHERICAL_MOVEMENT__ = (entityId, command, options) =>
+    session.stepSphericalMovement(entityId, command, options);
+  diagnosticsWindow.__SINAN_RUNTIME_APPLY_CAMERA_POSE__ = (pose) => {
+    runtime.setCameraPose(pose);
+
+    return pose;
+  };
 }
 
 function clearRuntimeDiagnostics(): void {
@@ -417,5 +447,8 @@ function clearRuntimeDiagnostics(): void {
     return;
   }
 
-  delete (window as unknown as RuntimeDiagnosticsWindow).__SINAN_RUNTIME_DIAGNOSTICS__;
+  const diagnosticsWindow = window as unknown as RuntimeDiagnosticsWindow;
+  delete diagnosticsWindow.__SINAN_RUNTIME_DIAGNOSTICS__;
+  delete diagnosticsWindow.__SINAN_RUNTIME_STEP_SPHERICAL_MOVEMENT__;
+  delete diagnosticsWindow.__SINAN_RUNTIME_APPLY_CAMERA_POSE__;
 }

@@ -54,7 +54,7 @@ test('timeline direct manipulation previews during the gesture and commits once'
 }) => {
   const browserErrors = collectBrowserErrors(page);
 
-  await page.goto('/');
+  await page.goto('/?runtimeDiagnostics=1');
   await expect(page.getByTestId('editor-shell')).toBeVisible();
   const timelinePanel = page.getByTestId('timeline-panel');
   const cameraClip = timelinePanel.getByRole('button', { name: /^track_camera_gate_reveal/ });
@@ -141,7 +141,7 @@ test('timeline direct manipulation previews during the gesture and commits once'
 test('timeline affordances expose cursors, snap, zoom, and auto-scroll', async ({ page }) => {
   const browserErrors = collectBrowserErrors(page);
 
-  await page.goto('/');
+  await page.goto('/?runtimeDiagnostics=1');
   await expect(page.getByTestId('editor-shell')).toBeVisible();
   const timelinePanel = page.getByTestId('timeline-panel');
   const timelineShell = page.getByTestId('timeline-lanes');
@@ -431,10 +431,92 @@ test('runtime diagnostics expose LOD and instanced scatter smoke counters', asyn
   expect(browserErrors).toEqual([]);
 });
 
+test('compact spherical world smoke exposes movement camera and perf diagnostics', async ({
+  page,
+}) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/?runtimeDiagnostics=1');
+  await expect(page.getByTestId('editor-shell')).toBeVisible();
+  await expect(page.locator('.viewport-status')).toContainText('runtime ready');
+
+  const initialCanvas = await captureRuntimeCanvas(page);
+  const initialPixels = inspectPng(initialCanvas);
+  expect(initialPixels.sampledUniqueColors).toBeGreaterThan(8);
+  expect(initialPixels.maxLuma - initialPixels.minLuma).toBeGreaterThan(20);
+
+  const initialSignals = await readSphericalRuntimeSmokeSignals(page);
+  expect(initialSignals).toMatchObject({
+    issueCount: 0,
+    placementCount: 5,
+    playerRegion: 'hill',
+    regions: ['beach', 'city', 'hill'],
+    scatterInstanceCount: 6,
+    switchLodLevel: 0,
+  });
+  expect(initialSignals.playerPosition).toBeDefined();
+
+  const movement = await page.evaluate(() => {
+    const stepMovement = (
+      window as unknown as {
+        __SINAN_RUNTIME_STEP_SPHERICAL_MOVEMENT__?: (
+          entityId: string,
+          command: { deltaSeconds: number; forward: number; turn: number },
+          options?: { moveSpeed?: number; turnSpeed?: number },
+        ) => unknown;
+      }
+    ).__SINAN_RUNTIME_STEP_SPHERICAL_MOVEMENT__;
+
+    if (!stepMovement) {
+      throw new Error('Missing spherical movement smoke hook.');
+    }
+
+    return stepMovement(
+      'player_spawn_01',
+      { deltaSeconds: 1, forward: 1, turn: 0 },
+      { moveSpeed: 0.75 },
+    );
+  });
+
+  expect(movement).toMatchObject({
+    ok: true,
+    entityId: 'player_spawn_01',
+  });
+
+  await expect
+    .poll(() => readSphericalRuntimeSmokeSignals(page))
+    .toMatchObject({
+      issueCount: 0,
+      placementCount: 5,
+      playerRegion: 'hill',
+    });
+  const movedSignals = await readSphericalRuntimeSmokeSignals(page);
+  expect(movedSignals.playerPosition).not.toEqual(initialSignals.playerPosition);
+
+  const cityPose = await sampleAndApplySphericalCamera(page, 'city');
+  expect(cityPose.up).toEqual([0, 0, 1]);
+  await page.waitForTimeout(120);
+  const cityCameraCanvas = await page.locator('canvas.runtime-canvas').screenshot();
+  const cityCameraPixels = inspectPng(cityCameraCanvas);
+  expect(cityCameraPixels.sampledUniqueColors).toBeGreaterThan(8);
+  expect(cityCameraPixels.maxLuma - cityCameraPixels.minLuma).toBeGreaterThan(20);
+
+  const hillPose = await sampleAndApplySphericalCamera(page, 'hill');
+  expect(hillPose.up).toEqual([1, 0, 0]);
+  await page.waitForTimeout(120);
+  const hillCameraCanvas = await page.locator('canvas.runtime-canvas').screenshot();
+  const hillCameraPixels = inspectPng(hillCameraCanvas);
+  expect(hillCameraPixels.sampledUniqueColors).toBeGreaterThan(8);
+  expect(hillCameraPixels.maxLuma - hillCameraPixels.minLuma).toBeGreaterThan(20);
+  expect(sampleAveragePngDelta(initialCanvas, cityCameraCanvas)).toBeGreaterThan(0.01);
+  expect(sampleAveragePngDelta(cityCameraCanvas, hillCameraCanvas)).toBeGreaterThan(0.01);
+  expect(browserErrors).toEqual([]);
+});
+
 test('transform gizmo previews inspector and overlay before commit', async ({ page }) => {
   const browserErrors = collectBrowserErrors(page);
 
-  await page.goto('/');
+  await page.goto('/?runtimeDiagnostics=1');
   await expect(page.getByTestId('editor-shell')).toBeVisible();
   await expect(page.locator('.viewport-status')).toContainText('runtime ready');
   await page.getByRole('button', { name: /^switch_a/ }).click();
@@ -442,7 +524,20 @@ test('transform gizmo previews inspector and overlay before commit', async ({ pa
 
   const positionX = page.locator('#position-0');
   const positionXBefore = await readInputNumber(positionX);
-  const gizmoPoint = await projectDefaultCameraPointToCanvas(page, [3.2, 1, 4.6]);
+  await expect
+    .poll(async () => (await readSphericalRuntimeSmokeSignals(page)).switchPosition)
+    .not.toBeUndefined();
+  const switchPosition = (await readSphericalRuntimeSmokeSignals(page)).switchPosition;
+
+  if (!switchPosition) {
+    throw new Error('Expected switch_a spherical runtime position.');
+  }
+
+  const gizmoPoint = await projectDefaultCameraPointToCanvas(page, [
+    switchPosition[0],
+    switchPosition[1],
+    switchPosition[2],
+  ]);
 
   await page.mouse.move(gizmoPoint.x, gizmoPoint.y);
   await page.mouse.down();
@@ -1296,13 +1391,21 @@ interface RuntimeSmokeDiagnostics {
     instanceCount: number;
     sourceAsset: string;
   }>;
+  spherical: {
+    issueCount: number;
+    placementCount: number;
+    placements: Array<{
+      entityId: string;
+      regionId: string;
+      transform: {
+        position: number[];
+      };
+    }>;
+  };
 }
 
-async function readRuntimeSmokeSignals(page: Page): Promise<{
-  scatter: RuntimeSmokeDiagnostics['scatter'][number] | undefined;
-  switchLod: RuntimeSmokeDiagnostics['lod'][number] | undefined;
-}> {
-  const diagnostics = await page.evaluate(() => {
+async function readRuntimeDiagnostics(page: Page): Promise<RuntimeSmokeDiagnostics | undefined> {
+  return page.evaluate(() => {
     const runtimeDiagnostics = (
       window as unknown as {
         __SINAN_RUNTIME_DIAGNOSTICS__?: () => RuntimeSmokeDiagnostics;
@@ -1311,11 +1414,121 @@ async function readRuntimeSmokeSignals(page: Page): Promise<{
 
     return runtimeDiagnostics?.();
   });
+}
+
+async function readRuntimeSmokeSignals(page: Page): Promise<{
+  scatter: RuntimeSmokeDiagnostics['scatter'][number] | undefined;
+  switchLod: RuntimeSmokeDiagnostics['lod'][number] | undefined;
+}> {
+  const diagnostics = await readRuntimeDiagnostics(page);
 
   return {
     switchLod: diagnostics?.lod.find((item) => item.entityId === 'switch_a'),
     scatter: diagnostics?.scatter.find((item) => item.groupId === 'scatter_switch_markers'),
   };
+}
+
+async function readSphericalRuntimeSmokeSignals(page: Page): Promise<{
+  issueCount: number | undefined;
+  placementCount: number | undefined;
+  playerPosition: number[] | undefined;
+  playerRegion: string | undefined;
+  regions: string[];
+  scatterInstanceCount: number | undefined;
+  switchLodLevel: number | undefined;
+  switchPosition: number[] | undefined;
+}> {
+  const diagnostics = await readRuntimeDiagnostics(page);
+  const spherical = diagnostics?.spherical;
+  const player = spherical?.placements.find(
+    (placement) => placement.entityId === 'player_spawn_01',
+  );
+  const switchPlacement = spherical?.placements.find(
+    (placement) => placement.entityId === 'switch_a',
+  );
+
+  return {
+    issueCount: spherical?.issueCount,
+    placementCount: spherical?.placementCount,
+    playerPosition: player?.transform.position,
+    playerRegion: player?.regionId,
+    regions: Array.from(
+      new Set(spherical?.placements.map((placement) => placement.regionId)),
+    ).sort(),
+    scatterInstanceCount: diagnostics?.scatter.find(
+      (item) => item.groupId === 'scatter_switch_markers',
+    )?.instanceCount,
+    switchLodLevel: diagnostics?.lod.find((item) => item.entityId === 'switch_a')?.currentLevel,
+    switchPosition: switchPlacement?.transform.position,
+  };
+}
+
+interface SphericalCameraSmokePose {
+  fov: number;
+  lookAt?: number[];
+  position: number[];
+  up?: number[];
+}
+
+interface SphericalCameraSmokeLevel {
+  worldProjection: unknown;
+}
+
+type SphericalCameraSmokeResult =
+  | {
+      ok: true;
+      pose: SphericalCameraSmokePose;
+    }
+  | {
+      message: string;
+      ok: false;
+    };
+
+interface SphericalCameraSmokeModule {
+  sampleSurfaceFollowCamera(input: unknown): SphericalCameraSmokeResult;
+}
+
+async function sampleAndApplySphericalCamera(
+  page: Page,
+  regionId: 'city' | 'hill',
+): Promise<SphericalCameraSmokePose> {
+  return page.evaluate(async (targetRegionId) => {
+    const cameraModulePath = '/src/world/SphericalCamera.ts';
+    const cameraModule = (await import(cameraModulePath)) as SphericalCameraSmokeModule;
+    const level = (await fetch('/data/levels/level_01.json').then((response) =>
+      response.json(),
+    )) as SphericalCameraSmokeLevel;
+    const result = cameraModule.sampleSurfaceFollowCamera({
+      distance: 4,
+      fov: 52,
+      height: 2,
+      projection: level.worldProjection,
+      target: {
+        localPosition: [0, 0, 0],
+        mode: 'spherical',
+        regionId: targetRegionId,
+      },
+      targetHeight: 1,
+    });
+
+    if (!result.ok) {
+      throw new Error(result.message);
+    }
+
+    const applyCameraPose = (
+      window as unknown as {
+        __SINAN_RUNTIME_APPLY_CAMERA_POSE__?: (pose: unknown) => unknown;
+      }
+    ).__SINAN_RUNTIME_APPLY_CAMERA_POSE__;
+
+    if (!applyCameraPose) {
+      throw new Error('Missing spherical camera smoke hook.');
+    }
+
+    applyCameraPose(result.pose);
+
+    return result.pose;
+  }, regionId);
 }
 
 async function readSmokeJson(request: APIRequestContext, path: string): Promise<unknown> {
