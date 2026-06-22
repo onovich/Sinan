@@ -14,7 +14,8 @@ Branch: `codex/mature-dependency-diagnostics-adapter-dev-only-spike`
 | Dev-only loader | `spector-dev-only-loader.ts` dynamic import boundary | PASS |
 | Browser smoke | `diagnostics-adapter.pw.ts` and summary | PASS |
 | Production exclusion guard | `smoke:diagnostics-adapter` | PASS |
-| Artifact cleanup | aggregate smoke cleanup and guard | PASS |
+| Artifact cleanup | aggregate smoke cleanup and guard for browser/diagnostics artifacts | PASS |
+| Package generated output hygiene | asset pipeline rebuild-policy test uses temp package root; aggregate smoke cleans and guards `reports/asset-pipeline/generated` | PASS |
 | Mainline approval | explicitly not granted | NOT APPROVED |
 
 ## Validation Snapshot
@@ -22,4 +23,6 @@ Branch: `codex/mature-dependency-diagnostics-adapter-dev-only-spike`
 - `check`: PASS, 32 test files / 140 tests.
 - `smoke:browser`: PASS, 12 Playwright tests.
 - `smoke:diagnostics-adapter`: PASS.
+- repeat `smoke:diagnostics-adapter`: PASS.
 - `git diff --check`: PASS with LF/CRLF warnings only.
+- Artifact absence after aggregate smoke: `dist=False`, `test-results=False`, `playwright-report=False`, `coverage=False`, `reports/diagnostics-adapter/captures=False`, `reports/asset-pipeline/generated=False`.

@@ -4,7 +4,8 @@ Date: 2026-06-22
 Branch: `codex/mature-dependency-diagnostics-adapter-dev-only-spike`
 Base: `origin/codex/mature-dependency-asset-pipeline-adapter-spike` / `b84951c7a0e93b27b96b56b9060f0b7708b3e1bc`
 Implementation commit before report: `dd05d42caf62e37db2db73af6a8ce06536e9bca6`
-Status: PASS
+Repair commit: this commit; final pushed HEAD is recorded in the executor handoff.
+Status: PASS after artifact-clean repair
 
 ## Goal
 
@@ -50,7 +51,7 @@ No Sinan mainline `src/**`, `data/**`, `tests/**`, `public/**`, root package/con
 | Spector dynamic loader | PASS | `spectorjs` dynamic import is isolated to dev-only loader files and not pulled into production browser entry. |
 | Browser smoke | PASS | `diagnostics-adapter.pw.ts` calls the DiagnosticsAdapter catalog path. |
 | Production exclusion guard | PASS | aggregate smoke rejects static imports, public leaks, dynamic code, production dist markers, and forbidden artifacts. |
-| Artifact policy | PASS | local capture artifacts are not source truth and are cleaned/rejected by aggregate smoke. |
+| Artifact policy | PASS | local capture artifacts and package-owned generated spike outputs are not source truth and are cleaned/rejected by aggregate smoke. |
 
 ## Validation Commands
 
@@ -70,7 +71,13 @@ Results:
 - `smoke:diagnostics-adapter`: PASS.
 - repeat `smoke:diagnostics-adapter`: PASS.
 - `git diff --check`: PASS with LF/CRLF warnings only.
-- Explicit artifact absence after final aggregate smoke: `dist=False`, `test-results=False`, `playwright-report=False`, `coverage=False`, `reports/diagnostics-adapter/captures=False`.
+- Explicit artifact absence after final aggregate smoke: `dist=False`, `test-results=False`, `playwright-report=False`, `coverage=False`, `reports/diagnostics-adapter/captures=False`, `reports/asset-pipeline/generated=False`.
+
+Repair note:
+
+- Checker revalidation found `reports/asset-pipeline/generated/asset-minimal-triangle-runtime.glb` after the documented validation order.
+- The rebuild path-policy unit test now builds its prior report inside a temporary package root instead of the spike package root.
+- The DiagnosticsAdapter aggregate smoke now treats `reports/asset-pipeline/generated` as package-wide generated-artifact hygiene and cleans/guards it explicitly.
 
 ## Architecture Notes
 
@@ -89,7 +96,7 @@ The spike proves:
 - dynamic import is isolated to dev-only loader files
 - production `dist/**` does not contain `spectorjs` or `SPECTOR`
 - public diagnostics contract and browser summary remain tool-object-free
-- aggregate smoke removes `dist/**`, `test-results/**`, `playwright-report/**`, `coverage/**`, and diagnostics capture artifacts
+- aggregate smoke removes `dist/**`, `test-results/**`, `playwright-report/**`, `coverage/**`, diagnostics capture artifacts, and package-owned `reports/asset-pipeline/generated/**` outputs
 
 ## Risks And Known Limits
 

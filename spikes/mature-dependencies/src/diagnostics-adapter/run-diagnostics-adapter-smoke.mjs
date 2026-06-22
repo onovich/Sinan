@@ -146,7 +146,8 @@ function cleanupArtifacts() {
     "playwright-report",
     "coverage",
     "dist",
-    join("reports", "diagnostics-adapter", "captures")
+    join("reports", "diagnostics-adapter", "captures"),
+    join("reports", "asset-pipeline", "generated")
   ];
   const details = [];
   const failures = [];
@@ -176,7 +177,8 @@ function validateArtifactsAbsent() {
     "playwright-report",
     "coverage",
     "dist",
-    join("reports", "diagnostics-adapter", "captures")
+    join("reports", "diagnostics-adapter", "captures"),
+    join("reports", "asset-pipeline", "generated")
   ];
   const present = artifacts.filter((artifact) => existsSync(join(packageRoot, artifact)));
   recordCheck(
@@ -200,7 +202,15 @@ function writeSummary() {
     checks,
     artifactPolicy: {
       committed: ["reports/diagnostics-adapter/diagnostics-adapter-validation-summary.json"],
-      notCommitted: ["test-results", "playwright-report", "coverage", "dist", "reports/diagnostics-adapter/captures", "capture artifacts"]
+      notCommitted: [
+        "test-results",
+        "playwright-report",
+        "coverage",
+        "dist",
+        "reports/diagnostics-adapter/captures",
+        "reports/asset-pipeline/generated",
+        "capture artifacts"
+      ]
     },
     timestamp: "deterministic-smoke"
   };

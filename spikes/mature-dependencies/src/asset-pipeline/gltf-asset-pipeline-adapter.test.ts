@@ -1,4 +1,4 @@
-import { copyFile, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, test } from "vitest";
@@ -340,12 +340,35 @@ describe("GltfAssetPipelineAdapter inspect", () => {
   });
 
   test("validates rebuild path policy before reading sources", async () => {
-    const adapter = createGltfAssetPipelineAdapter();
-    const previous = await adapter.build(request());
+    const tempRoot = await mkdtemp(join(tmpdir(), "sinan-asset-pipeline-rebuild-guard-"));
+    await mkdir(join(tempRoot, "fixtures"), { recursive: true });
+    await copyFile(join(process.cwd(), "fixtures", "minimal-triangle.gltf"), join(tempRoot, "fixtures", "minimal-triangle.gltf"));
+    const adapter = createGltfAssetPipelineAdapter({
+      packageRoot: tempRoot,
+      config: {
+        sourceRoot: "fixtures",
+        outputRoot: "generated",
+        generatedArtifactPolicy: {
+          outputRoot: "generated"
+        }
+      }
+    });
+    const normalized = normalizeAssetBuildRequest(
+      {
+        assetId: "asset:minimal-triangle",
+        sourcePath: "minimal-triangle.gltf",
+        outputArtifactPath: "minimal-triangle-runtime.glb"
+      },
+      adapter.config,
+      [],
+      [],
+      tempRoot
+    );
+    const previous = await adapter.build(normalized.value?.request as AssetBuildRequest);
 
     const report = await adapter.rebuild(
       {
-        ...request(),
+        ...(normalized.value?.request as AssetBuildRequest),
         requestId: "request:unsafe-rebuild",
         sourcePath: "../fixtures/minimal-triangle.gltf"
       },

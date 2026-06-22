@@ -22,6 +22,7 @@
     "diagnostics artifact cleanup: cleared coverage",
     "diagnostics artifact cleanup: cleared dist",
     "diagnostics artifact cleanup: cleared reports/diagnostics-adapter/captures",
+    "diagnostics artifact cleanup: cleared reports/asset-pipeline/generated",
     "diagnostics artifact guard: PASS",
     "diagnostics artifact guard: no forbidden diagnostics artifacts present"
   ],
@@ -64,7 +65,8 @@
         "cleared playwright-report",
         "cleared coverage",
         "cleared dist",
-        "cleared reports/diagnostics-adapter/captures"
+        "cleared reports/diagnostics-adapter/captures",
+        "cleared reports/asset-pipeline/generated"
       ]
     },
     {
@@ -85,6 +87,7 @@
       "coverage",
       "dist",
       "reports/diagnostics-adapter/captures",
+      "reports/asset-pipeline/generated",
       "capture artifacts"
     ]
   },
