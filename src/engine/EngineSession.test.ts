@@ -583,6 +583,7 @@ function createRuntimeProbe(
       activeStampCount: 1,
       disconnectedRemoteCount: 0,
       invalidMessageCount: 1,
+      lowEndSuppressedStampCount: 0,
       lowEndSuppressedRemoteCount: 0,
       rateLimitedMessageCount: 2,
       remoteCount: 1,
@@ -591,6 +592,7 @@ function createRuntimeProbe(
       staleRemoteCount: 0,
       staleSnapshotCount: 0,
       visibleRemoteCount: 1,
+      visibleStampCount: 1,
     });
   }
 

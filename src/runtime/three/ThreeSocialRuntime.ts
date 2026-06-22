@@ -4,6 +4,7 @@ import type {
   RuntimeSocialDiagnostics,
   RuntimeSocialRemotePlayer,
   RuntimeSocialState,
+  RuntimeSocialStampEvent,
   RuntimeStyleQualityProfile,
   Vec3,
 } from '../RuntimeTypes';
@@ -17,7 +18,9 @@ interface RemoteAvatarBinding {
 export class ThreeSocialRuntime {
   private readonly group = new THREE.Group();
   private readonly remoteByPlayerId = new Map<string, RemoteAvatarBinding>();
+  private readonly stampById = new Map<string, THREE.Object3D>();
   private lowEndSuppressedRemoteCount = 0;
+  private lowEndSuppressedStampCount = 0;
   private qualityProfile: RuntimeStyleQualityProfile = 'standard';
   private root: THREE.Object3D | undefined;
   private state: RuntimeSocialState | undefined;
@@ -56,6 +59,7 @@ export class ThreeSocialRuntime {
       activeStampCount: this.state?.activeStamps.length ?? 0,
       disconnectedRemoteCount: players.filter((player) => !player.connected).length,
       invalidMessageCount: this.state?.invalidMessageCount ?? 0,
+      lowEndSuppressedStampCount: this.lowEndSuppressedStampCount,
       lowEndSuppressedRemoteCount: this.lowEndSuppressedRemoteCount,
       rateLimitedMessageCount: this.state?.rateLimitedMessageCount ?? 0,
       remoteCount: players.length,
@@ -64,19 +68,24 @@ export class ThreeSocialRuntime {
       staleRemoteCount: players.filter((player) => player.stale).length,
       staleSnapshotCount: this.state?.staleSnapshotCount ?? 0,
       visibleRemoteCount: this.remoteByPlayerId.size,
+      visibleStampCount: this.stampById.size,
     };
   }
 
   dispose(): void {
     this.clearRemotes();
+    this.clearStamps();
     this.group.removeFromParent();
     this.state = undefined;
     this.lowEndSuppressedRemoteCount = 0;
+    this.lowEndSuppressedStampCount = 0;
   }
 
   private rebuild(): void {
     this.clearRemotes();
+    this.clearStamps();
     this.lowEndSuppressedRemoteCount = 0;
+    this.lowEndSuppressedStampCount = 0;
 
     if (!this.state) {
       return;
@@ -96,6 +105,17 @@ export class ThreeSocialRuntime {
       });
     }
 
+    for (const stamp of this.state.activeStamps) {
+      if (this.shouldSuppressStamp()) {
+        this.lowEndSuppressedStampCount += 1;
+        continue;
+      }
+
+      const object = createStampObject(stamp);
+      this.group.add(object);
+      this.stampById.set(stamp.id, object);
+    }
+
     if (this.root && !this.group.parent) {
       this.root.add(this.group);
     }
@@ -111,8 +131,21 @@ export class ThreeSocialRuntime {
     this.group.clear();
   }
 
+  private clearStamps(): void {
+    for (const object of this.stampById.values()) {
+      object.removeFromParent();
+      disposeObjectTree(object);
+    }
+
+    this.stampById.clear();
+  }
+
   private shouldSuppressRemote(player: RuntimeSocialRemotePlayer): boolean {
     return this.qualityProfile === 'low-end' && (!player.connected || player.stale);
+  }
+
+  private shouldSuppressStamp(): boolean {
+    return this.qualityProfile === 'low-end';
   }
 }
 
@@ -159,6 +192,44 @@ function createRemoteAvatarObject(player: RuntimeSocialRemotePlayer): THREE.Obje
   }
 
   root.visible = player.connected || player.stale || player.status === 'disconnected';
+
+  return root;
+}
+
+function createStampObject(stamp: RuntimeSocialStampEvent): THREE.Object3D {
+  const root = new THREE.Group();
+  const color = getAvatarColor(stamp.stampId);
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(0.34, 0.025, 8, 32),
+    new THREE.MeshBasicMaterial({
+      color,
+      depthWrite: false,
+      opacity: 0.82,
+      transparent: true,
+    }),
+  );
+  const core = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.14, 0),
+    new THREE.MeshBasicMaterial({
+      color,
+      depthWrite: false,
+      opacity: 0.92,
+      transparent: true,
+    }),
+  );
+
+  root.name = `social-stamp:${stamp.id}`;
+  root.userData = {
+    playerId: stamp.playerId,
+    socialStamp: true,
+    stampId: stamp.stampId,
+  };
+  root.position.set(...stamp.pose.position);
+  root.quaternion.set(...stamp.pose.rotation);
+  ring.rotation.x = Math.PI / 2;
+  core.position.y = 0.32;
+  root.add(ring);
+  root.add(core);
 
   return root;
 }

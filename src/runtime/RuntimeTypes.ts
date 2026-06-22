@@ -193,6 +193,7 @@ export interface RuntimeSocialDiagnostics {
   activeStampCount: number;
   disconnectedRemoteCount: number;
   invalidMessageCount: number;
+  lowEndSuppressedStampCount: number;
   lowEndSuppressedRemoteCount: number;
   rateLimitedMessageCount: number;
   remoteCount: number;
@@ -201,6 +202,7 @@ export interface RuntimeSocialDiagnostics {
   staleRemoteCount: number;
   staleSnapshotCount: number;
   visibleRemoteCount: number;
+  visibleStampCount: number;
 }
 
 export interface RuntimeSize {
