@@ -313,6 +313,94 @@ describe('EngineSession', () => {
       },
     });
   });
+
+  it('steps spherical movement through World and refreshes runtime placement diagnostics', async () => {
+    const calls: unknown[] = [];
+    const session = new EngineSession({
+      runtime: createRuntimeProbe(calls, { recordSphericalPlacements: true }),
+    });
+
+    expect(
+      session.stepSphericalMovement('switch_a', {
+        deltaSeconds: 1,
+        forward: 1,
+        turn: 0,
+      }),
+    ).toEqual({
+      ok: false,
+      entityId: 'switch_a',
+      message: 'No world is loaded.',
+      reason: 'world_unloaded',
+    });
+
+    await session.loadProject(createSphericalProject());
+    calls.splice(0);
+
+    const result = session.stepSphericalMovement(
+      'switch_a',
+      {
+        deltaSeconds: 1,
+        forward: 1,
+        turn: 0,
+      },
+      {
+        moveSpeed: 1,
+      },
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      state: {
+        headingRadians: 0,
+        localPosition: [0, 2, 1],
+        regionId: 'city',
+      },
+    });
+    const placementCall = calls.find(isSphericalPlacementCall);
+
+    expect(placementCall?.diagnostics).toMatchObject({
+      issueCount: 0,
+      placementCount: 1,
+      placements: [
+        {
+          authoredLocalPosition: [0, 2, 1],
+          entityId: 'switch_a',
+          regionId: 'city',
+        },
+      ],
+    });
+  });
+
+  it('falls back to setTransform for movement preview runtimes without placement support', async () => {
+    const calls: unknown[] = [];
+    const session = new EngineSession({
+      runtime: createRuntimeProbe(calls),
+    });
+
+    await session.loadProject(createSphericalProject());
+    calls.splice(0);
+    session.stepSphericalMovement(
+      'switch_a',
+      {
+        deltaSeconds: 1,
+        forward: 1,
+        turn: 0,
+      },
+      {
+        moveSpeed: 1,
+      },
+    );
+
+    expect(calls).toContainEqual({
+      type: 'setTransform',
+      entityId: 'switch_a',
+      transform: {
+        position: [0, 9.899495, 9.899495],
+        rotation: [0.382683, 0, 0, 0.92388],
+        scale: [2, 2, 2],
+      },
+    });
+  });
 });
 
 function createRuntimeProbe(
@@ -409,6 +497,18 @@ function createRuntimeProbe(
   }
 
   return runtime;
+}
+
+function isSphericalPlacementCall(
+  call: unknown,
+): call is { diagnostics: RuntimeSphericalPlacementDiagnostics; type: 'setSphericalPlacements' } {
+  return (
+    typeof call === 'object' &&
+    call !== null &&
+    'type' in call &&
+    call.type === 'setSphericalPlacements' &&
+    'diagnostics' in call
+  );
 }
 
 function createProject(): ProjectData {

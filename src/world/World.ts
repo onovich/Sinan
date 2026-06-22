@@ -3,7 +3,18 @@ import type { LevelData } from '../schemas/level.schema';
 import { TransformSchema, type TransformData } from '../schemas/transform.schema';
 import type { WorldProjectionData } from '../schemas/worldProjection.schema';
 import { EntityStore, cloneEntityData, cloneTransform } from './EntityStore';
-import { deriveSphericalPlacements, type SphericalPlacementSnapshot } from './SphericalPlacement';
+import {
+  deriveSphericalPlacements,
+  type SphericalPlacementResult,
+  type SphericalPlacementSnapshot,
+} from './SphericalPlacement';
+import {
+  stepSurfaceMovement,
+  type SurfaceMovementCommand,
+  type SurfaceMovementEdgeStatus,
+  type SurfaceMovementOptions,
+  type SurfaceMovementState,
+} from './SurfaceMovement';
 import type { WorldSnapshot } from './WorldSnapshot';
 
 export type WorldTransformResult =
@@ -17,6 +28,28 @@ export type WorldTransformResult =
       entityId: string;
       message: string;
       reason: 'missing_entity' | 'invalid_transform';
+    };
+
+export type WorldSurfaceMovementResult =
+  | {
+      ok: true;
+      edgeStatus: SurfaceMovementEdgeStatus;
+      entityId: string;
+      placement: SphericalPlacementResult;
+      state: SurfaceMovementState;
+    }
+  | {
+      ok: false;
+      entityId: string;
+      message: string;
+      reason:
+        | 'invalid_input'
+        | 'invalid_projection'
+        | 'missing_entity'
+        | 'missing_placement'
+        | 'missing_region'
+        | 'missing_world_projection'
+        | 'world_unloaded';
     };
 
 export class World {
@@ -54,6 +87,88 @@ export class World {
       levelId: this.levelId,
       worldProjection: this.worldProjection,
     });
+  }
+
+  stepSphericalMovement(
+    entityId: string,
+    command: SurfaceMovementCommand,
+    options?: SurfaceMovementOptions,
+  ): WorldSurfaceMovementResult {
+    if (!this.worldProjection) {
+      return {
+        ok: false,
+        entityId,
+        message: `World level "${this.levelId}" has no worldProjection.`,
+        reason: 'missing_world_projection',
+      };
+    }
+
+    const entity = this.entities.getById(entityId);
+
+    if (!entity) {
+      return {
+        ok: false,
+        entityId,
+        message: `World entity "${entityId}" does not exist.`,
+        reason: 'missing_entity',
+      };
+    }
+
+    if (!entity.placement) {
+      return {
+        ok: false,
+        entityId,
+        message: `World entity "${entityId}" does not define spherical placement.`,
+        reason: 'missing_placement',
+      };
+    }
+
+    const movement = stepSurfaceMovement({
+      command,
+      options,
+      projection: this.worldProjection,
+      state: {
+        headingRadians: entity.placement.localYaw ?? 0,
+        localPosition: entity.placement.localPosition ?? entity.transform.position,
+        regionId: entity.placement.region,
+      },
+    });
+
+    if (!movement.ok) {
+      return {
+        ok: false,
+        entityId,
+        message: movement.message,
+        reason: movement.reason,
+      };
+    }
+
+    this.entities.setPlacement(entityId, {
+      ...entity.placement,
+      localPosition: movement.state.localPosition,
+      localYaw: movement.state.headingRadians,
+    });
+
+    const placement = this.getSphericalPlacements().placements.find(
+      (candidate) => candidate.entityId === entityId,
+    );
+
+    if (!placement) {
+      return {
+        ok: false,
+        entityId,
+        message: `Failed to derive spherical placement for moved entity "${entityId}".`,
+        reason: 'invalid_projection',
+      };
+    }
+
+    return {
+      ok: true,
+      edgeStatus: movement.edgeStatus,
+      entityId,
+      placement,
+      state: movement.state,
+    };
   }
 
   setTransform(entityId: string, transform: unknown): WorldTransformResult {

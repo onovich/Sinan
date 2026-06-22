@@ -1,5 +1,6 @@
 import type { EntityData } from '../schemas/entity.schema';
 import type { TransformData } from '../schemas/transform.schema';
+import type { EntityPlacementData } from '../schemas/worldProjection.schema';
 
 export class EntityStore {
   private readonly entitiesById = new Map<string, EntityData>();
@@ -38,6 +39,18 @@ export class EntityStore {
     }
 
     entity.transform = cloneTransform(transform);
+
+    return true;
+  }
+
+  setPlacement(entityId: string, placement: EntityPlacementData): boolean {
+    const entity = this.entitiesById.get(entityId);
+
+    if (!entity) {
+      return false;
+    }
+
+    entity.placement = cloneJsonData(placement);
 
     return true;
   }

@@ -27,7 +27,12 @@ import {
   TriggerZoneComponentSchema,
 } from '../schemas/collider.schema';
 import type { EntityData } from '../schemas/entity.schema';
-import { World } from '../world';
+import {
+  World,
+  type SurfaceMovementCommand,
+  type SurfaceMovementOptions,
+  type WorldSurfaceMovementResult,
+} from '../world';
 import { EngineLoop, type EngineFrameScheduler } from './EngineLoop';
 import type { EngineMode } from './EngineMode';
 
@@ -197,6 +202,37 @@ export class EngineSession {
     this.ensureActive();
     this.triggerDebugVisible = visible;
     this.syncTriggerDebug();
+  }
+
+  stepSphericalMovement(
+    entityId: string,
+    command: SurfaceMovementCommand,
+    options?: SurfaceMovementOptions,
+  ): WorldSurfaceMovementResult {
+    this.ensureActive();
+
+    if (!this.world) {
+      return {
+        ok: false,
+        entityId,
+        message: 'No world is loaded.',
+        reason: 'world_unloaded',
+      };
+    }
+
+    const result = this.world.stepSphericalMovement(entityId, command, options);
+
+    if (result.ok) {
+      const diagnostics = this.world.getSphericalPlacements();
+
+      if (this.options.runtime.setSphericalPlacements) {
+        this.options.runtime.setSphericalPlacements(diagnostics);
+      } else {
+        this.options.runtime.setTransform(entityId, result.placement.transform);
+      }
+    }
+
+    return result;
   }
 
   startLoop(scheduler: EngineFrameScheduler): void {
