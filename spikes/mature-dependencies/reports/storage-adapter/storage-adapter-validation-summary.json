@@ -2,7 +2,7 @@
   "candidate": "StorageAdapter isolated validation",
   "status": "PASS",
   "command": "npm run smoke:storage",
-  "durationMs": 522,
+  "durationMs": 496,
   "node": {
     "status": "PASS",
     "report": "reports/storage-adapter/storage-adapter-node-summary.json"
@@ -20,5 +20,5 @@
     "storage adapter browser smoke: PASS",
     "boundary forbidden paths: 0"
   ],
-  "timestamp": "2026-06-22T06:01:04.140Z"
+  "timestamp": "2026-06-22T06:03:49.071Z"
 }
