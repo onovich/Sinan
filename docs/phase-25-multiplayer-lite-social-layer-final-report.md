@@ -4,7 +4,7 @@ Date: 2026-06-22
 
 ## Status
 
-PASS. Phase 25 completed the local multiplayer-lite social prototype and preserved the Phase 24 Delivery Showcase baseline.
+PASS. Phase 25 completed the local multiplayer-lite social prototype and preserved the Phase 24 Delivery Showcase baseline. Current pushed final evidence is `3804e80 docs: align phase 25 whitespace repair evidence` on `main` / `origin/main`.
 
 ## Completed
 
@@ -66,6 +66,7 @@ PASS. Phase 25 completed the local multiplayer-lite social prototype and preserv
 - Boundary checks: `npm run check-boundaries` PASS.
 - Migration check: `npm run migrate-data -- --check` PASS.
 - `git diff --check`: PASS after final docs before commit.
+- `git diff --check c21cd57..HEAD`: PASS at current final evidence commit `3804e80`.
 
 ## Commits And Push
 
@@ -83,7 +84,9 @@ PASS. Phase 25 completed the local multiplayer-lite social prototype and preserv
 - `ab59fb3` test: integrate multiplayer-lite social flow, pushed to `origin/main`.
 - `86b1667` test: add multiplayer-lite social smoke gate, pushed to `origin/main`.
 - `f9cba54` docs: finalize phase 25 multiplayer-lite social layer, pushed to `origin/main`.
+- `3e97052` docs: align phase 25 final report commit evidence, pushed to `origin/main`.
 - `ca8e292` docs: repair phase 25 whitespace gate, pushed to `origin/main`.
+- `3804e80` docs: align phase 25 whitespace repair evidence, pushed to `origin/main`.
 
 ## Buffer
 
