@@ -117,6 +117,10 @@ function hasPathTraversal(path: string): boolean {
 }
 
 function joinRelative(root: string, relativePath: string): string {
+  if (root === "." || root === "") {
+    return trimLeadingSlash(relativePath);
+  }
+
   return normalizeSlashes(`${trimLeadingSlash(root)}/${trimLeadingSlash(relativePath)}`);
 }
 

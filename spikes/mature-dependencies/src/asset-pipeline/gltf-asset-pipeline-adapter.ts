@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { NodeIO } from "@gltf-transform/core";
-import { inspect } from "@gltf-transform/functions";
+import { inspect, prune, reorder } from "@gltf-transform/functions";
 import { MeshoptEncoder } from "meshoptimizer";
 import {
   createAssetPipelineDiagnostic,
@@ -145,7 +145,53 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
   }
 
   async build(request: AssetBuildRequest): Promise<AssetBuildReport> {
-    return this.inspect(request);
+    if (this.state === "disposed") {
+      return this.disposedReport(request, "Cannot build after asset pipeline disposal.");
+    }
+
+    const normalized = this.validateRequest(request);
+    if (!normalized.ok) {
+      return this.failureReport(request, normalized.status, normalized.diagnostics);
+    }
+
+    const source = await this.readSource(request);
+    if (!source.ok) {
+      return this.failureReport(request, source.status, source.diagnostics);
+    }
+
+    try {
+      this.state = "transforming";
+      await MeshoptEncoder.ready;
+      const io = this.io ?? new NodeIO();
+      const document = await io.read(source.absolutePath);
+      const profile = this.config.profiles.find((candidate) => candidate.profileId === request.profileId);
+
+      if (profile?.pipelineIntent !== "inspect-only") {
+        await document.transform(reorder({ encoder: MeshoptEncoder }), prune());
+      }
+
+      const glb = await io.writeBinary(document);
+      const artifactPath = resolve(this.packageRoot, request.outputArtifactPath);
+      await mkdir(dirname(artifactPath), { recursive: true });
+      await writeFile(artifactPath, glb);
+
+      const roundTrip = await io.readBinary(glb);
+      const roundTripInspection = inspect(roundTrip);
+      const metrics = this.metricsFromDocument(roundTrip, glb.byteLength);
+      const artifactHash = stableHash(glb);
+
+      this.state = "reporting";
+      return this.reportFromMetrics(request, source, metrics, "success", [], {
+        reportKeys: Object.keys(roundTripInspection).sort(),
+        artifact: {
+          hash: artifactHash,
+          bytes: glb.byteLength
+        }
+      });
+    } catch (error) {
+      this.state = "failed";
+      return this.failureReport(request, "tool-failed", [this.toolFailureDiagnostic("glTF transform/write failed.", error)]);
+    }
   }
 
   async rebuild(request: AssetBuildRequest): Promise<AssetBuildReport> {
@@ -250,6 +296,10 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
     diagnostics: AssetPipelineDiagnostic[],
     detail: {
       reportKeys: string[];
+      artifact?: {
+        hash: string;
+        bytes: number;
+      };
     }
   ): AssetBuildReport {
     const budget =
@@ -269,7 +319,21 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
       profileHash: digest,
       metrics,
       budget: budgetResult,
-      generatedArtifacts: [],
+      generatedArtifacts: detail.artifact
+        ? [
+            {
+              artifactId: `${request.assetId}:${request.variantId}:artifact`,
+              artifactPath: request.outputArtifactPath,
+              mediaType: "model/gltf-binary",
+              bytes: detail.artifact.bytes,
+              sourceHash: source.hash,
+              profileHash: digest,
+              generatedAt: "deterministic-smoke",
+              committed: false,
+              rebuildable: true
+            }
+          ]
+        : [],
       manifestPatch: {
         patchId: `${request.requestId}:inspect-patch`,
         entries: [
@@ -278,9 +342,10 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
             assetId: request.assetId,
             variantId: request.variantId,
             sourcePath: request.sourcePath,
-            artifactPath: request.sourcePath,
-            runtimeLoadHint: "source",
+            artifactPath: detail.artifact ? request.outputArtifactPath : request.sourcePath,
+            runtimeLoadHint: detail.artifact ? "generated" : "source",
             sourceHash: source.hash,
+            ...(detail.artifact ? { artifactHash: detail.artifact.hash } : {}),
             metrics,
             diagnostics: cloneJson(reportDiagnostics)
           }
