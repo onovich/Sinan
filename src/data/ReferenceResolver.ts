@@ -7,6 +7,7 @@ import type {
   SphericalCameraPointData,
 } from '../schemas/cameraShot.schema';
 import type { ConditionData } from '../schemas/condition.schema';
+import { DeliveryEndpointComponentSchema } from '../schemas/component.schema';
 import type { EventData } from '../schemas/event.schema';
 import type { LevelData } from '../schemas/level.schema';
 import type { PaletteData } from '../schemas/palette.schema';
@@ -111,9 +112,12 @@ export function validateProjectReferences(
 
   for (const level of input.levels) {
     const scatterGroups = level.scatterGroups ?? [];
+    const deliveryJobs = level.deliveryJobs ?? [];
     const regions = level.worldProjection?.regions ?? [];
     const levelRegionIds = new Set(regions.map((region) => region.id));
     const scatterGroupIds = new Set(scatterGroups.map((group) => group.id));
+    const deliveryEndpointIds = new Set<string>();
+    const duplicateDeliveryEndpointIds = new Set<string>();
 
     regions.forEach((region) => regionIds.add(region.id));
 
@@ -192,7 +196,25 @@ export function validateProjectReferences(
         `data/levels/${level.id}.json.entities.${entity.id}.components.Renderable.materials`,
         issues,
       );
+
+      addDeliveryEndpointComponentIssues(
+        entity,
+        level,
+        deliveryEndpointIds,
+        duplicateDeliveryEndpointIds,
+        issues,
+      );
     }
+
+    for (const endpointId of duplicateDeliveryEndpointIds) {
+      issues.push({
+        severity: 'error',
+        path: `data/levels/${level.id}.json.entities.components.DeliveryEndpoint`,
+        message: `Duplicate delivery endpoint id "${endpointId}".`,
+      });
+    }
+
+    addDeliveryJobReferenceIssues(level, deliveryJobs, deliveryEndpointIds, levelRegionIds, issues);
 
     for (const scatterGroup of scatterGroups) {
       addScatterGroupReferenceIssues(
@@ -372,6 +394,139 @@ function addEntityPlacementReferenceIssues(
       message: `Missing region "${placement.region}".`,
     });
   }
+}
+
+function addDeliveryEndpointComponentIssues(
+  entity: LevelData['entities'][number],
+  level: LevelData,
+  endpointIds: Set<string>,
+  duplicateEndpointIds: Set<string>,
+  issues: ReferenceValidationIssue[],
+): void {
+  if (!Object.hasOwn(entity.components, 'DeliveryEndpoint')) {
+    return;
+  }
+
+  const path = `data/levels/${level.id}.json.entities.${entity.id}.components.DeliveryEndpoint`;
+  const result = DeliveryEndpointComponentSchema.safeParse(entity.components.DeliveryEndpoint);
+
+  if (!result.success) {
+    issues.push({
+      severity: 'error',
+      path,
+      message: `Invalid DeliveryEndpoint component: ${formatZodIssues(result.error.issues)}.`,
+    });
+    return;
+  }
+
+  if (endpointIds.has(result.data.endpointId)) {
+    duplicateEndpointIds.add(result.data.endpointId);
+  }
+
+  endpointIds.add(result.data.endpointId);
+}
+
+function addDeliveryJobReferenceIssues(
+  level: LevelData,
+  deliveryJobs: readonly NonNullable<LevelData['deliveryJobs']>[number][],
+  endpointIds: ReadonlySet<string>,
+  regionIds: ReadonlySet<string>,
+  issues: ReferenceValidationIssue[],
+): void {
+  addDuplicateIdIssues(
+    deliveryJobs.map((job) => job.id),
+    `data/levels/${level.id}.json.deliveryJobs`,
+    'delivery job',
+    issues,
+  );
+
+  for (const job of deliveryJobs) {
+    const path = `data/levels/${level.id}.json.deliveryJobs.${job.id}`;
+
+    addMissingDeliveryEndpointReference(
+      job.acceptEndpointId,
+      endpointIds,
+      `${path}.acceptEndpointId`,
+      issues,
+    );
+    addMissingDeliveryEndpointReference(
+      job.targetEndpointId,
+      endpointIds,
+      `${path}.targetEndpointId`,
+      issues,
+    );
+
+    if (job.acceptEndpointId === job.targetEndpointId) {
+      issues.push({
+        severity: 'error',
+        path: `${path}.targetEndpointId`,
+        message: `Delivery job "${job.id}" accept and target endpoints must be different.`,
+      });
+    }
+
+    addMissingDeliveryEndpointReference(
+      job.completion.endpointId,
+      endpointIds,
+      `${path}.completion.endpointId`,
+      issues,
+    );
+
+    if (job.completion.endpointId !== job.targetEndpointId) {
+      issues.push({
+        severity: 'error',
+        path: `${path}.completion.endpointId`,
+        message: `Delivery job "${job.id}" completion endpoint must match target endpoint "${job.targetEndpointId}".`,
+      });
+    }
+
+    job.routeHints.forEach((hint, index) => {
+      const hintPath = `${path}.routeHints.${index}`;
+
+      if (hint.type === 'endpoint') {
+        addMissingDeliveryEndpointReference(
+          hint.endpointId,
+          endpointIds,
+          `${hintPath}.endpointId`,
+          issues,
+        );
+        return;
+      }
+
+      if (!level.worldProjection) {
+        issues.push({
+          severity: 'error',
+          path: hintPath,
+          message: `Delivery job "${job.id}" route hint uses spherical region but level "${level.id}" has no worldProjection.`,
+        });
+        return;
+      }
+
+      if (!regionIds.has(hint.region)) {
+        issues.push({
+          severity: 'error',
+          path: `${hintPath}.region`,
+          message: `Missing delivery route region "${hint.region}".`,
+        });
+      }
+    });
+  }
+}
+
+function addMissingDeliveryEndpointReference(
+  endpointId: string,
+  endpointIds: ReadonlySet<string>,
+  path: string,
+  issues: ReferenceValidationIssue[],
+): void {
+  if (endpointIds.has(endpointId)) {
+    return;
+  }
+
+  issues.push({
+    severity: 'error',
+    path,
+    message: `Missing delivery endpoint "${endpointId}".`,
+  });
 }
 
 function addEventTriggerReferenceIssues(

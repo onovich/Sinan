@@ -9,6 +9,7 @@ import {
   StableIdSchema,
   TimelineIdSchema,
 } from './common.schema';
+import { DeliveryJobSchema } from './delivery.schema';
 import { EntitySchema } from './entity.schema';
 import { ScatterGroupSchema } from './scatter.schema';
 import { WorldProjectionSchema } from './worldProjection.schema';
@@ -60,11 +61,13 @@ export const LevelSchema = z
     timelines: z.array(TimelineIdSchema).default([]),
     cameraShots: z.array(CameraShotIdSchema).default([]),
     scatterGroups: z.array(ScatterGroupSchema).default([]),
+    deliveryJobs: z.array(DeliveryJobSchema).default([]),
   })
   .strict();
 
 export type LevelEnvironmentData = z.infer<typeof LevelEnvironmentSchema>;
 type LevelSchemaData = z.infer<typeof LevelSchema>;
-export type LevelData = Omit<LevelSchemaData, 'scatterGroups'> & {
+export type LevelData = Omit<LevelSchemaData, 'deliveryJobs' | 'scatterGroups'> & {
+  deliveryJobs?: LevelSchemaData['deliveryJobs'];
   scatterGroups?: LevelSchemaData['scatterGroups'];
 };

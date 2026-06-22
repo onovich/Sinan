@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { AabbColliderComponentSchema, TriggerZoneComponentSchema } from './collider.schema';
 import { AssetIdSchema, ComponentTypeSchema } from './common.schema';
+import { DeliveryEndpointIdSchema } from './delivery.schema';
 import { RenderableMaterialSlotsSchema } from './material.schema';
 import { RenderStyleSchema } from './renderStyle.schema';
 
@@ -44,8 +45,19 @@ export const PlayerSpawnComponentSchema = z
   })
   .strict();
 
+export const DeliveryEndpointComponentSchema = z
+  .object({
+    endpointId: DeliveryEndpointIdSchema,
+    kind: z.enum(['npc', 'mailbox']),
+    label: z.string().min(1).max(80),
+    interactionRadius: z.number().finite().positive().max(20).default(1.6),
+    prompt: z.string().min(1).max(100).optional(),
+  })
+  .strict();
+
 export const KnownComponentSchemas = {
   Collider: AabbColliderComponentSchema,
+  DeliveryEndpoint: DeliveryEndpointComponentSchema,
   Door: DoorComponentSchema,
   Interactable: InteractableComponentSchema,
   PlayerSpawn: PlayerSpawnComponentSchema,

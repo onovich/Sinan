@@ -448,7 +448,7 @@ test('compact spherical world smoke exposes movement camera and perf diagnostics
   const initialSignals = await readSphericalRuntimeSmokeSignals(page);
   expect(initialSignals).toMatchObject({
     issueCount: 0,
-    placementCount: 5,
+    placementCount: 7,
     playerRegion: 'hill',
     regions: ['beach', 'city', 'hill'],
     scatterInstanceCount: 6,
@@ -487,7 +487,7 @@ test('compact spherical world smoke exposes movement camera and perf diagnostics
     .poll(() => readSphericalRuntimeSmokeSignals(page))
     .toMatchObject({
       issueCount: 0,
-      placementCount: 5,
+      placementCount: 7,
       playerRegion: 'hill',
     });
   const movedSignals = await readSphericalRuntimeSmokeSignals(page);
@@ -587,6 +587,8 @@ test('hierarchy reorder is command backed and level dirty only', async ({ page }
   expect(orderBefore).toEqual([
     'room_blockout_01',
     'player_spawn_01',
+    'courier_hill_01',
+    'mailbox_hill_01',
     'switch_a',
     'gate_a',
     'trigger_gate_entry',
@@ -594,13 +596,21 @@ test('hierarchy reorder is command backed and level dirty only', async ({ page }
 
   await page
     .getByTestId('hierarchy-item-switch_a')
-    .dragTo(page.getByTestId('hierarchy-item-player_spawn_01'), {
+    .dragTo(page.getByTestId('hierarchy-item-mailbox_hill_01'), {
       targetPosition: { x: 12, y: 2 },
     });
 
   await expect
     .poll(() => readHierarchyOrder(page))
-    .toEqual(['room_blockout_01', 'switch_a', 'player_spawn_01', 'gate_a', 'trigger_gate_entry']);
+    .toEqual([
+      'room_blockout_01',
+      'player_spawn_01',
+      'courier_hill_01',
+      'switch_a',
+      'mailbox_hill_01',
+      'gate_a',
+      'trigger_gate_entry',
+    ]);
   await expect(page.getByTestId('hierarchy-row-switch_a')).toHaveAttribute('aria-pressed', 'true');
   expect(await readTransformPosition(page)).toEqual(positionBefore);
   await expect(page.locator('.save-status')).toHaveText('Unsaved');
@@ -623,7 +633,15 @@ test('hierarchy reorder is command backed and level dirty only', async ({ page }
   await page.getByRole('button', { name: 'Redo' }).click();
   await expect
     .poll(() => readHierarchyOrder(page))
-    .toEqual(['room_blockout_01', 'switch_a', 'player_spawn_01', 'gate_a', 'trigger_gate_entry']);
+    .toEqual([
+      'room_blockout_01',
+      'player_spawn_01',
+      'courier_hill_01',
+      'switch_a',
+      'mailbox_hill_01',
+      'gate_a',
+      'trigger_gate_entry',
+    ]);
 
   await page.getByTestId('hierarchy-row-switch_a').focus();
   await page.keyboard.press('Control+ArrowDown');
@@ -936,7 +954,7 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
   expect(invalidSaveBody).toContain('event validation');
   await expect(page.getByTestId('editor-shell')).toBeVisible();
   await expect(page.locator('.viewport-status')).toContainText('runtime ready');
-  await expect(page.locator('.viewport-status')).toContainText('5 entities');
+  await expect(page.locator('.viewport-status')).toContainText('7 entities');
   await expect(page.locator('.domain-status')).toHaveText(['TL', 'EV', 'CAM']);
   const layout = await page.evaluate(() => {
     const shell = document.querySelector('[data-testid="editor-shell"]');
@@ -1033,7 +1051,7 @@ test('editor workflow loads, renders, and supports core timeline controls', asyn
     .poll(() => Array.from(modelResponses.values()).filter((status) => status === 200).length)
     .toBeGreaterThanOrEqual(4);
   expect(Array.from(modelResponses.values()).every((status) => status === 200)).toBe(true);
-  await expect(page.locator('.panel-count').filter({ hasText: '5 entities' })).toBeVisible();
+  await expect(page.locator('.panel-count').filter({ hasText: '7 entities' })).toBeVisible();
   await expect(page.locator('.panel-count').filter({ hasText: '8 assets' })).toBeVisible();
   await page.getByLabel('Search assets').fill('audio');
   await expect(page.locator('.asset-list button')).toHaveCount(1);
@@ -1294,7 +1312,7 @@ test('editor shell remains contained and readable on a narrow viewport', async (
   await expect(page.getByTestId('timeline-panel')).toBeVisible();
   await expect(page.locator('canvas.runtime-canvas')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
-  await expect(page.locator('.panel-count').filter({ hasText: '5 entities' })).toBeVisible();
+  await expect(page.locator('.panel-count').filter({ hasText: '7 entities' })).toBeVisible();
 
   const layout = await page.evaluate(() => {
     const shell = document.querySelector('[data-testid="editor-shell"]');

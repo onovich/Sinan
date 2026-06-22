@@ -47,6 +47,15 @@ describe('component schemas', () => {
     expect(parseKnownComponentPayload('Switch', { initialState: false })?.success).toBe(true);
     expect(parseKnownComponentPayload('Interactable', { prompt: 'Press E' })?.success).toBe(true);
     expect(
+      parseKnownComponentPayload('DeliveryEndpoint', {
+        endpointId: 'delivery.courier_hill',
+        kind: 'npc',
+        label: 'Hill Courier',
+        interactionRadius: 1.6,
+        prompt: 'Accept parcel',
+      })?.success,
+    ).toBe(true);
+    expect(
       parseKnownComponentPayload('Collider', {
         shape: 'aabb',
         center: [0, 1, 0],
@@ -121,6 +130,14 @@ describe('component schemas', () => {
         shape: 'aabb',
         center: [0, 0],
         size: [1, 1, 1],
+      })?.success,
+    ).toBe(false);
+    expect(
+      parseKnownComponentPayload('DeliveryEndpoint', {
+        endpointId: 'delivery.courier_hill',
+        kind: 'vendor',
+        label: 'Hill Courier',
+        interactionRadius: 0,
       })?.success,
     ).toBe(false);
     expect(parseKnownComponentPayload('Unknown', { any: 'payload' })).toBeUndefined();

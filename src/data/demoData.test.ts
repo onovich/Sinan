@@ -64,6 +64,6 @@ describe('demo project data', () => {
       new Set(['city', 'hill', 'beach']),
     );
     expect(placements.issueCount).toBe(0);
-    expect(placements.placementCount).toBe(5);
+    expect(placements.placementCount).toBe(7);
   });
 });

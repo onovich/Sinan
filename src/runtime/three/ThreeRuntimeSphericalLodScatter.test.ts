@@ -25,7 +25,7 @@ describe('spherical smoke perf low-end LOD scatter integration gate', () => {
 
       expect(spherical).toMatchObject({
         issueCount: 0,
-        placementCount: 5,
+        placementCount: 7,
       });
       expect(new Set(spherical.placements.map((placement) => placement.regionId))).toEqual(
         new Set(['city', 'hill', 'beach']),
@@ -104,7 +104,7 @@ describe('spherical smoke perf low-end LOD scatter integration gate', () => {
             regionId: 'missing_region',
           },
         ],
-        placementCount: 4,
+        placementCount: 6,
       });
       expect(runtime.getTransform('switch_a')).toEqual(switchEntity.transform);
       expect(readSwitchLod(runtime).entityId).toBe('switch_a');

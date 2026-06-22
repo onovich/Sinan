@@ -116,6 +116,78 @@
       }
     },
     {
+      "id": "courier_hill_01",
+      "transform": {
+        "position": [0.2, 0, 3.4],
+        "rotation": [0, 0, 0, 1],
+        "scale": [0.85, 0.85, 0.85]
+      },
+      "placement": {
+        "mode": "spherical-region",
+        "region": "hill",
+        "localPosition": [-0.65, 0.15, 0.2],
+        "localYaw": -0.35
+      },
+      "components": {
+        "Renderable": {
+          "model": "model.player_spawn",
+          "renderStyle": {
+            "profile": "palette-toon",
+            "palette": "world_01",
+            "tone": "base",
+            "outline": "interactable",
+            "highlight": "selected"
+          }
+        },
+        "Interactable": {
+          "prompt": "Accept parcel"
+        },
+        "DeliveryEndpoint": {
+          "endpointId": "delivery.courier_hill",
+          "kind": "npc",
+          "label": "Hill Courier",
+          "interactionRadius": 1.6,
+          "prompt": "Accept parcel"
+        }
+      }
+    },
+    {
+      "id": "mailbox_hill_01",
+      "transform": {
+        "position": [1.4, 0, 3.8],
+        "rotation": [0, 0, 0, 1],
+        "scale": [0.75, 0.75, 0.75]
+      },
+      "placement": {
+        "mode": "spherical-region",
+        "region": "hill",
+        "localPosition": [0.95, 0.15, 0.45],
+        "localYaw": 0.45
+      },
+      "components": {
+        "Renderable": {
+          "model": "model.switch_wall.lod1",
+          "renderStyle": {
+            "profile": "palette-toon",
+            "palette": "world_01",
+            "tone": "accent",
+            "outline": "interactable",
+            "highlight": "selected"
+          }
+        },
+        "Interactable": {
+          "prompt": "Deliver parcel"
+        },
+        "DeliveryEndpoint": {
+          "endpointId": "delivery.mailbox_hill",
+          "kind": "mailbox",
+          "label": "Hill Mailbox",
+          "interactionRadius": 1.4,
+          "prompt": "Deliver parcel"
+        }
+      }
+    },
+    {
       "id": "switch_a",
       "prefab": "switch_wall",
       "transform": {
@@ -200,6 +272,49 @@
         "TriggerZone": {
           "enabled": true
         }
+      }
+    }
+  ],
+  "deliveryJobs": [
+    {
+      "id": "job.hill_mail_run",
+      "title": "Hill Mail Run",
+      "description": "Carry the gate permit packet from the hill courier to the nearby mailbox.",
+      "acceptEndpointId": "delivery.courier_hill",
+      "targetEndpointId": "delivery.mailbox_hill",
+      "defaultStatus": "available",
+      "package": {
+        "kind": "parcel",
+        "label": "Gate permit packet",
+        "itemId": "parcel.gate_permit"
+      },
+      "routeHints": [
+        {
+          "type": "endpoint",
+          "endpointId": "delivery.courier_hill",
+          "label": "Pick up from the hill courier"
+        },
+        {
+          "type": "spherical-region",
+          "region": "hill",
+          "localPosition": [0.4, 0.15, 0.3],
+          "label": "Follow the hill path"
+        },
+        {
+          "type": "endpoint",
+          "endpointId": "delivery.mailbox_hill",
+          "label": "Drop at the hill mailbox"
+        }
+      ],
+      "completion": {
+        "type": "deliverToEndpoint",
+        "endpointId": "delivery.mailbox_hill"
+      },
+      "feedback": {
+        "accepted": "Gate permit packet accepted.",
+        "inProgress": "Head to the hill mailbox.",
+        "readyToDeliver": "Mailbox reached. Deliver the packet.",
+        "completed": "Hill mail run complete."
       }
     }
   ],
