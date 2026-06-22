@@ -5,7 +5,7 @@
   "layer": "candidate",
   "browser": "Playwright Chromium",
   "port": 5184,
-  "durationMs": 332,
+  "durationMs": 293,
   "command": "npm exec -- playwright test -c playwright.config.ts",
   "consoleErrors": [],
   "artifacts": [
@@ -15,14 +15,14 @@
     "StorageAdapter catalog entry available: true",
     "IndexedDB available: true",
     "write open/put/get/list/export/import/cleanup: true/true/true/2/2/2/1",
-    "reload open/get/list/clear: true/true/1/1",
+    "reload open/get/list/clear/post-clear-list: true/true/1/1/0",
     "quota estimate supported: true",
     "fallback used: false / false"
   ],
-  "timestamp": "2026-06-22T05:53:45.167Z",
+  "timestamp": "2026-06-22T05:58:21.649Z",
   "write": {
     "adapter": "DexieStorageAdapter",
-    "databaseName": "sinan-storage-adapter-browser-1782107624835",
+    "databaseName": "sinan-storage-adapter-browser-1782107901356",
     "namespace": "sinan-storage-adapter-browser-smoke",
     "phase": "write",
     "indexedDbAvailable": true,
@@ -37,13 +37,14 @@
     "cleanupRemoved": 1,
     "reloadPersistentOk": false,
     "clearRemoved": 0,
+    "postClearListCount": 0,
     "quotaSupported": true,
     "usedFallback": false,
     "diagnostics": []
   },
   "reload": {
     "adapter": "DexieStorageAdapter",
-    "databaseName": "sinan-storage-adapter-browser-1782107624835",
+    "databaseName": "sinan-storage-adapter-browser-1782107901356",
     "namespace": "sinan-storage-adapter-browser-smoke",
     "phase": "verify",
     "indexedDbAvailable": true,
@@ -58,6 +59,7 @@
     "cleanupRemoved": 0,
     "reloadPersistentOk": true,
     "clearRemoved": 1,
+    "postClearListCount": 0,
     "quotaSupported": true,
     "usedFallback": false,
     "diagnostics": []

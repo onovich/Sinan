@@ -26,6 +26,7 @@ export interface StorageAdapterBrowserSmokeResult {
   cleanupRemoved: number;
   reloadPersistentOk: boolean;
   clearRemoved: number;
+  postClearListCount: number;
   quotaSupported: boolean;
   usedFallback: boolean;
   diagnostics: string[];
@@ -104,6 +105,7 @@ function createEmptyResult(options: StorageAdapterBrowserSmokeOptions): StorageA
     cleanupRemoved: 0,
     reloadPersistentOk: false,
     clearRemoved: 0,
+    postClearListCount: 0,
     quotaSupported: false,
     usedFallback: false,
     diagnostics: []
@@ -184,13 +186,15 @@ export async function runStorageAdapterBrowserSmoke(
     const listedAfterReload = await adapter.list({ namespace });
     const quota = await adapter.estimateQuota();
     const clearAfter = await adapter.clearNamespace(namespace);
+    const listedAfterClear = await adapter.list({ namespace });
 
     result.getPersistentOk = persistentAfterReload.ok;
     result.reloadPersistentOk = persistentAfterReload.ok;
     result.listCount = listedAfterReload.value?.length ?? 0;
     result.clearRemoved = clearAfter.value?.removedRecords ?? 0;
+    result.postClearListCount = listedAfterClear.value?.length ?? 0;
     result.quotaSupported = quota.value?.supported ?? false;
-    result.diagnostics.push(...diagnosticMessages(persistentAfterReload, listedAfterReload, quota, clearAfter));
+    result.diagnostics.push(...diagnosticMessages(persistentAfterReload, listedAfterReload, quota, clearAfter, listedAfterClear));
     return result;
   } finally {
     const closed = await adapter.close();

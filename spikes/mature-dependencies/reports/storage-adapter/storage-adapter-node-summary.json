@@ -2,13 +2,13 @@
   "candidate": "StorageAdapter Node contract",
   "status": "PASS",
   "command": "node node_modules/vitest/vitest.mjs run src/storage-adapter",
-  "durationMs": 488,
+  "durationMs": 511,
   "diagnostics": [
     "RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
     "Test Files  4 passed (4)",
     "Tests  15 passed (15)",
-    "Start at  13:54:39",
-    "Duration  218ms (transform 125ms, setup 0ms, import 205ms, tests 47ms, environment 0ms)"
+    "Start at  13:58:30",
+    "Duration  229ms (transform 121ms, setup 0ms, import 208ms, tests 50ms, environment 0ms)"
   ],
-  "timestamp": "2026-06-22T05:54:40.149Z"
+  "timestamp": "2026-06-22T05:58:30.741Z"
 }

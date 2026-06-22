@@ -60,9 +60,10 @@ export async function runDexieSmoke(options: {
 } = {}): Promise<DexieSmokeResult> {
   const databaseName = options.databaseName ?? `sinan-spike-${Date.now()}`;
   const usedFakeIndexedDb = await ensureIndexedDb(options.forceFakeIndexedDb ?? false);
-  const db = new SinanSpikeDatabase(databaseName);
 
-  await db.delete();
+  await Dexie.delete(databaseName);
+
+  const db = new SinanSpikeDatabase(databaseName);
   await db.open();
 
   const records: DraftSnapshotRecord[] = [
@@ -88,7 +89,8 @@ export async function runDexieSmoke(options: {
   await db.drafts.clear();
   await db.drafts.bulkPut(exported);
   const imported = await db.drafts.count();
-  await db.delete();
+  db.close();
+  await Dexie.delete(databaseName);
 
   return {
     databaseName,

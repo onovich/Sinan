@@ -35,7 +35,7 @@ Observed evidence:
 - StorageAdapter catalog entry available: `true`
 - IndexedDB available: `true`
 - write open / put / get / list / export / import / cleanup: `true / true / true / 2 / 2 / 2 / 1`
-- reload open / get / list / clear: `true / true / 1 / 1`
+- reload open / get / list / clear / post-clear-list: `true / true / 1 / 1 / 0`
 - quota estimate supported: `true`
 - fallback used: `false / false`
 

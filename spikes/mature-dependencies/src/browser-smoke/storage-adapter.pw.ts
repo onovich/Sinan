@@ -68,6 +68,7 @@ test("runs StorageAdapter Dexie IndexedDB browser reload smoke", async ({ page }
     reload.reloadPersistentOk &&
     reload.listCount === 1 &&
     reload.clearRemoved === 1 &&
+    reload.postClearListCount === 0 &&
     !write.usedFallback &&
     !reload.usedFallback;
   const status: BrowserSmokeResult["status"] = passed ? "PASS" : "CANDIDATE-BLOCKED";
@@ -91,7 +92,9 @@ test("runs StorageAdapter Dexie IndexedDB browser reload smoke", async ({ page }
           ? `${write.openOk}/${write.putPersistentOk && write.putTransientOk}/${write.getPersistentOk}/${write.listCount}/${write.exportCount}/${write.importCount}/${write.cleanupRemoved}`
           : "unavailable"
       }`,
-      `reload open/get/list/clear: ${reload ? `${reload.openOk}/${reload.reloadPersistentOk}/${reload.listCount}/${reload.clearRemoved}` : "unavailable"}`,
+      `reload open/get/list/clear/post-clear-list: ${
+        reload ? `${reload.openOk}/${reload.reloadPersistentOk}/${reload.listCount}/${reload.clearRemoved}/${reload.postClearListCount}` : "unavailable"
+      }`,
       `quota estimate supported: ${write?.quotaSupported ?? "unavailable"}`,
       `fallback used: ${write?.usedFallback ?? "unavailable"} / ${reload?.usedFallback ?? "unavailable"}`,
       ...(write?.diagnostics ?? []),
@@ -118,6 +121,7 @@ test("runs StorageAdapter Dexie IndexedDB browser reload smoke", async ({ page }
   expect(reload?.reloadPersistentOk).toBe(true);
   expect(reload?.listCount).toBe(1);
   expect(reload?.clearRemoved).toBe(1);
+  expect(reload?.postClearListCount).toBe(0);
   expect(reload?.usedFallback).toBe(false);
   expect(consoleErrors).toEqual([]);
 });
