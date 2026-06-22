@@ -56,5 +56,6 @@ The direct commands intentionally mirror the wrapper scope. If the wrapper confi
 ## Local Limitations
 
 - Browser smoke runs against local Vite and Playwright only.
-- Mobile evidence is narrow viewport plus `styleQuality=low-end` Chromium evidence unless a real device run is explicitly recorded.
+- Mobile evidence is narrow viewport plus `styleQuality=low-end` Chromium evidence unless a real device run is explicitly recorded. Current local coverage includes the 390x844 editor smoke viewport and the 360x640 shader low-end baseline.
+- Real mobile hardware certification is not implied.
 - The local WebSocket room remains a replaceable prototype. This profile does not certify production networking, auth, persistence, reconnect recovery, moderation, text chat, voice chat, or deployment.
