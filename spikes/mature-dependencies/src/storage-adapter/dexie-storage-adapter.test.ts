@@ -300,4 +300,32 @@ describe("DexieStorageAdapter", () => {
       status: "invalid-version"
     });
   });
+
+  test("reports quota-exceeded when estimated Dexie usage crosses the hard limit", async () => {
+    const config = {
+      ...createConfig("sinan-storage-quota"),
+      quotaPolicy: {
+        hardLimitBytes: 160
+      }
+    };
+    const adapter = createAdapter(config);
+    await adapter.open();
+
+    await expect(
+      adapter.put({
+        ...createRecord(config, "too-large", 1),
+        payload: {
+          large: "x".repeat(256)
+        }
+      })
+    ).resolves.toMatchObject({
+      ok: false,
+      status: "quota-exceeded",
+      diagnostics: [
+        {
+          code: "quota"
+        }
+      ]
+    });
+  });
 });

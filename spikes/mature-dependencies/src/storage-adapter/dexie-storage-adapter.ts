@@ -190,6 +190,10 @@ export class DexieStorageAdapter implements StorageAdapter {
       checksum: record.checksum ?? checksum,
       createdAt: existing?.createdAt ?? this.now()
     };
+    const quotaExceeded = await this.validateQuota<StorageStoredRecord<TPayload>>(db.value, id, row);
+    if (quotaExceeded) {
+      return quotaExceeded;
+    }
 
     await db.value.records.put(row);
     return this.createResult("success", stripInternalId(row) as StorageStoredRecord<TPayload>);
@@ -389,6 +393,38 @@ export class DexieStorageAdapter implements StorageAdapter {
         severity: "error",
         message: `Namespace ${namespace} is outside configured adapter namespace ${this.config.namespace}.`,
         retryable: false
+      }
+    ]);
+  }
+
+  private async validateQuota<TValue>(
+    db: SinanStorageAdapterDatabase,
+    id: string,
+    candidate: DexieStorageRow
+  ): Promise<StorageResult<TValue> | undefined> {
+    const hardLimitBytes = this.config.quotaPolicy.hardLimitBytes;
+    if (hardLimitBytes === undefined) {
+      return undefined;
+    }
+
+    const rows = (await db.records.toArray()).filter((row) => row.id !== id);
+    rows.push(candidate);
+    const usageBytes = textEncoder.encode(stableStringify(rows)).byteLength;
+
+    if (usageBytes <= hardLimitBytes) {
+      return undefined;
+    }
+
+    return this.createResult<TValue>("quota-exceeded", undefined, [
+      {
+        code: "quota",
+        severity: "error",
+        message: `Estimated Dexie storage usage ${usageBytes} bytes exceeds hard limit ${hardLimitBytes} bytes.`,
+        retryable: true,
+        detail: {
+          usageBytes,
+          hardLimitBytes
+        }
       }
     ]);
   }

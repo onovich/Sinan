@@ -158,6 +158,10 @@ export class MemoryStorageAdapter implements StorageAdapter {
       checksum: record.checksum ?? checksum,
       createdAt: existing?.createdAt ?? this.options.now()
     };
+    const quotaExceeded = this.validateQuota<StorageStoredRecord<TPayload>>(id, stored);
+    if (quotaExceeded) {
+      return quotaExceeded;
+    }
 
     this.records.set(id, stored);
     return this.createResult(this.options.volatile ? "volatile" : "success", cloneJson(stored), this.volatileDiagnostics());
@@ -365,6 +369,34 @@ export class MemoryStorageAdapter implements StorageAdapter {
         severity: "error",
         message: `Namespace ${namespace} is outside configured adapter namespace ${this.config.namespace}.`,
         retryable: false
+      }
+    ]);
+  }
+
+  private validateQuota<TValue>(id: string, candidate: StorageStoredRecord): StorageResult<TValue> | undefined {
+    const hardLimitBytes = this.config.quotaPolicy.hardLimitBytes;
+    if (hardLimitBytes === undefined) {
+      return undefined;
+    }
+
+    const nextRecords = new Map(this.records);
+    nextRecords.set(id, candidate);
+    const usageBytes = textEncoder.encode(stableStringify([...nextRecords.values()])).byteLength;
+
+    if (usageBytes <= hardLimitBytes) {
+      return undefined;
+    }
+
+    return this.createResult<TValue>("quota-exceeded", undefined, [
+      {
+        code: "quota",
+        severity: "error",
+        message: `Estimated memory storage usage ${usageBytes} bytes exceeds hard limit ${hardLimitBytes} bytes.`,
+        retryable: true,
+        detail: {
+          usageBytes,
+          hardLimitBytes
+        }
       }
     ]);
   }

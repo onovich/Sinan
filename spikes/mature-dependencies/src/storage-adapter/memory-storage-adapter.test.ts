@@ -304,4 +304,31 @@ describe("MemoryStorageAdapter", () => {
       ]
     });
   });
+
+  test("reports quota-exceeded when estimated memory usage crosses the hard limit", async () => {
+    const adapter = new MemoryStorageAdapter({
+      ...config,
+      quotaPolicy: {
+        hardLimitBytes: 160
+      }
+    });
+    await adapter.open();
+
+    await expect(
+      adapter.put({
+        ...createRecord("too-large", 1, "recoverable"),
+        payload: {
+          large: "x".repeat(256)
+        }
+      })
+    ).resolves.toMatchObject({
+      ok: false,
+      status: "quota-exceeded",
+      diagnostics: [
+        {
+          code: "quota"
+        }
+      ]
+    });
+  });
 });
