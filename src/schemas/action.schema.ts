@@ -7,6 +7,7 @@ import {
   MaterialSlotNameSchema,
 } from './material.schema';
 import { TimelineIdSchema } from './common.schema';
+import { DeliveryEndpointIdSchema, DeliveryJobIdSchema } from './delivery.schema';
 import { TransformSchema } from './transform.schema';
 
 export const ActionValueSchema = z.union([z.boolean(), z.string(), z.number()]);
@@ -144,6 +145,37 @@ export const SubtitleShowActionSchema = z
   })
   .strict();
 
+export const DeliveryAcceptActionSchema = z
+  .object({
+    type: z.literal('delivery.accept'),
+    jobId: DeliveryJobIdSchema,
+    endpointId: DeliveryEndpointIdSchema.optional(),
+  })
+  .strict();
+
+export const DeliveryProgressActionSchema = z
+  .object({
+    type: z.literal('delivery.progress'),
+    jobId: DeliveryJobIdSchema,
+  })
+  .strict();
+
+export const DeliveryDeliverActionSchema = z
+  .object({
+    type: z.literal('delivery.deliver'),
+    jobId: DeliveryJobIdSchema,
+    endpointId: DeliveryEndpointIdSchema.optional(),
+  })
+  .strict();
+
+export const DeliveryCompleteActionSchema = z
+  .object({
+    type: z.literal('delivery.complete'),
+    jobId: DeliveryJobIdSchema,
+    endpointId: DeliveryEndpointIdSchema.optional(),
+  })
+  .strict();
+
 export const FunctionCallActionSchema = z
   .object({
     type: z.literal('function.call'),
@@ -170,6 +202,10 @@ export const ActionSchema = z.discriminatedUnion('type', [
   SoundPlayActionSchema,
   MaterialSetParameterActionSchema,
   SubtitleShowActionSchema,
+  DeliveryAcceptActionSchema,
+  DeliveryProgressActionSchema,
+  DeliveryDeliverActionSchema,
+  DeliveryCompleteActionSchema,
   FunctionCallActionSchema,
 ]);
 

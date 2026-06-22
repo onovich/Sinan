@@ -1,5 +1,6 @@
 import type { ActionData } from '../schemas/action.schema';
-import type { ActionExecutionContext } from './types';
+import type { DeliveryJobRuntimeResult } from '../game/delivery/DeliveryJobRuntime';
+import { syncDeliveryJobRuntimeState, type ActionExecutionContext } from './types';
 
 export type ActionSideEffect = 'none' | 'previewSafe' | 'runtimeOnly' | 'destructive';
 export type ActionHandler = (action: ActionData, context: ActionExecutionContext) => void;
@@ -296,6 +297,50 @@ export function createDefaultActionRegistry(): ActionRegistry {
   );
 
   registry.register(
+    'delivery.accept',
+    (action, context) => {
+      if (action.type === 'delivery.accept') {
+        const runtime = requireDeliveryJobRuntime(context, action.type);
+        dispatchDeliveryJobResult(runtime.accept(action.jobId, action.endpointId), context);
+      }
+    },
+    { sideEffect: 'runtimeOnly' },
+  );
+
+  registry.register(
+    'delivery.progress',
+    (action, context) => {
+      if (action.type === 'delivery.progress') {
+        const runtime = requireDeliveryJobRuntime(context, action.type);
+        dispatchDeliveryJobResult(runtime.progress(action.jobId), context);
+      }
+    },
+    { sideEffect: 'runtimeOnly' },
+  );
+
+  registry.register(
+    'delivery.deliver',
+    (action, context) => {
+      if (action.type === 'delivery.deliver') {
+        const runtime = requireDeliveryJobRuntime(context, action.type);
+        dispatchDeliveryJobResult(runtime.readyToDeliver(action.jobId, action.endpointId), context);
+      }
+    },
+    { sideEffect: 'runtimeOnly' },
+  );
+
+  registry.register(
+    'delivery.complete',
+    (action, context) => {
+      if (action.type === 'delivery.complete') {
+        const runtime = requireDeliveryJobRuntime(context, action.type);
+        dispatchDeliveryJobResult(runtime.complete(action.jobId, action.endpointId), context);
+      }
+    },
+    { sideEffect: 'runtimeOnly' },
+  );
+
+  registry.register(
     'function.call',
     (action, context) => {
       if (action.type === 'function.call') {
@@ -306,4 +351,26 @@ export function createDefaultActionRegistry(): ActionRegistry {
   );
 
   return registry;
+}
+
+function requireDeliveryJobRuntime(
+  context: ActionExecutionContext,
+  actionType: string,
+): NonNullable<ActionExecutionContext['deliveryJobs']> {
+  if (!context.deliveryJobs) {
+    throw new Error(`Delivery job runtime is required for action type: ${actionType}`);
+  }
+
+  return context.deliveryJobs;
+}
+
+function dispatchDeliveryJobResult(
+  result: DeliveryJobRuntimeResult,
+  context: ActionExecutionContext,
+): void {
+  syncDeliveryJobRuntimeState(context.state, result.snapshot);
+
+  if (!result.ok) {
+    throw new Error(result.message);
+  }
 }

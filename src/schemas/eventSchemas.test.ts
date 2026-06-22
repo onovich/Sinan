@@ -70,6 +70,53 @@ describe('event condition action schemas', () => {
     ).toBe(true);
   });
 
+  it('parses typed delivery actions and conditions without custom functions', () => {
+    const result = EventSchema.safeParse({
+      schemaVersion: 1,
+      id: 'ev_delivery_complete',
+      trigger: {
+        type: 'entity.interact',
+        entityId: 'mailbox_hill_01',
+      },
+      condition: {
+        all: [
+          {
+            type: 'delivery.activeJobEquals',
+            jobId: 'job.hill_mail_run',
+          },
+          {
+            type: 'delivery.statusEquals',
+            jobId: 'job.hill_mail_run',
+            status: 'readyToDeliver',
+          },
+        ],
+      },
+      actions: [
+        {
+          type: 'delivery.accept',
+          jobId: 'job.hill_mail_run',
+          endpointId: 'delivery.courier_hill',
+        },
+        {
+          type: 'delivery.progress',
+          jobId: 'job.hill_mail_run',
+        },
+        {
+          type: 'delivery.deliver',
+          jobId: 'job.hill_mail_run',
+          endpointId: 'delivery.mailbox_hill',
+        },
+        {
+          type: 'delivery.complete',
+          jobId: 'job.hill_mail_run',
+          endpointId: 'delivery.mailbox_hill',
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it('parses MVP triggers', () => {
     expect(TriggerSchema.safeParse({ type: 'level.start' }).success).toBe(true);
     expect(

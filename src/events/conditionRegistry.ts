@@ -128,6 +128,22 @@ export function createDefaultConditionRegistry(): ConditionRegistry {
     return Math.sqrt(dx * dx + dy * dy + dz * dz) < condition.distance;
   });
 
+  registry.register('delivery.statusEquals', (condition, state) => {
+    if (condition.type !== 'delivery.statusEquals') {
+      return false;
+    }
+
+    return state.deliveryJobs[condition.jobId] === condition.status;
+  });
+
+  registry.register('delivery.activeJobEquals', (condition, state) => {
+    if (condition.type !== 'delivery.activeJobEquals') {
+      return false;
+    }
+
+    return state.activeDeliveryJobId === condition.jobId;
+  });
+
   registry.register('custom.condition', (condition, state) => {
     if (condition.type !== 'custom.condition') {
       return false;

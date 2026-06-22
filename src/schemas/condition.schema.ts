@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { EntityIdSchema, StableIdSchema } from './common.schema';
+import { DeliveryJobIdSchema, DeliveryJobStatusSchema } from './delivery.schema';
 
 export const ConditionValueSchema = z.union([z.boolean(), z.string(), z.number()]);
 export const ConditionParamsSchema = z.record(z.string(), z.unknown());
@@ -53,6 +54,21 @@ export const DistanceLessThanConditionSchema = z
   })
   .strict();
 
+export const DeliveryStatusEqualsConditionSchema = z
+  .object({
+    type: z.literal('delivery.statusEquals'),
+    jobId: DeliveryJobIdSchema,
+    status: DeliveryJobStatusSchema,
+  })
+  .strict();
+
+export const DeliveryActiveJobEqualsConditionSchema = z
+  .object({
+    type: z.literal('delivery.activeJobEquals'),
+    jobId: DeliveryJobIdSchema,
+  })
+  .strict();
+
 export const CustomConditionSchema = z
   .object({
     type: z.literal('custom.condition'),
@@ -68,6 +84,8 @@ export const TYPED_CONDITION_TYPES = [
   'quest.stateEquals',
   'entity.stateEquals',
   'distance.lessThan',
+  'delivery.statusEquals',
+  'delivery.activeJobEquals',
   'custom.condition',
 ] as const;
 
@@ -83,6 +101,8 @@ export type ConditionData =
   | z.infer<typeof QuestStateEqualsConditionSchema>
   | z.infer<typeof EntityStateEqualsConditionSchema>
   | z.infer<typeof DistanceLessThanConditionSchema>
+  | z.infer<typeof DeliveryStatusEqualsConditionSchema>
+  | z.infer<typeof DeliveryActiveJobEqualsConditionSchema>
   | z.infer<typeof CustomConditionSchema>;
 
 export const ConditionSchema: z.ZodType<ConditionData> = z.lazy(() =>
@@ -108,6 +128,8 @@ export const ConditionSchema: z.ZodType<ConditionData> = z.lazy(() =>
     QuestStateEqualsConditionSchema,
     EntityStateEqualsConditionSchema,
     DistanceLessThanConditionSchema,
+    DeliveryStatusEqualsConditionSchema,
+    DeliveryActiveJobEqualsConditionSchema,
     CustomConditionSchema,
   ]),
 );

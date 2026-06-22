@@ -2628,6 +2628,9 @@ function cloneEventRuntimeState(state: EventRuntimeState): EventRuntimeState {
     entityTransforms: { ...state.entityTransforms },
     entityVisibility: { ...state.entityVisibility },
     doorStates: { ...state.doorStates },
+    ...(state.activeDeliveryJobId ? { activeDeliveryJobId: state.activeDeliveryJobId } : {}),
+    deliveryJobSequence: state.deliveryJobSequence,
+    deliveryJobs: { ...state.deliveryJobs },
   };
 }
 

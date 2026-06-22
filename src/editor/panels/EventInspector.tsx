@@ -6,6 +6,7 @@ import {
   type ConditionData,
   type TypedConditionType,
 } from '../../schemas/condition.schema';
+import type { DeliveryJobStatusData } from '../../schemas/delivery.schema';
 import { EventSchema, type EventData } from '../../schemas/event.schema';
 import type { MaterialParameterValueData } from '../../schemas/material.schema';
 import type { TransformData } from '../../schemas/transform.schema';
@@ -49,10 +50,23 @@ const ACTION_TYPES: ActionData['type'][] = [
   'animation.stop',
   'entity.animateTransform',
   'entity.setTransform',
+  'delivery.accept',
+  'delivery.progress',
+  'delivery.deliver',
+  'delivery.complete',
   'function.call',
 ];
 
 type TypedConditionData = Extract<ConditionData, { type: string }>;
+const DELIVERY_STATUS_OPTIONS: readonly DeliveryJobStatusData[] = [
+  'available',
+  'accepted',
+  'inProgress',
+  'readyToDeliver',
+  'completed',
+  'blocked',
+  'failed',
+];
 
 interface EventDraftState {
   eventId: string;
@@ -876,6 +890,31 @@ function renderActionFields({
           </div>
         </>
       );
+    case 'delivery.accept':
+    case 'delivery.deliver':
+    case 'delivery.complete':
+      return (
+        <div className="form-grid">
+          <TextField
+            label="Job"
+            value={action.jobId}
+            onChange={(jobId) => onUpdate({ ...action, jobId })}
+          />
+          <TextField
+            label="Endpoint"
+            value={action.endpointId ?? ''}
+            onChange={(endpointId) => onUpdate({ ...action, endpointId: endpointId || undefined })}
+          />
+        </div>
+      );
+    case 'delivery.progress':
+      return (
+        <TextField
+          label="Job"
+          value={action.jobId}
+          onChange={(jobId) => onUpdate({ ...action, jobId })}
+        />
+      );
     case 'entity.setVisible':
       return (
         <div className="form-grid">
@@ -1163,6 +1202,32 @@ function renderConditionFields({ condition, entityIds, onUpdate }: ConditionFiel
           />
         </>
       );
+    case 'delivery.statusEquals':
+      return (
+        <div className="form-grid">
+          <TextField
+            label="Job"
+            value={condition.jobId}
+            onChange={(jobId) => onUpdate({ ...condition, jobId })}
+          />
+          <SelectField
+            label="Status"
+            value={condition.status}
+            options={DELIVERY_STATUS_OPTIONS}
+            onChange={(status) =>
+              onUpdate({ ...condition, status: status as DeliveryJobStatusData })
+            }
+          />
+        </div>
+      );
+    case 'delivery.activeJobEquals':
+      return (
+        <TextField
+          label="Job"
+          value={condition.jobId}
+          onChange={(jobId) => onUpdate({ ...condition, jobId })}
+        />
+      );
     case 'custom.condition':
       return (
         <TextField
@@ -1354,6 +1419,13 @@ function createDefaultAction(
       return { type, entityId, transform };
     case 'entity.animateTransform':
       return { type, entityId, to: transform, duration: 0.2, ease: 'linear' };
+    case 'delivery.accept':
+      return { type, jobId: 'job.hill_mail_run', endpointId: 'delivery.courier_hill' };
+    case 'delivery.progress':
+      return { type, jobId: 'job.hill_mail_run' };
+    case 'delivery.deliver':
+    case 'delivery.complete':
+      return { type, jobId: 'job.hill_mail_run', endpointId: 'delivery.mailbox_hill' };
     case 'function.call':
       return { type, name: 'registered_function' };
   }
@@ -1383,6 +1455,10 @@ function createDefaultCondition(
         entityB: entityIds[1] ?? entityId,
         distance: 2,
       };
+    case 'delivery.statusEquals':
+      return { type, jobId: 'job.hill_mail_run', status: 'accepted' };
+    case 'delivery.activeJobEquals':
+      return { type, jobId: 'job.hill_mail_run' };
     case 'custom.condition':
       return { type, name: 'registered_condition' };
   }

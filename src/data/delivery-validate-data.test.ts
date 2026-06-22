@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AssetManifestData } from '../schemas/asset.schema';
+import type { EventData } from '../schemas/event.schema';
 import type { LevelData } from '../schemas/level.schema';
 import type { TransformData } from '../schemas/transform.schema';
 import { validateProject } from './validateProject';
@@ -237,6 +238,52 @@ describe('delivery validate-data references', () => {
         }),
         expect.objectContaining({
           message: 'Missing delivery endpoint "delivery.courier_hill".',
+        }),
+      ]),
+    );
+  });
+
+  it('reports stale delivery action and condition references in events', () => {
+    const deliveryEvent: EventData = {
+      schemaVersion: 1,
+      id: 'ev_delivery_stale',
+      trigger: {
+        type: 'entity.interact',
+        entityId: 'courier_hill_01',
+      },
+      condition: {
+        type: 'delivery.statusEquals',
+        jobId: 'job.missing',
+        status: 'accepted',
+      },
+      actions: [
+        {
+          type: 'delivery.accept',
+          jobId: 'job.missing',
+          endpointId: 'delivery.missing_endpoint',
+        },
+      ],
+    };
+    const issues = validateProject({
+      assets,
+      events: [deliveryEvent],
+      prefabs: [],
+      levels: [deliveryLevel],
+    }).issues;
+
+    expect(issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: 'data/events/ev_delivery_stale.json.actions.0.jobId',
+          message: 'Missing delivery job "job.missing".',
+        }),
+        expect.objectContaining({
+          path: 'data/events/ev_delivery_stale.json.actions.0.endpointId',
+          message: 'Missing delivery endpoint "delivery.missing_endpoint".',
+        }),
+        expect.objectContaining({
+          path: 'data/events/ev_delivery_stale.json.condition.jobId',
+          message: 'Missing delivery job "job.missing".',
         }),
       ]),
     );

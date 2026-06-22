@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import { DeliveryJobRuntime } from '../game/delivery/DeliveryJobRuntime';
 import { ActionSchema } from '../schemas/action.schema';
 import { TYPED_CONDITION_TYPES } from '../schemas/condition.schema';
+import type { DeliveryJobData } from '../schemas/delivery.schema';
 import { ActionSystem } from './ActionSystem';
 import { AabbTriggerSystem } from './AabbTriggerSystem';
 import { ConditionSystem } from './ConditionSystem';
@@ -77,6 +79,32 @@ describe('ConditionSystem', () => {
     expect(() =>
       system.evaluate({ type: 'custom.condition', name: 'missing.condition' }, state),
     ).toThrow('Condition function is not whitelisted: missing.condition');
+  });
+
+  it('evaluates delivery job status conditions from synchronized runtime state', () => {
+    const system = new ConditionSystem();
+    const state = createEventRuntimeState({
+      activeDeliveryJobId: 'job.hill_mail_run',
+      deliveryJobs: {
+        'job.hill_mail_run': 'accepted',
+      },
+    });
+
+    expect(
+      system.evaluate(
+        { type: 'delivery.statusEquals', jobId: 'job.hill_mail_run', status: 'accepted' },
+        state,
+      ),
+    ).toBe(true);
+    expect(
+      system.evaluate({ type: 'delivery.activeJobEquals', jobId: 'job.hill_mail_run' }, state),
+    ).toBe(true);
+    expect(
+      system.evaluate(
+        { type: 'delivery.statusEquals', jobId: 'job.hill_mail_run', status: 'completed' },
+        state,
+      ),
+    ).toBe(false);
   });
 });
 
@@ -212,6 +240,91 @@ describe('ActionSystem', () => {
       }),
     ).toBe('previewSafe');
   });
+
+  it('dispatches typed delivery actions through the delivery job runtime', () => {
+    const context = createDeliveryActionContext();
+
+    new ActionSystem().dispatchAll(
+      [
+        {
+          type: 'delivery.accept',
+          jobId: 'job.hill_mail_run',
+          endpointId: 'delivery.courier_hill',
+        },
+        { type: 'delivery.progress', jobId: 'job.hill_mail_run' },
+        {
+          type: 'delivery.deliver',
+          jobId: 'job.hill_mail_run',
+          endpointId: 'delivery.mailbox_hill',
+        },
+        {
+          type: 'delivery.complete',
+          jobId: 'job.hill_mail_run',
+          endpointId: 'delivery.mailbox_hill',
+        },
+      ],
+      context,
+    );
+
+    expect(context.state.deliveryJobs['job.hill_mail_run']).toBe('completed');
+    expect(context.state.activeDeliveryJobId).toBeUndefined();
+    expect(context.state.deliveryJobSequence).toBe(4);
+  });
+
+  it('rejects invalid delivery state and missing target transitions', () => {
+    const invalidStateContext = createDeliveryActionContext();
+
+    expect(() =>
+      new ActionSystem().dispatch(
+        {
+          type: 'delivery.complete',
+          jobId: 'job.hill_mail_run',
+          endpointId: 'delivery.mailbox_hill',
+        },
+        invalidStateContext,
+      ),
+    ).toThrow('Delivery job "job.hill_mail_run" cannot be completed from available.');
+    expect(invalidStateContext.state.deliveryJobs['job.hill_mail_run']).toBe('available');
+
+    const missingTargetContext = createDeliveryActionContext();
+    new ActionSystem().dispatchAll(
+      [
+        {
+          type: 'delivery.accept',
+          jobId: 'job.hill_mail_run',
+          endpointId: 'delivery.courier_hill',
+        },
+        { type: 'delivery.progress', jobId: 'job.hill_mail_run' },
+      ],
+      missingTargetContext,
+    );
+
+    expect(() =>
+      new ActionSystem().dispatch(
+        {
+          type: 'delivery.deliver',
+          jobId: 'job.hill_mail_run',
+          endpointId: 'delivery.missing_target',
+        },
+        missingTargetContext,
+      ),
+    ).toThrow('Delivery job "job.hill_mail_run" target endpoint is "delivery.mailbox_hill".');
+    expect(missingTargetContext.state.deliveryJobs['job.hill_mail_run']).toBe('inProgress');
+  });
+
+  it('requires a delivery runtime for delivery actions', () => {
+    const context: ActionExecutionContext = {
+      state: createEventRuntimeState(),
+      directorCommands: [],
+    };
+
+    expect(() =>
+      new ActionSystem().dispatch(
+        { type: 'delivery.progress', jobId: 'job.hill_mail_run' },
+        context,
+      ),
+    ).toThrow('Delivery job runtime is required for action type: delivery.progress');
+  });
 });
 
 describe('registries', () => {
@@ -278,6 +391,89 @@ describe('EventSystem and TriggerSystem', () => {
     expect(context.directorCommands).toEqual([
       { type: 'timeline.play', timelineId: 'tl_open_gate' },
     ]);
+  });
+
+  it('fires typed delivery events in order through one trigger', () => {
+    const context = createDeliveryActionContext();
+    const eventSystem = new EventSystem([
+      {
+        schemaVersion: 1,
+        id: 'ev_delivery_accept',
+        trigger: { type: 'entity.interact', entityId: 'courier_hill_01' },
+        actions: [
+          {
+            type: 'delivery.accept',
+            jobId: 'job.hill_mail_run',
+            endpointId: 'delivery.courier_hill',
+          },
+        ],
+      },
+      {
+        schemaVersion: 1,
+        id: 'ev_delivery_progress',
+        trigger: { type: 'entity.interact', entityId: 'courier_hill_01' },
+        condition: {
+          type: 'delivery.statusEquals',
+          jobId: 'job.hill_mail_run',
+          status: 'accepted',
+        },
+        actions: [{ type: 'delivery.progress', jobId: 'job.hill_mail_run' }],
+      },
+      {
+        schemaVersion: 1,
+        id: 'ev_delivery_ready',
+        trigger: { type: 'entity.interact', entityId: 'courier_hill_01' },
+        condition: {
+          all: [
+            {
+              type: 'delivery.activeJobEquals',
+              jobId: 'job.hill_mail_run',
+            },
+            {
+              type: 'delivery.statusEquals',
+              jobId: 'job.hill_mail_run',
+              status: 'inProgress',
+            },
+          ],
+        },
+        actions: [
+          {
+            type: 'delivery.deliver',
+            jobId: 'job.hill_mail_run',
+            endpointId: 'delivery.mailbox_hill',
+          },
+        ],
+      },
+      {
+        schemaVersion: 1,
+        id: 'ev_delivery_complete',
+        trigger: { type: 'entity.interact', entityId: 'courier_hill_01' },
+        condition: {
+          type: 'delivery.statusEquals',
+          jobId: 'job.hill_mail_run',
+          status: 'readyToDeliver',
+        },
+        actions: [
+          {
+            type: 'delivery.complete',
+            jobId: 'job.hill_mail_run',
+            endpointId: 'delivery.mailbox_hill',
+          },
+          { type: 'flag.set', flag: 'job_hill_mail_run_complete', value: true },
+        ],
+      },
+    ]);
+
+    const fired = new TriggerSystem(eventSystem).interact('courier_hill_01', context);
+
+    expect(fired).toEqual([
+      'ev_delivery_accept',
+      'ev_delivery_progress',
+      'ev_delivery_ready',
+      'ev_delivery_complete',
+    ]);
+    expect(context.state.deliveryJobs['job.hill_mail_run']).toBe('completed');
+    expect(context.state.flags.job_hill_mail_run_complete).toBe(true);
   });
 
   it('fires trigger enter and exit events from AABB overlap changes', () => {
@@ -374,6 +570,51 @@ function createTriggerEntity(
       TriggerZone: {
         enabled: true,
       },
+    },
+  };
+}
+
+function createDeliveryActionContext(): ActionExecutionContext {
+  return {
+    deliveryJobs: new DeliveryJobRuntime([createDeliveryJob()], {
+      endpointIds: ['delivery.courier_hill', 'delivery.mailbox_hill'],
+    }),
+    state: createEventRuntimeState(),
+    directorCommands: [],
+  };
+}
+
+function createDeliveryJob(): DeliveryJobData {
+  return {
+    id: 'job.hill_mail_run',
+    title: 'Hill Mail Run',
+    description: 'Carry the hill parcel to the mailbox.',
+    acceptEndpointId: 'delivery.courier_hill',
+    targetEndpointId: 'delivery.mailbox_hill',
+    defaultStatus: 'available',
+    package: {
+      kind: 'parcel',
+      label: 'Hill Parcel',
+    },
+    routeHints: [
+      {
+        type: 'endpoint',
+        endpointId: 'delivery.courier_hill',
+      },
+      {
+        type: 'endpoint',
+        endpointId: 'delivery.mailbox_hill',
+      },
+    ],
+    completion: {
+      type: 'deliverToEndpoint',
+      endpointId: 'delivery.mailbox_hill',
+    },
+    feedback: {
+      accepted: 'Parcel accepted.',
+      inProgress: 'Parcel underway.',
+      readyToDeliver: 'Mailbox reached.',
+      completed: 'Delivery complete.',
     },
   };
 }

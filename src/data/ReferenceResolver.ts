@@ -53,6 +53,8 @@ export function validateProjectReferences(
   const palettesById = new Map((input.palettes ?? []).map((palette) => [palette.id, palette]));
   const entityIds = new Set<string>();
   const regionIds = new Set<string>();
+  const deliveryEndpointIds = new Set<string>();
+  const deliveryJobIds = new Set<string>();
   const entityMaterialSlots = new Map<string, RenderableMaterialSlotsData>();
   const entityModelAssetIds = new Map<string, string>();
 
@@ -116,7 +118,7 @@ export function validateProjectReferences(
     const regions = level.worldProjection?.regions ?? [];
     const levelRegionIds = new Set(regions.map((region) => region.id));
     const scatterGroupIds = new Set(scatterGroups.map((group) => group.id));
-    const deliveryEndpointIds = new Set<string>();
+    const levelDeliveryEndpointIds = new Set<string>();
     const duplicateDeliveryEndpointIds = new Set<string>();
 
     regions.forEach((region) => regionIds.add(region.id));
@@ -200,7 +202,7 @@ export function validateProjectReferences(
       addDeliveryEndpointComponentIssues(
         entity,
         level,
-        deliveryEndpointIds,
+        levelDeliveryEndpointIds,
         duplicateDeliveryEndpointIds,
         issues,
       );
@@ -214,7 +216,15 @@ export function validateProjectReferences(
       });
     }
 
-    addDeliveryJobReferenceIssues(level, deliveryJobs, deliveryEndpointIds, levelRegionIds, issues);
+    addDeliveryJobReferenceIssues(
+      level,
+      deliveryJobs,
+      levelDeliveryEndpointIds,
+      levelRegionIds,
+      issues,
+    );
+    levelDeliveryEndpointIds.forEach((endpointId) => deliveryEndpointIds.add(endpointId));
+    deliveryJobs.forEach((job) => deliveryJobIds.add(job.id));
 
     for (const scatterGroup of scatterGroups) {
       addScatterGroupReferenceIssues(
@@ -269,6 +279,8 @@ export function validateProjectReferences(
           entityModelAssetIds,
           entityMaterialSlots,
           assetIds,
+          deliveryJobIds,
+          deliveryEndpointIds,
           issues,
         ),
       );
@@ -278,6 +290,7 @@ export function validateProjectReferences(
           event.condition,
           `data/events/${event.id}.json.condition`,
           entityIds,
+          deliveryJobIds,
           issues,
         );
       }
@@ -309,6 +322,8 @@ export function validateProjectReferences(
           entityModelAssetIds,
           entityMaterialSlots,
           assetIds,
+          deliveryJobIds,
+          deliveryEndpointIds,
           issues,
         );
       }
@@ -583,6 +598,8 @@ function addActionReferenceIssues(
   entityModelAssetIds: ReadonlyMap<string, string>,
   entityMaterialSlots: ReadonlyMap<string, RenderableMaterialSlotsData>,
   assetIds: ReadonlySet<string>,
+  deliveryJobIds: ReadonlySet<string>,
+  deliveryEndpointIds: ReadonlySet<string>,
   issues: ReferenceValidationIssue[],
 ): void {
   switch (action.type) {
@@ -657,6 +674,35 @@ function addActionReferenceIssues(
         addMissingEntityReference(action.speaker, entityIds, `${path}.speaker`, 'speaker', issues);
       }
       break;
+    case 'delivery.accept':
+    case 'delivery.deliver':
+    case 'delivery.complete':
+      addMissingSetReferences(
+        [action.jobId],
+        deliveryJobIds,
+        `${path}.jobId`,
+        'delivery job',
+        issues,
+      );
+      if (action.endpointId) {
+        addMissingSetReferences(
+          [action.endpointId],
+          deliveryEndpointIds,
+          `${path}.endpointId`,
+          'delivery endpoint',
+          issues,
+        );
+      }
+      break;
+    case 'delivery.progress':
+      addMissingSetReferences(
+        [action.jobId],
+        deliveryJobIds,
+        `${path}.jobId`,
+        'delivery job',
+        issues,
+      );
+      break;
     case 'flag.set':
     case 'flag.toggle':
     case 'function.call':
@@ -668,24 +714,25 @@ function addConditionReferenceIssues(
   condition: ConditionData,
   path: string,
   entityIds: ReadonlySet<string>,
+  deliveryJobIds: ReadonlySet<string>,
   issues: ReferenceValidationIssue[],
 ): void {
   if ('all' in condition) {
     condition.all.forEach((child, index) =>
-      addConditionReferenceIssues(child, `${path}.all.${index}`, entityIds, issues),
+      addConditionReferenceIssues(child, `${path}.all.${index}`, entityIds, deliveryJobIds, issues),
     );
     return;
   }
 
   if ('any' in condition) {
     condition.any.forEach((child, index) =>
-      addConditionReferenceIssues(child, `${path}.any.${index}`, entityIds, issues),
+      addConditionReferenceIssues(child, `${path}.any.${index}`, entityIds, deliveryJobIds, issues),
     );
     return;
   }
 
   if ('not' in condition) {
-    addConditionReferenceIssues(condition.not, `${path}.not`, entityIds, issues);
+    addConditionReferenceIssues(condition.not, `${path}.not`, entityIds, deliveryJobIds, issues);
     return;
   }
 
@@ -697,6 +744,17 @@ function addConditionReferenceIssues(
   if (condition.type === 'distance.lessThan') {
     addMissingEntityReference(condition.entityA, entityIds, `${path}.entityA`, 'entity', issues);
     addMissingEntityReference(condition.entityB, entityIds, `${path}.entityB`, 'entity', issues);
+    return;
+  }
+
+  if (condition.type === 'delivery.statusEquals' || condition.type === 'delivery.activeJobEquals') {
+    addMissingSetReferences(
+      [condition.jobId],
+      deliveryJobIds,
+      `${path}.jobId`,
+      'delivery job',
+      issues,
+    );
   }
 }
 
@@ -708,6 +766,8 @@ function addTimelineTrackReferenceIssues(
   entityModelAssetIds: ReadonlyMap<string, string>,
   entityMaterialSlots: ReadonlyMap<string, RenderableMaterialSlotsData>,
   assetIds: ReadonlySet<string>,
+  deliveryJobIds: ReadonlySet<string>,
+  deliveryEndpointIds: ReadonlySet<string>,
   issues: ReferenceValidationIssue[],
 ): void {
   switch (track.type) {
@@ -720,6 +780,8 @@ function addTimelineTrackReferenceIssues(
         entityModelAssetIds,
         entityMaterialSlots,
         assetIds,
+        deliveryJobIds,
+        deliveryEndpointIds,
         issues,
       );
       break;
