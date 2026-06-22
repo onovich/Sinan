@@ -17,6 +17,7 @@ Current result: PASS.
 - TypeScript typecheck
 - AssetPipelineAdapter unit tests
 - Offline tool import boundary guard
+- Adapter path policy tests for source and generated artifact roots
 - Report surface presence
 - Generated artifact cleanup
 - Generated artifact guard

@@ -24,6 +24,12 @@ glTF Transform and meshoptimizer remain tool internals. Their objects, documents
 - `RawAssetPassThroughAdapter`: dependency-free fallback that references source assets, emits `fallback-used`, and never pretends optimization succeeded.
 - `GltfAssetPipelineAdapter`: offline adapter that reads glTF/GLB sources, inspects metrics, writes a tiny GLB evidence artifact in tests, re-reads it, and normalizes the result into Sinan reports.
 
+## Path Boundary
+
+All public adapter methods validate and consume `NormalizedAssetBuildRequest.request` before filesystem reads or writes. The normalizer rejects empty, absolute, drive-qualified, UNC, URL-like, and traversal paths, and also verifies the resolved target remains inside the configured source or generated output root.
+
+Rejected path policy violations report `path-blocked` with `path-traversal` diagnostics.
+
 ## Current Validation
 
 - `npm --prefix spikes\mature-dependencies run check`: PASS.

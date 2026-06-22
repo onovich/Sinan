@@ -3,7 +3,7 @@
 Date: 2026-06-22
 Branch: `codex/mature-dependency-asset-pipeline-adapter-spike`
 Base: `origin/codex/mature-dependency-physics-adapter-spike` / `6d5436cdfbce52b08501f372e794fb97a3521cd7`
-Final implementation commit before report: `d9b8b6f fix: stabilize asset pipeline smoke summary`
+Repair implementation commit before report: `6e9e54d fix: enforce asset pipeline path boundaries`
 Status: PASS
 
 ## Goal
@@ -39,10 +39,10 @@ No Sinan mainline `src/**`, `data/**`, `tests/**`, `public/**`, root package/con
 | Area | Result | Evidence |
 | --- | --- | --- |
 | Contract types | PASS | Typed request, config, lifecycle, report, manifest patch, diagnostics, budget, variant, and generated artifact policy surfaces. |
-| Normalization | PASS | Path traversal, unsupported format, profile lookup, artifact conflict, manifest conflict, and budget classification tests. |
-| Raw fallback | PASS | Dependency-free pass-through adapter handles missing source, unsupported format, fallback classification, budget warning/fail, skip, and disposal. |
-| glTF Transform adapter | PASS | Inspect, transform, write, re-read, source-truth preservation, Meshopt readiness, manifest patch, artifact hash, and tool failure tests. |
-| Rebuild semantics | PASS | Unchanged source skip, stale source rebuild, cache-disabled rebuild, and non-reproducible output diagnostic tests. |
+| Normalization | PASS | Empty, absolute, drive-qualified, UNC, URL-like, traversal, unsupported format, profile lookup, artifact conflict, manifest conflict, and budget classification tests. |
+| Raw fallback | PASS | Dependency-free pass-through adapter handles missing source, unsupported format, fallback classification, budget warning/fail, skip, disposal, and path-blocked reads before filesystem access. |
+| glTF Transform adapter | PASS | Inspect, transform, write, re-read, source-truth preservation, Meshopt readiness, manifest patch, artifact hash, tool failure, and path-blocked read/write tests. |
+| Rebuild semantics | PASS | Unchanged source skip, stale source rebuild, cache-disabled rebuild, non-reproducible output diagnostic tests, and rebuild path validation before source reads. |
 | Boundary guard | PASS | Aggregate smoke scans for dynamic code, forbidden runtime/editor imports, and offline tool import leakage. |
 | Generated artifacts | PASS | Aggregate smoke clears and rejects `test-results`, `playwright-report`, `coverage`, `dist`, `reports/asset-pipeline/generated`, and large report artifacts. |
 | Repeatability | PASS | `smoke:asset-pipeline` summary output is deterministic after the aggregate smoke cleanup. |
@@ -60,7 +60,7 @@ git status --short --branch
 
 Results:
 
-- `check`: PASS, 29 test files / 117 tests; build PASS with existing large chunk warning.
+- `check`: PASS, 29 test files / 123 tests; build PASS with existing large chunk warning.
 - `smoke:browser`: PASS, 11 Playwright tests.
 - `smoke:asset-pipeline`: PASS.
 - Repeat `smoke:asset-pipeline`: PASS.
@@ -88,6 +88,8 @@ Rejected or cleaned artifact locations:
 ## Architecture Notes
 
 Sinan owns asset ids, source references, artifact references, manifest patch shape, build profiles, budgets, variant/cache/rebuild policy, diagnostics, and generated artifact rules. glTF Transform and meshoptimizer remain behind the isolated offline adapter and own only parse, inspect, transform, write, and optimization internals.
+
+Adapter filesystem access is gated by normalized Sinan requests. `inspect()`, `build()`, and `rebuild()` in both the raw fallback and glTF adapters validate path policy before reads or writes, then consume the normalized request for report fields and artifact paths.
 
 The spike does not define the final production asset manifest schema, production KTX2/Basis/Draco policy, runtime asset loading, editor UX, or mainline integration.
 

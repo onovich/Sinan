@@ -7,6 +7,7 @@ Branch: `codex/mature-dependency-asset-pipeline-adapter-spike`
 | --- | --- | --- |
 | Contract types | `asset-pipeline-types.ts` and tests | PASS |
 | Request normalization | `asset-pipeline-normalizer.ts` path/profile/variant/budget tests | PASS |
+| Path boundary | absolute, drive-qualified, UNC, URL-like, empty, and traversal path tests | PASS |
 | Budget classification | pass/warning/fail tests | PASS |
 | Raw fallback | `raw-asset-pass-through-adapter.ts` tests | PASS |
 | glTF Transform inspect | `gltf-asset-pipeline-adapter.ts` inspect tests | PASS |
@@ -19,6 +20,6 @@ Branch: `codex/mature-dependency-asset-pipeline-adapter-spike`
 
 ## Validation Snapshot
 
-- `check`: PASS.
+- `check`: PASS, 29 test files / 123 tests.
 - `smoke:asset-pipeline`: PASS.
 - `git diff --check`: PASS with LF/CRLF warnings only from existing generated JSON traces.
