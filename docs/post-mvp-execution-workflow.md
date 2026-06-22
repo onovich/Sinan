@@ -47,6 +47,8 @@ Use `docs/phase-24-delivery-gameplay-showcase-goal-mode-execution-guide.md` for 
 
 Phase 24 is PASS in `docs/phase-24-delivery-gameplay-showcase-final-report.md`. The next full-route goal is Phase 25: Multiplayer-lite Social Layer. If the project chooses to skip multiplayer-lite, record that decision explicitly before routing to Phase 26: Vertical Slice RC Hardening as the next core single-player goal.
 
+Use `docs/phase-25-multiplayer-lite-social-layer-goal-mode-execution-guide.md` for Phase 25. The guide uses 16 rounds and keeps the phase focused on local remote-player simulation first, data-first avatar/emote/stamp/network message schemas, renderer-neutral social state, remote avatar/stamp feedback, invalid-message handling, room/rate limits, and a small local WebSocket room prototype. Do not treat Phase 25 as approval for production networking, auth, persistence, text/voice chat, Physics/Rapier, external InputFlow, ViewRig, Runtime UI framework, Audio runtime, or unrelated external adapter integration.
+
 During Phase 21 and later shader work, use the "Shader Production Quality Checklist" in `docs/developer-guide.md`. New production materials or postprocess passes should not be accepted with editor-only evidence; they need compile smoke, visual regression coverage, fallback diagnostics, precompile consideration, and low-end baseline evidence appropriate to the change.
 
 ## Execution Budget

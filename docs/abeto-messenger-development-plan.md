@@ -554,6 +554,8 @@ Phase 24 is PASS in `docs/phase-24-delivery-gameplay-showcase-final-report.md`. 
 Complete Phase 25 from docs/abeto-messenger-development-plan.md: Multiplayer-lite Social Layer. Start only after Phase 24 is PASS and pushed. Preserve the single-player delivery showcase as the baseline, add local remote-player simulation first, keep avatar/emote/stamp/network schemas data-first and validated, and keep networking scope small enough to avoid regressing Showcase Mode.
 ```
 
+Use `docs/phase-25-multiplayer-lite-social-layer-goal-mode-execution-guide.md` before implementation. The guide uses 16 rounds: 12 implementation rounds, 3 buffer rounds, and 1 final validation/handoff round. Phase 25 must add local remote-player simulation before WebSocket transport, keep social data/message contracts Sinan-owned and validated, keep Three social visuals under `src/runtime/three/**`, and keep the WebSocket room prototype small, local, and replaceable.
+
 If multiplayer-lite is intentionally skipped, record the Phase 25 skip decision before starting Phase 26. The next core single-player route should then be Phase 26: Vertical Slice RC Hardening.
 
 ```txt
