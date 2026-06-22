@@ -581,13 +581,16 @@ function createRuntimeProbe(
     };
     runtime.getSocialDiagnostics = () => ({
       activeStampCount: 1,
+      disconnectedRemoteCount: 0,
       invalidMessageCount: 1,
+      lowEndSuppressedRemoteCount: 0,
       rateLimitedMessageCount: 2,
       remoteCount: 1,
       roomFullCount: 0,
       roomStatus: 'open',
       staleRemoteCount: 0,
       staleSnapshotCount: 0,
+      visibleRemoteCount: 1,
     });
   }
 

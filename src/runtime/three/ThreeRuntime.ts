@@ -20,6 +20,8 @@ import type {
   RuntimeRenderStyle,
   RuntimeScatterDiagnostics,
   RuntimeScatterGroup,
+  RuntimeSocialDiagnostics,
+  RuntimeSocialState,
   RuntimeInitOptions,
   RuntimeShaderGlobals,
   RuntimeSize,
@@ -55,6 +57,7 @@ import { ThreeDeliveryRouteFeedbackRuntime } from './ThreeDeliveryRouteFeedbackR
 import { pickThreeObject } from './ThreePicking';
 import { ThreePostProcessRuntime } from './ThreePostProcessRuntime';
 import { ThreeScatterRuntime } from './ThreeScatterRuntime';
+import { ThreeSocialRuntime } from './ThreeSocialRuntime';
 import { ThreeStyleDecorators } from './ThreeStyleDecorators';
 
 export interface ThreeRuntimeOptions {
@@ -100,6 +103,7 @@ export class ThreeRuntime implements WebRuntime {
   private readonly materialRuntime: ThreeMaterialRuntime;
   private readonly scatterRuntime: ThreeScatterRuntime;
   private readonly deliveryRouteFeedbackRuntime = new ThreeDeliveryRouteFeedbackRuntime();
+  private readonly socialRuntime = new ThreeSocialRuntime();
   private styleDecorators: ThreeStyleDecorators | undefined;
   private debugAabbByEntityId = new Map<string, THREE.LineSegments>();
   private animationStateByEntityId = new Map<
@@ -213,9 +217,11 @@ export class ThreeRuntime implements WebRuntime {
     this.styleDecorators = new ThreeStyleDecorators(styleHelperRoot);
     this.scatterRuntime.setRoot(objectRoot);
     this.deliveryRouteFeedbackRuntime.setRoot(styleHelperRoot);
+    this.socialRuntime.setRoot(styleHelperRoot);
     this.styleDecorators.setQualityProfile(this.styleQualityProfile);
     this.materialRegistry.setQualityProfile(this.styleQualityProfile);
     this.deliveryRouteFeedbackRuntime.setQualityProfile(this.styleQualityProfile);
+    this.socialRuntime.setQualityProfile(this.styleQualityProfile);
     this.transformControls = transformControls;
     this.transformControlsHelper = transformControlsHelper;
     this.applyRenderEnvironment();
@@ -561,6 +567,14 @@ export class ThreeRuntime implements WebRuntime {
     return this.deliveryRouteFeedbackRuntime.getDiagnostics();
   }
 
+  setSocialState(state: RuntimeSocialState | undefined): void {
+    this.socialRuntime.setState(state);
+  }
+
+  getSocialDiagnostics(): RuntimeSocialDiagnostics {
+    return this.socialRuntime.getDiagnostics();
+  }
+
   private applyRenderableMaterials(
     entityId: string,
     materials: RuntimeRenderableMaterialSlots,
@@ -633,6 +647,7 @@ export class ThreeRuntime implements WebRuntime {
     this.styleDecorators?.setQualityProfile(profile);
     this.scatterRuntime.setQualityProfile(profile);
     this.deliveryRouteFeedbackRuntime.setQualityProfile(profile);
+    this.socialRuntime.setQualityProfile(profile);
     for (const entityId of this.objectByEntityId.keys()) {
       this.applyEntityRenderStyle(entityId);
     }
@@ -792,6 +807,8 @@ export class ThreeRuntime implements WebRuntime {
     this.scatterRuntime.setRoot(undefined);
     this.deliveryRouteFeedbackRuntime.dispose();
     this.deliveryRouteFeedbackRuntime.setRoot(undefined);
+    this.socialRuntime.dispose();
+    this.socialRuntime.setRoot(undefined);
     this.postProcessRuntime.dispose();
     this.scene?.traverse((object) => {
       disposeObjectResources(object);
