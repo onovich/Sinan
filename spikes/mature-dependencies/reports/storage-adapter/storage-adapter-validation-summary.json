@@ -1,0 +1,24 @@
+{
+  "candidate": "StorageAdapter isolated validation",
+  "status": "PASS",
+  "command": "npm run smoke:storage",
+  "durationMs": 511,
+  "node": {
+    "status": "PASS",
+    "report": "reports/storage-adapter/storage-adapter-node-summary.json"
+  },
+  "browser": {
+    "status": "PASS",
+    "report": "reports/storage-adapter/storage-adapter-browser-summary.json"
+  },
+  "boundary": {
+    "status": "PASS",
+    "forbiddenPaths": []
+  },
+  "diagnostics": [
+    "storage adapter node tests: PASS",
+    "storage adapter browser smoke: PASS",
+    "boundary forbidden paths: 0"
+  ],
+  "timestamp": "2026-06-22T05:54:40.172Z"
+}

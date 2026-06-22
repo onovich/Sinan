@@ -5,7 +5,7 @@
   "layer": "candidate",
   "browser": "Playwright Chromium",
   "port": 5184,
-  "durationMs": 261,
+  "durationMs": 332,
   "command": "npm exec -- playwright test -c playwright.config.ts",
   "consoleErrors": [],
   "artifacts": [
@@ -19,10 +19,10 @@
     "quota estimate supported: true",
     "fallback used: false / false"
   ],
-  "timestamp": "2026-06-22T05:46:42.534Z",
+  "timestamp": "2026-06-22T05:53:45.167Z",
   "write": {
     "adapter": "DexieStorageAdapter",
-    "databaseName": "sinan-storage-adapter-browser-1782107202273",
+    "databaseName": "sinan-storage-adapter-browser-1782107624835",
     "namespace": "sinan-storage-adapter-browser-smoke",
     "phase": "write",
     "indexedDbAvailable": true,
@@ -43,7 +43,7 @@
   },
   "reload": {
     "adapter": "DexieStorageAdapter",
-    "databaseName": "sinan-storage-adapter-browser-1782107202273",
+    "databaseName": "sinan-storage-adapter-browser-1782107624835",
     "namespace": "sinan-storage-adapter-browser-smoke",
     "phase": "verify",
     "indexedDbAvailable": true,

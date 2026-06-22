@@ -76,6 +76,25 @@ Observed results:
 - The forbidden-path diff scan returned no matches.
 - `git diff --check` passed, with only existing Windows line-ending warnings for previously dirty browser-smoke JSON files.
 
+## Repeatable Storage Smoke
+
+Round 9 adds a package-local storage smoke command:
+
+```powershell
+npm --prefix spikes\mature-dependencies run smoke:storage
+```
+
+The script writes:
+
+- `spikes/mature-dependencies/reports/storage-adapter/storage-adapter-node-summary.json`
+- `spikes/mature-dependencies/reports/storage-adapter/storage-adapter-validation-summary.json`
+
+The aggregate status requires:
+
+- StorageAdapter Vitest subset: `PASS`
+- StorageAdapter browser summary: `PASS`
+- Base-to-HEAD forbidden path guard: `PASS`
+
 ## Source-of-Truth Conclusion
 
 `data/**/*.json` remains the canonical source-of-truth. The isolated StorageAdapter spike provides future implementation evidence only; it does not authorize root dependency adoption, mainline save-system changes, or IndexedDB replacement of repository data.
