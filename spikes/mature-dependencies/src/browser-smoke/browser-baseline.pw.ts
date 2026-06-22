@@ -20,6 +20,16 @@ test("loads the isolated mature dependency smoke registry", async ({ page }) => 
     Object.keys((window as Window & { sinanMatureDependencySmokeCatalog?: Record<string, unknown> }).sinanMatureDependencySmokeCatalog ?? {})
   );
 
-  expect(catalogKeys.sort()).toEqual(["comlink", "dexie", "rapier", "recast", "spector", "storageAdapter", "webAudio", "workerTaskAdapter"]);
+  expect(catalogKeys.sort()).toEqual([
+    "audioSystem",
+    "comlink",
+    "dexie",
+    "rapier",
+    "recast",
+    "spector",
+    "storageAdapter",
+    "webAudio",
+    "workerTaskAdapter"
+  ]);
   expect(consoleErrors).toEqual([]);
 });

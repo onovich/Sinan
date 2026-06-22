@@ -1,0 +1,86 @@
+{
+  "candidate": "AudioSystem aggregate smoke",
+  "status": "PASS",
+  "decision": "PASS",
+  "layer": "candidate",
+  "durationMs": 2047,
+  "command": "npm run smoke:audio-system",
+  "diagnostics": [
+    "typecheck: PASS",
+    "typecheck: > sinan-mature-dependency-spikes@1.0.0 typecheck",
+    "typecheck: > tsc --noEmit",
+    "audio-system unit tests: PASS",
+    "audio-system unit tests: > sinan-mature-dependency-spikes@1.0.0 test",
+    "audio-system unit tests: > vitest run audio-system",
+    "audio-system unit tests:  RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
+    "audio-system unit tests:  Test Files  4 passed (4)",
+    "audio-system unit tests:       Tests  18 passed (18)",
+    "audio-system unit tests:    Start at  17:12:38",
+    "audio-system unit tests:    Duration  183ms (transform 149ms, setup 0ms, import 198ms, tests 19ms, environment 0ms)",
+    "audio-system boundary guard: PASS",
+    "audio-system boundary guard: imports, dynamic-code, and production contract browser-object scans passed",
+    "audio-system browser summary: PASS",
+    "audio-system browser summary: status: PASS",
+    "audio-system browser summary: decision: PASS",
+    "audio-system browser summary: console errors: 0",
+    "audio-system browser summary: supported: true",
+    "audio-system browser summary: completion/spatial/bus/listener: true/true/true/true",
+    "audio-system browser summary: fallback/dispose/contract-clean: true/true/true"
+  ],
+  "checks": [
+    {
+      "name": "typecheck",
+      "ok": true,
+      "details": [
+        "> sinan-mature-dependency-spikes@1.0.0 typecheck",
+        "> tsc --noEmit"
+      ]
+    },
+    {
+      "name": "audio-system unit tests",
+      "ok": true,
+      "details": [
+        "> sinan-mature-dependency-spikes@1.0.0 test",
+        "> vitest run audio-system",
+        " RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
+        " Test Files  4 passed (4)",
+        "      Tests  18 passed (18)",
+        "   Start at  17:12:38",
+        "   Duration  183ms (transform 149ms, setup 0ms, import 198ms, tests 19ms, environment 0ms)"
+      ]
+    },
+    {
+      "name": "audio-system boundary guard",
+      "ok": true,
+      "details": [
+        "imports, dynamic-code, and production contract browser-object scans passed"
+      ]
+    },
+    {
+      "name": "audio-system browser summary",
+      "ok": true,
+      "details": [
+        "status: PASS",
+        "decision: PASS",
+        "console errors: 0",
+        "supported: true",
+        "completion/spatial/bus/listener: true/true/true/true",
+        "fallback/dispose/contract-clean: true/true/true"
+      ]
+    }
+  ],
+  "artifactPolicy": {
+    "committed": [
+      "reports/browser-smoke/audio-system-summary.json",
+      "reports/audio-system/audio-system-validation-summary.json"
+    ],
+    "notCommitted": [
+      "test-results",
+      "playwright-report",
+      "dist",
+      "coverage",
+      "browser binaries"
+    ]
+  },
+  "timestamp": "2026-06-22T09:12:38.613Z"
+}

@@ -78,6 +78,14 @@ if (!existsSync(expectedExecutable)) {
       ]
     },
     {
+      fileName: "audio-system-summary.json",
+      candidate: "AudioSystem / WebAudioSystemAdapter",
+      diagnostics: [
+        ...diagnostics,
+        "AudioSystem lifecycle, decode, playback completion, bus/listener, spatial, and fallback smoke cannot run until Playwright Chromium launches."
+      ]
+    },
+    {
       fileName: "dexie-indexeddb-summary.json",
       candidate: "Dexie / IndexedDB",
       diagnostics: [
