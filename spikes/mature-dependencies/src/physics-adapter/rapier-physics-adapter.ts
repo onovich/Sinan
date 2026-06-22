@@ -9,6 +9,7 @@ import {
   type PhysicsColliderShape,
   type PhysicsColliderSpec,
   type PhysicsDiagnostic,
+  type PhysicsEvent,
   type PhysicsJsonObject,
   type PhysicsLifecycleState,
   type PhysicsOverlapQuery,
@@ -89,6 +90,7 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
   private readonly diagnostics: PhysicsDiagnostic[] = [];
   private readonly bodies = new Map<string, RapierBodyRecord>();
   private readonly colliders = new Map<string, RapierColliderRecord>();
+  private eventSequence = 0;
 
   constructor(options: RapierPhysicsAdapterOptions = {}) {
     this.config = normalizePhysicsWorldConfig({
@@ -339,6 +341,7 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     const possibleSteps = Math.floor(accumulator / policy.stepMs);
     const simulatedSteps = Math.min(possibleSteps, policy.maxCatchUpSteps);
     const diagnostics: PhysicsDiagnostic[] = [];
+    const events: PhysicsEvent[] = [];
 
     if (possibleSteps > policy.maxCatchUpSteps) {
       diagnostics.push(
@@ -353,8 +356,18 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
       try {
         ready.world.timestep = policy.stepMs / 1000;
         ready.world.step(ready.events);
-        ready.events.drainCollisionEvents(() => undefined);
         this.stepIndex += 1;
+        ready.events.drainCollisionEvents((handleA, handleB, started) => {
+          const event = this.mapCollisionEvent(handleA, handleB, started);
+          if (event) {
+            events.push(event);
+            return;
+          }
+
+          diagnostics.push(
+            createPhysicsDiagnostic("event-mapping-failed", "Rapier collision event referenced an unknown collider handle.", "warning", false)
+          );
+        });
         accumulator -= policy.stepMs;
       } catch (error) {
         const diagnostic = createPhysicsDiagnostic("step-failed", "Rapier world step failed.", "error", true, {
@@ -378,7 +391,7 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
       events: {
         worldId: this.config.worldId,
         stepIndex: this.stepIndex,
-        events: [],
+        events,
         diagnostics: cloneJson(diagnostics)
       },
       diagnostics
@@ -554,6 +567,38 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
       collision: cloneJson(record.spec.collision),
       query: cloneJson(record.spec.query)
     }));
+  }
+
+  private mapCollisionEvent(handleA: number, handleB: number, started: boolean): PhysicsEvent | undefined {
+    const colliderA = this.colliderRecordByHandle(handleA);
+    const colliderB = this.colliderRecordByHandle(handleB);
+    if (!colliderA || !colliderB) {
+      return undefined;
+    }
+
+    const isTrigger = colliderA.spec.isTrigger || colliderB.spec.isTrigger;
+    const type = isTrigger ? (started ? "trigger-enter" : "trigger-exit") : started ? "collision-start" : "collision-end";
+    this.eventSequence += 1;
+
+    return {
+      eventId: `${this.config.worldId}:${this.stepIndex}:${this.eventSequence}`,
+      type,
+      bodyAId: colliderA.spec.bodyId,
+      bodyBId: colliderB.spec.bodyId,
+      colliderAId: colliderA.spec.colliderId,
+      colliderBId: colliderB.spec.colliderId,
+      diagnostics: []
+    };
+  }
+
+  private colliderRecordByHandle(handle: number): RapierColliderRecord | undefined {
+    for (const record of this.colliders.values()) {
+      if (record.handle === handle) {
+        return record;
+      }
+    }
+
+    return undefined;
   }
 
   private disposedResult<TValue extends PhysicsJsonObject = PhysicsJsonObject>(message: string): PhysicsResult<TValue> {

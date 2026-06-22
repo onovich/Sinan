@@ -197,4 +197,124 @@ describe("RapierPhysicsAdapter lifecycle", () => {
     expect(snapshot.bodies).toHaveLength(0);
     expect(snapshot.colliders).toHaveLength(0);
   });
+
+  it("normalizes Rapier collision and trigger events to Sinan ids", async () => {
+    const adapter = createRapierPhysicsAdapter();
+    await adapter.createWorld(
+      normalizePhysicsWorldConfig({
+        worldId: "rapier-events-world",
+        sceneId: "scene-rapier",
+        fixedStep: {
+          stepMs: 16.6667,
+          maxCatchUpSteps: 1,
+          accumulatorMs: 0
+        }
+      })
+    );
+
+    await adapter.addBody(
+      bodySpec({
+        bodyId: "body-ground",
+        kind: "fixed",
+        initialTransform: {
+          position: {
+            x: 0,
+            y: -0.25,
+            z: 0
+          },
+          rotation: {
+            x: 0,
+            y: 0,
+            z: 0,
+            w: 1
+          }
+        }
+      })
+    );
+    await adapter.addCollider(
+      colliderSpec({
+        colliderId: "collider-ground",
+        bodyId: "body-ground",
+        shape: {
+          type: "cuboid",
+          halfExtents: {
+            x: 2,
+            y: 0.25,
+            z: 2
+          }
+        }
+      })
+    );
+
+    await adapter.addBody(
+      bodySpec({
+        bodyId: "body-trigger",
+        kind: "fixed",
+        initialTransform: {
+          position: {
+            x: 0,
+            y: 0.75,
+            z: 0
+          },
+          rotation: {
+            x: 0,
+            y: 0,
+            z: 0,
+            w: 1
+          }
+        }
+      })
+    );
+    await adapter.addCollider(
+      colliderSpec({
+        colliderId: "collider-trigger",
+        bodyId: "body-trigger",
+        isTrigger: true,
+        shape: {
+          type: "cuboid",
+          halfExtents: {
+            x: 0.75,
+            y: 0.25,
+            z: 0.75
+          }
+        }
+      })
+    );
+
+    await adapter.addBody(
+      bodySpec({
+        bodyId: "body-ball",
+        sleep: "prevent",
+        initialTransform: {
+          position: {
+            x: 0,
+            y: 2.5,
+            z: 0
+          },
+          rotation: {
+            x: 0,
+            y: 0,
+            z: 0,
+            w: 1
+          }
+        }
+      })
+    );
+    await adapter.addCollider(colliderSpec({ colliderId: "collider-ball", bodyId: "body-ball" }));
+
+    const events = [];
+    for (let index = 0; index < 180; index += 1) {
+      const result = await adapter.step({
+        worldId: "rapier-events-world",
+        deltaMs: 16.6667,
+        nowMs: index * 16.6667
+      });
+      events.push(...result.events.events);
+    }
+
+    expect(events.some((event) => event.type === "trigger-enter")).toBe(true);
+    expect(events.some((event) => event.type === "collision-start")).toBe(true);
+    expect(events.every((event) => event.colliderAId && event.colliderBId && event.bodyAId && event.bodyBId)).toBe(true);
+    expect(JSON.stringify(events)).not.toMatch(/rawHandle|RigidBody|ColliderDesc|@dimforge|wasm/i);
+  });
 });
