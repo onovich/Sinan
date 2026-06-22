@@ -13,6 +13,7 @@ import {
   type PhysicsJsonObject,
   type PhysicsLifecycleState,
   type PhysicsOverlapQuery,
+  type PhysicsQueryHit,
   type PhysicsQueryResult,
   type PhysicsRaycastQuery,
   type PhysicsResult,
@@ -55,6 +56,35 @@ function toVector3(value: { x: number; y: number; z: number }): PhysicsVector3 {
     x: value.x,
     y: value.y,
     z: value.z
+  };
+}
+
+function vectorLength(vector: PhysicsVector3): number {
+  return Math.hypot(vector.x, vector.y, vector.z);
+}
+
+function normalizeVector(vector: PhysicsVector3): PhysicsVector3 {
+  const length = vectorLength(vector);
+  if (length === 0) {
+    return {
+      x: 0,
+      y: 0,
+      z: -1
+    };
+  }
+
+  return {
+    x: vector.x / length,
+    y: vector.y / length,
+    z: vector.z / length
+  };
+}
+
+function pointAlongRay(origin: PhysicsVector3, direction: PhysicsVector3, distance: number): PhysicsVector3 {
+  return {
+    x: origin.x + direction.x * distance,
+    y: origin.y + direction.y * distance,
+    z: origin.z + direction.z * distance
   };
 }
 
@@ -399,22 +429,95 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
   }
 
   async raycast(query: PhysicsRaycastQuery): Promise<PhysicsQueryResult> {
+    const ready = this.requireWorld();
+    if (!ready.ok) {
+      return this.queryFailure(query.queryId, ready.result.status, ready.result.diagnostics);
+    }
+
+    if (query.worldId !== this.config.worldId) {
+      return this.queryFailure(query.queryId, "invalid-spec", [
+        createPhysicsDiagnostic("invalid-spec", `Raycast query worldId ${query.worldId} does not match ${this.config.worldId}.`, "error", false, {
+          requestedWorldId: query.worldId,
+          worldId: this.config.worldId
+        })
+      ]);
+    }
+
+    const direction = normalizeVector(query.direction);
+    const ray = new RAPIER.Ray(query.origin, direction);
+    const hit = ready.world.castRayAndGetNormal(ray, query.maxDistance, true);
+    if (!hit) {
+      return this.queryMiss(query.queryId, "Rapier raycast did not hit a collider.");
+    }
+
+    const record = this.colliderRecordByHandle(hit.collider.handle);
+    if (!record || !this.queryAllows(record, query.query.layer, query.query.mask)) {
+      return this.queryMiss(query.queryId, "Rapier raycast hit was filtered by Sinan query mask.");
+    }
+
+    const rayHit = hit as {
+      toi?: number;
+      timeOfImpact?: number;
+    };
+    const distance = rayHit.toi ?? rayHit.timeOfImpact ?? 0;
+    const mappedHit: PhysicsQueryHit = {
+      bodyId: record.spec.bodyId,
+      colliderId: record.spec.colliderId,
+      point: pointAlongRay(query.origin, direction, distance),
+      normal: toVector3(hit.normal),
+      distance
+    };
+
     return {
-      status: "query-miss",
-      ok: false,
+      status: "success",
+      ok: true,
       queryId: query.queryId,
-      hits: [],
-      diagnostics: [createPhysicsDiagnostic("query-miss", "Rapier query implementation is staged for a later implementation round.", "info")]
+      hit: mappedHit,
+      hits: [mappedHit],
+      diagnostics: []
     };
   }
 
   async overlap(query: PhysicsOverlapQuery): Promise<PhysicsQueryResult> {
+    const ready = this.requireWorld();
+    if (!ready.ok) {
+      return this.queryFailure(query.queryId, ready.result.status, ready.result.diagnostics);
+    }
+
+    if (query.worldId !== this.config.worldId) {
+      return this.queryFailure(query.queryId, "invalid-spec", [
+        createPhysicsDiagnostic("invalid-spec", `Overlap query worldId ${query.worldId} does not match ${this.config.worldId}.`, "error", false, {
+          requestedWorldId: query.worldId,
+          worldId: this.config.worldId
+        })
+      ]);
+    }
+
+    const hits: PhysicsQueryHit[] = [];
+    ready.world.intersectionsWithShape(query.transform.position, query.transform.rotation, this.createQueryShape(query.shape), (collider) => {
+      const record = this.colliderRecordByHandle(collider.handle);
+      if (record && this.queryAllows(record, query.query.layer, query.query.mask)) {
+        hits.push({
+          bodyId: record.spec.bodyId,
+          colliderId: record.spec.colliderId,
+          point: cloneJson(query.transform.position)
+        });
+      }
+
+      return true;
+    });
+
+    if (hits.length === 0) {
+      return this.queryMiss(query.queryId, "Rapier overlap query did not intersect a collider.");
+    }
+
     return {
-      status: "query-miss",
-      ok: false,
+      status: "success",
+      ok: true,
       queryId: query.queryId,
-      hits: [],
-      diagnostics: [createPhysicsDiagnostic("query-miss", "Rapier overlap implementation is staged for a later implementation round.", "info")]
+      hit: hits[0],
+      hits,
+      diagnostics: []
     };
   }
 
@@ -542,6 +645,18 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     return RAPIER.ColliderDesc.capsule(shape.halfHeight, shape.radius);
   }
 
+  private createQueryShape(shape: PhysicsColliderShape): RAPIER.Shape {
+    if (shape.type === "cuboid") {
+      return new RAPIER.Cuboid(shape.halfExtents.x, shape.halfExtents.y, shape.halfExtents.z);
+    }
+
+    if (shape.type === "ball") {
+      return new RAPIER.Ball(shape.radius);
+    }
+
+    return new RAPIER.Capsule(shape.halfHeight, shape.radius);
+  }
+
   private bodySnapshots(): PhysicsBodySnapshot[] {
     return [...this.bodies.entries()].map(([bodyId, record]) => {
       const body = this.bodyById(bodyId);
@@ -601,6 +716,10 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
     return undefined;
   }
 
+  private queryAllows(record: RapierColliderRecord, queryLayer: string, queryMask: string[]): boolean {
+    return queryMask.includes(record.spec.query.layer) && record.spec.query.mask.includes(queryLayer);
+  }
+
   private disposedResult<TValue extends PhysicsJsonObject = PhysicsJsonObject>(message: string): PhysicsResult<TValue> {
     return createPhysicsResult("disposed", {
       diagnostics: [createPhysicsDiagnostic("disposed-world", message)]
@@ -628,6 +747,20 @@ export class RapierPhysicsAdapter implements PhysicsAdapter {
         events: [],
         diagnostics: cloneJson(diagnostics)
       },
+      diagnostics
+    };
+  }
+
+  private queryMiss(queryId: string, message: string): PhysicsQueryResult {
+    return this.queryFailure(queryId, "query-miss", [createPhysicsDiagnostic("query-miss", message, "info")]);
+  }
+
+  private queryFailure(queryId: string, status: PhysicsResult["status"], diagnostics: PhysicsDiagnostic[]): PhysicsQueryResult {
+    return {
+      status,
+      ok: false,
+      queryId,
+      hits: [],
       diagnostics
     };
   }

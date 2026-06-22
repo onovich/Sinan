@@ -317,4 +317,121 @@ describe("RapierPhysicsAdapter lifecycle", () => {
     expect(events.every((event) => event.colliderAId && event.colliderBId && event.bodyAId && event.bodyBId)).toBe(true);
     expect(JSON.stringify(events)).not.toMatch(/rawHandle|RigidBody|ColliderDesc|@dimforge|wasm/i);
   });
+
+  it("maps Rapier raycast and overlap results to Sinan query hits", async () => {
+    const adapter = createRapierPhysicsAdapter();
+    await adapter.createWorld(worldConfig());
+    await adapter.addBody(
+      bodySpec({
+        bodyId: "query-target",
+        kind: "fixed",
+        initialTransform: {
+          position: {
+            x: 0,
+            y: 0,
+            z: 0
+          },
+          rotation: {
+            x: 0,
+            y: 0,
+            z: 0,
+            w: 1
+          }
+        }
+      })
+    );
+    await adapter.addCollider(
+      colliderSpec({
+        colliderId: "query-collider",
+        bodyId: "query-target",
+        shape: {
+          type: "cuboid",
+          halfExtents: {
+            x: 1,
+            y: 1,
+            z: 1
+          }
+        }
+      })
+    );
+    await adapter.step({
+      worldId: "rapier-test-world",
+      deltaMs: 16.6667,
+      nowMs: 16.6667
+    });
+
+    const raycast = await adapter.raycast({
+      queryId: "raycast-hit",
+      worldId: "rapier-test-world",
+      origin: {
+        x: 0,
+        y: 5,
+        z: 0
+      },
+      direction: {
+        x: 0,
+        y: -1,
+        z: 0
+      },
+      maxDistance: 10,
+      query: {
+        layer: "query",
+        mask: ["query"]
+      }
+    });
+    const filtered = await adapter.raycast({
+      queryId: "raycast-filtered",
+      worldId: "rapier-test-world",
+      origin: {
+        x: 0,
+        y: 5,
+        z: 0
+      },
+      direction: {
+        x: 0,
+        y: -1,
+        z: 0
+      },
+      maxDistance: 10,
+      query: {
+        layer: "query",
+        mask: ["static"]
+      }
+    });
+    const overlap = await adapter.overlap({
+      queryId: "overlap-hit",
+      worldId: "rapier-test-world",
+      shape: {
+        type: "ball",
+        radius: 0.5
+      },
+      transform: {
+        position: {
+          x: 0,
+          y: 0,
+          z: 0
+        },
+        rotation: {
+          x: 0,
+          y: 0,
+          z: 0,
+          w: 1
+        }
+      },
+      query: {
+        layer: "query",
+        mask: ["query"]
+      }
+    });
+
+    expect(raycast.status).toBe("success");
+    expect(raycast.hit?.bodyId).toBe("query-target");
+    expect(raycast.hit?.colliderId).toBe("query-collider");
+    expect(raycast.hit?.distance).toBeGreaterThan(0);
+    expect(filtered.status).toBe("query-miss");
+    expect(filtered.diagnostics[0]?.code).toBe("query-miss");
+    expect(overlap.status).toBe("success");
+    expect(overlap.hits[0]?.bodyId).toBe("query-target");
+    expect(JSON.stringify({ raycast, overlap })).not.toMatch(/rawHandle|RigidBody|ColliderDesc|@dimforge|wasm/i);
+  });
 });
