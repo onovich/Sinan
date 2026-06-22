@@ -3,7 +3,7 @@
   "status": "PASS",
   "decision": "PASS",
   "layer": "candidate",
-  "durationMs": 2047,
+  "durationMs": 2366,
   "command": "npm run smoke:audio-system",
   "diagnostics": [
     "typecheck: PASS",
@@ -14,9 +14,9 @@
     "audio-system unit tests: > vitest run audio-system",
     "audio-system unit tests:  RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
     "audio-system unit tests:  Test Files  4 passed (4)",
-    "audio-system unit tests:       Tests  18 passed (18)",
-    "audio-system unit tests:    Start at  17:12:38",
-    "audio-system unit tests:    Duration  183ms (transform 149ms, setup 0ms, import 198ms, tests 19ms, environment 0ms)",
+    "audio-system unit tests:       Tests  19 passed (19)",
+    "audio-system unit tests:    Start at  17:17:50",
+    "audio-system unit tests:    Duration  208ms (transform 171ms, setup 0ms, import 230ms, tests 22ms, environment 0ms)",
     "audio-system boundary guard: PASS",
     "audio-system boundary guard: imports, dynamic-code, and production contract browser-object scans passed",
     "audio-system browser summary: PASS",
@@ -44,9 +44,9 @@
         "> vitest run audio-system",
         " RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
         " Test Files  4 passed (4)",
-        "      Tests  18 passed (18)",
-        "   Start at  17:12:38",
-        "   Duration  183ms (transform 149ms, setup 0ms, import 198ms, tests 19ms, environment 0ms)"
+        "      Tests  19 passed (19)",
+        "   Start at  17:17:50",
+        "   Duration  208ms (transform 171ms, setup 0ms, import 230ms, tests 22ms, environment 0ms)"
       ]
     },
     {
@@ -82,5 +82,5 @@
       "browser binaries"
     ]
   },
-  "timestamp": "2026-06-22T09:12:38.613Z"
+  "timestamp": "2026-06-22T09:17:51.254Z"
 }
