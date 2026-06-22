@@ -82,7 +82,7 @@ PASS. Phase 25 completed the local multiplayer-lite social prototype and preserv
 - `bb5f701` feat: add social websocket room prototype, pushed to `origin/main`.
 - `ab59fb3` test: integrate multiplayer-lite social flow, pushed to `origin/main`.
 - `86b1667` test: add multiplayer-lite social smoke gate, pushed to `origin/main`.
-- Final documentation commit: created and pushed by round 25.16 after this report is committed.
+- `f9cba54` docs: finalize phase 25 multiplayer-lite social layer, pushed to `origin/main`.
 
 ## Buffer
 
