@@ -21,6 +21,7 @@ import type {
   RuntimeScatterGroup,
   RuntimeStyleQualityProfile,
   RuntimeStyleResources,
+  RuntimeSphericalPlacementDiagnostics,
 } from './RuntimeTypes';
 import type { ModelHandle, RuntimeObjectHandle } from './RuntimeObjectHandle';
 import type { RuntimeTransform } from './RuntimeTypes';
@@ -43,6 +44,8 @@ export interface WebRuntime {
   getLodDiagnostics?(): readonly RuntimeLodDiagnostics[];
   setScatterGroups?(groups: readonly RuntimeScatterGroup[]): void;
   getScatterDiagnostics?(): readonly RuntimeScatterDiagnostics[];
+  setSphericalPlacements?(diagnostics: RuntimeSphericalPlacementDiagnostics): void;
+  getSphericalPlacementDiagnostics?(): RuntimeSphericalPlacementDiagnostics;
   setStyleResources?(resources: RuntimeStyleResources): void;
   setRenderStyle?(entityId: string, style: RuntimeRenderStyle | undefined): void;
   setRenderableMaterials?(

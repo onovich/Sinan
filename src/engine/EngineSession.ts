@@ -162,6 +162,7 @@ export class EngineSession {
     }
 
     this.options.runtime.setScatterGroups?.(toRuntimeScatterGroups(project.level.scatterGroups));
+    this.options.runtime.setSphericalPlacements?.(this.world.getSphericalPlacements());
     this.loadedEntityIds = nextEntityIds;
     this.syncTriggerDebug();
     this.status = 'loaded';

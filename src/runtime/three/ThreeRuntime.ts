@@ -21,6 +21,7 @@ import type {
   RuntimeInitOptions,
   RuntimeShaderGlobals,
   RuntimeSize,
+  RuntimeSphericalPlacementDiagnostics,
   RuntimeStyleQualityProfile,
   RuntimeStyleResources,
   TransformGizmoCallbacks,
@@ -110,6 +111,8 @@ export class ThreeRuntime implements WebRuntime {
   private styleQualityProfile: RuntimeStyleQualityProfile = 'standard';
   private selectedEntityId: string | undefined;
   private readonly lodWorldPosition = new THREE.Vector3();
+  private sphericalPlacementDiagnostics: RuntimeSphericalPlacementDiagnostics =
+    createEmptySphericalPlacementDiagnostics();
   private width = 1;
   private height = 1;
   private pixelRatio = 1;
@@ -531,6 +534,18 @@ export class ThreeRuntime implements WebRuntime {
     return this.scatterRuntime.getDiagnostics();
   }
 
+  setSphericalPlacements(diagnostics: RuntimeSphericalPlacementDiagnostics): void {
+    this.sphericalPlacementDiagnostics = cloneSphericalPlacementDiagnostics(diagnostics);
+
+    for (const placement of this.sphericalPlacementDiagnostics.placements) {
+      this.setTransform(placement.entityId, placement.transform);
+    }
+  }
+
+  getSphericalPlacementDiagnostics(): RuntimeSphericalPlacementDiagnostics {
+    return cloneSphericalPlacementDiagnostics(this.sphericalPlacementDiagnostics);
+  }
+
   private applyRenderableMaterials(
     entityId: string,
     materials: RuntimeRenderableMaterialSlots,
@@ -792,6 +807,7 @@ export class ThreeRuntime implements WebRuntime {
     this.renderEnvironment = undefined;
     this.styleQualityProfile = 'standard';
     this.selectedEntityId = undefined;
+    this.sphericalPlacementDiagnostics = createEmptySphericalPlacementDiagnostics();
   }
 
   private disposeDebugAabb(entityId: string): void {
@@ -1085,6 +1101,21 @@ function tagRuntimeObject(object: THREE.Object3D, entityId: string, assetId?: st
       assetId,
     };
   });
+}
+
+function createEmptySphericalPlacementDiagnostics(): RuntimeSphericalPlacementDiagnostics {
+  return {
+    issueCount: 0,
+    issues: [],
+    placementCount: 0,
+    placements: [],
+  };
+}
+
+function cloneSphericalPlacementDiagnostics(
+  diagnostics: RuntimeSphericalPlacementDiagnostics,
+): RuntimeSphericalPlacementDiagnostics {
+  return JSON.parse(JSON.stringify(diagnostics)) as RuntimeSphericalPlacementDiagnostics;
 }
 
 function createPlaceholderObject(assetId: string): THREE.Object3D {

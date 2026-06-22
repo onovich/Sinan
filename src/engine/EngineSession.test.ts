@@ -9,6 +9,7 @@ import type {
   RuntimeScatterGroup,
   RuntimeShaderGlobals,
   RuntimeSize,
+  RuntimeSphericalPlacementDiagnostics,
   RuntimeStyleQualityProfile,
   RuntimeStyleResources,
 } from '../runtime/RuntimeTypes';
@@ -273,6 +274,45 @@ describe('EngineSession', () => {
       ],
     });
   });
+
+  it('passes derived spherical placements to the runtime after object creation', async () => {
+    const calls: unknown[] = [];
+    const session = new EngineSession({
+      runtime: createRuntimeProbe(calls, { recordSphericalPlacements: true }),
+    });
+
+    await session.loadProject(createSphericalProject());
+
+    expect(calls).toContainEqual({
+      type: 'setTransform',
+      entityId: 'switch_a',
+      transform: {
+        position: [0, 2, 0],
+        rotation: [0, 0, 0, 1],
+        scale: [2, 2, 2],
+      },
+    });
+    expect(calls).toContainEqual({
+      type: 'setSphericalPlacements',
+      diagnostics: {
+        issueCount: 0,
+        issues: [],
+        placementCount: 1,
+        placements: [
+          expect.objectContaining({
+            authoredLocalPosition: [0, 2, 0],
+            entityId: 'switch_a',
+            regionId: 'city',
+            transform: {
+              position: [0, 0, 14],
+              rotation: [0.707107, 0, 0, 0.707107],
+              scale: [2, 2, 2],
+            },
+          }),
+        ],
+      },
+    });
+  });
 });
 
 function createRuntimeProbe(
@@ -281,6 +321,7 @@ function createRuntimeProbe(
     recordLodGroups?: boolean;
     recordScatterGroups?: boolean;
     recordShaderGlobals?: boolean;
+    recordSphericalPlacements?: boolean;
   } = {},
 ): WebRuntime {
   const runtime: WebRuntime = {
@@ -359,6 +400,11 @@ function createRuntimeProbe(
   if (options.recordScatterGroups) {
     runtime.setScatterGroups = (groups: readonly RuntimeScatterGroup[]) => {
       calls.push({ type: 'setScatterGroups', groups });
+    };
+  }
+  if (options.recordSphericalPlacements) {
+    runtime.setSphericalPlacements = (diagnostics: RuntimeSphericalPlacementDiagnostics) => {
+      calls.push({ type: 'setSphericalPlacements', diagnostics });
     };
   }
 
@@ -538,6 +584,47 @@ function createScatterProject(): ProjectData {
           fallback: {
             mode: 'placeholder',
             asset: 'model.switch_wall.lod2',
+          },
+        },
+      ],
+    },
+  };
+}
+
+function createSphericalProject(): ProjectData {
+  const project = createProject();
+
+  return {
+    ...project,
+    level: {
+      ...project.level,
+      worldProjection: {
+        type: 'cube-sphere',
+        radius: 12,
+        regions: [
+          {
+            id: 'city',
+            name: 'City Region',
+            label: 'City',
+            face: 'front',
+            localBounds: {
+              center: [0, 0, 0],
+              size: [2, 2, 2],
+            },
+          },
+        ],
+      },
+      entities: [
+        {
+          ...project.level.entities[0],
+          transform: {
+            position: [0, 2, 0],
+            rotation: [0, 0, 0, 1],
+            scale: [2, 2, 2],
+          },
+          placement: {
+            mode: 'spherical-region',
+            region: 'city',
           },
         },
       ],
