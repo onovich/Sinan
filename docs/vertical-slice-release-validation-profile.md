@@ -30,6 +30,7 @@ npm run test
 npm run check-boundaries
 npm run validate-data
 npm run report-assets
+npm run perf:smoke
 npm run migrate-data -- --check
 npm run test:smoke
 git diff --check
@@ -44,12 +45,13 @@ The direct commands intentionally mirror the wrapper scope. If the wrapper confi
 - Shader/postprocess low-end baseline: `npm run test:smoke` covers the local Chromium shader baseline; `npm run test` covers the quality inventory gate.
 - LOD/scatter/spherical world: `npm run test` covers renderer diagnostics, LOD/scatter budgets, spherical placement, and low-end bias.
 - Asset budget: `npm run report-assets` prints the committed asset manifest budget report and exits nonzero for critical issues.
+- Perf/budget report: `npm run perf:smoke` summarizes asset status and checks that the shader, LOD/scatter, spherical world, delivery showcase, and multiplayer-lite social budget gates remain present.
 - Migration safety: `npm run migrate-data -- --check` verifies committed data is already at the current schema version.
 - Boundary safety: `npm run check-boundaries` prevents Three.js and dynamic-code patterns from leaking into disallowed layers.
 
-## Budget And Perf Follow-up
+## Budget And Perf Smoke
 
-Phase 26 will add or consolidate a dedicated vertical-slice budget report in the next hardening checkpoint. Until then, the release profile cites the existing Vitest, Playwright, and asset-report evidence rather than implying a single perf command exists.
+`npm run perf:smoke` is a deterministic release-readable budget report. It does not replace the runtime gates; it fails if the asset budget has issues or if the committed shader, LOD/scatter, spherical world, delivery showcase, or multiplayer-lite social budget evidence disappears.
 
 ## Local Limitations
 

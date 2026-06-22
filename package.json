@@ -13,6 +13,7 @@
     "check-boundaries": "tsx scripts/check-boundaries.ts",
     "validate-data": "tsx scripts/validate-data.ts",
     "report-assets": "tsx scripts/report-assets.ts",
+    "perf:smoke": "tsx scripts/report-vertical-slice-budgets.ts",
     "migrate-data": "tsx scripts/migrate-data.ts",
     "generate:dev-assets": "tsx scripts/generate-dev-glb-assets.ts",
     "format": "prettier \"src/**/*.{ts,tsx,css}\" \"scripts/**/*.ts\" \"tests/**/*.ts\" \"*.{json,js,ts,html}\" --write",

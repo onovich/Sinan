@@ -59,6 +59,7 @@
         "npm run check-boundaries",
         "npm run validate-data",
         "npm run report-assets",
+        "npm run perf:smoke",
         "npm run migrate-data -- --check"
       ]
     },

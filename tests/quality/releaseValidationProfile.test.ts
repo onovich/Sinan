@@ -19,6 +19,7 @@ describe('release validation profile', () => {
       'npm run check-boundaries',
       'npm run validate-data',
       'npm run report-assets',
+      'npm run perf:smoke',
       'npm run migrate-data -- --check',
       'npm run test:smoke',
       'git diff --check',
@@ -35,6 +36,7 @@ describe('release validation profile', () => {
       'check-boundaries',
       'validate-data',
       'report-assets',
+      'perf:smoke',
       'migrate-data',
     ]) {
       expect(opsConfig).toContain(requiredOpsStep);
