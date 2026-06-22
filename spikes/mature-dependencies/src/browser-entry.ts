@@ -8,6 +8,7 @@ import { runPhysicsAdapterBrowserSmoke } from "./physics-adapter/physics-adapter
 import { runComlinkBrowserSmoke } from "./workers/comlink-smoke";
 import { runStorageAdapterBrowserSmoke } from "./storage-adapter/storage-adapter-browser-smoke";
 import { runWorkerTaskAdapterBrowserSmoke } from "./worker-task/worker-task-browser-smoke";
+import { runDiagnosticsAdapterBrowserSmoke } from "./diagnostics-adapter/diagnostics-adapter-browser-smoke";
 
 export const matureDependencySmokeCatalog = {
   rapier: runRapierSmoke,
@@ -17,6 +18,7 @@ export const matureDependencySmokeCatalog = {
   dexie: runDexieSmoke,
   storageAdapter: runStorageAdapterBrowserSmoke,
   workerTaskAdapter: runWorkerTaskAdapterBrowserSmoke,
+  diagnosticsAdapter: runDiagnosticsAdapterBrowserSmoke,
   spector: runSpectorSmoke,
   comlink: runComlinkBrowserSmoke,
   recast: runRecastNavigationSmoke

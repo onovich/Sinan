@@ -129,6 +129,17 @@ if (!existsSync(expectedExecutable)) {
       ]
     },
     {
+      fileName: "diagnostics-adapter-summary.json",
+      candidate: "DiagnosticsAdapter dev-only",
+      diagnostics: [
+        ...diagnostics,
+        "DiagnosticsAdapter Performance marker, disabled-by-default capture boundary, and production-disabled behavior cannot run until Playwright Chromium launches.",
+        `production static exclusion check available: ${spectorDistCheck.available}`,
+        `production static exclusion matches for spectorjs/SPECTOR: ${spectorDistCheck.matches.length}`,
+        ...spectorDistCheck.matches.map((match) => `production match: ${match}`)
+      ]
+    },
+    {
       fileName: "rapier-wasm-summary.json",
       candidate: "Rapier / WASM",
       diagnostics: [

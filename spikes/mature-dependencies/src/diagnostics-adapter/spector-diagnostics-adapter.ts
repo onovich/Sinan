@@ -40,10 +40,6 @@ function hasSpectorConstructor(moduleValue: unknown): boolean {
   return typeof candidate.SPECTOR?.Spector === "function" || typeof candidate.default?.SPECTOR?.Spector === "function";
 }
 
-async function defaultLoadSpector(): Promise<unknown> {
-  return import("spectorjs");
-}
-
 export function createSpectorDiagnosticsAdapter(options: SpectorDiagnosticsAdapterOptions = {}): DiagnosticsAdapter {
   return new SpectorDiagnosticsAdapter(options);
 }
@@ -62,7 +58,11 @@ export class SpectorDiagnosticsAdapter implements DiagnosticsAdapter {
       ...options.config
     });
     this.browserWindow = options.browserWindow ?? globalThis.window;
-    this.loadSpector = options.loadSpector ?? defaultLoadSpector;
+    this.loadSpector =
+      options.loadSpector ??
+      (async () => {
+        throw new Error("Dev-only diagnostics loader was not configured.");
+      });
     this.state = this.resolveBlockedStatus() ?? "ready";
   }
 

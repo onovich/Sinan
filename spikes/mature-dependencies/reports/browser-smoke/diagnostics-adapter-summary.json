@@ -1,0 +1,66 @@
+{
+  "candidate": "DiagnosticsAdapter dev-only",
+  "status": "PASS",
+  "decision": "PASS",
+  "layer": "contract",
+  "browser": "Playwright Chromium",
+  "port": 5184,
+  "durationMs": 233,
+  "command": "npm exec -- playwright test -c playwright.config.ts",
+  "consoleErrors": [],
+  "artifacts": [
+    "reports/browser-smoke/diagnostics-adapter-summary.json"
+  ],
+  "diagnostics": [
+    "catalog entry available: true",
+    "performance/disabled/default-production: true/true/true",
+    "policy/contract-clean: true/true",
+    "availability: ready",
+    "marker: complete",
+    "capture disabled by default: unavailable",
+    "production disabled: production-disabled",
+    "policy: dev-only dynamic import disabled-by-default production-excluded local-temporary",
+    "DiagnosticsAdapter browser smoke -> Performance marker + disabled dev-only capture boundary"
+  ],
+  "timestamp": "2026-06-22T14:44:51.011Z",
+  "result": {
+    "adapter": "DiagnosticsAdapter",
+    "catalogEntry": true,
+    "performanceOk": true,
+    "disabledByDefaultOk": true,
+    "productionDisabledOk": true,
+    "policyTextPresent": true,
+    "contractClean": true,
+    "statuses": {
+      "availability": "ready",
+      "marker": "complete",
+      "captureDisabled": "unavailable",
+      "productionDisabled": "production-disabled",
+      "cleanup": "complete",
+      "dispose": "disposed"
+    },
+    "messages": [
+      "diagnostics-ready: Performance marker diagnostics are ready.",
+      "performance-marker-recorded: Performance marker recorded and cleaned.",
+      "feature-disabled: Dev-only frame capture feature flag is disabled.",
+      "production-disabled: Dev-only frame capture diagnostics are excluded from production behavior.",
+      "artifacts-cleaned: Performance marker artifacts were cleared.",
+      "disposed-adapter: Dev-only diagnostics adapter has been disposed."
+    ],
+    "metrics": [
+      {
+        "metricId": "sinan-browser-frame-marker",
+        "value": 0.10000002384185791,
+        "unit": "ms"
+      }
+    ],
+    "diagnostics": [
+      "availability: ready",
+      "marker: complete",
+      "capture disabled by default: unavailable",
+      "production disabled: production-disabled",
+      "policy: dev-only dynamic import disabled-by-default production-excluded local-temporary",
+      "DiagnosticsAdapter browser smoke -> Performance marker + disabled dev-only capture boundary"
+    ]
+  }
+}
