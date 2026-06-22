@@ -43,6 +43,8 @@ Use `docs/phase-23-compact-spherical-world-prototype-goal-mode-execution-guide.m
 
 Phase 23 is PASS in `docs/phase-23-compact-spherical-world-prototype-final-report.md`. The active next implementation target is Phase 24: Delivery Gameplay Showcase from `docs/abeto-messenger-development-plan.md`. Phase 24 should build on the compact spherical-world prototype only through its own scoped guide, with delivery jobs, route feedback, player interaction, Runtime UI, audio, and new input semantics kept inside that guide.
 
+Use `docs/phase-24-delivery-gameplay-showcase-goal-mode-execution-guide.md` for Phase 24. The guide uses 16 rounds and keeps the phase focused on a playable single-player delivery showcase: Showcase Mode without editor panels, minimal first-party player controller, interaction radius, delivery job data/state, route and target feedback, completion feedback, editor job affordances, and browser smoke for a successful job flow. Do not treat Phase 24 as approval for Phase 25 multiplayer-lite, WebSocket rooms, remote avatars, Physics/Rapier, external InputFlow, ViewRig, production Runtime UI framework, Audio runtime, or external adapter integration.
+
 During Phase 21 and later shader work, use the "Shader Production Quality Checklist" in `docs/developer-guide.md`. New production materials or postprocess passes should not be accepted with editor-only evidence; they need compile smoke, visual regression coverage, fallback diagnostics, precompile consideration, and low-end baseline evidence appropriate to the change.
 
 ## Execution Budget
