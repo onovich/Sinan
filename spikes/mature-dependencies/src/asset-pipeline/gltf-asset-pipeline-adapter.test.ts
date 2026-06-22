@@ -186,4 +186,79 @@ describe("GltfAssetPipelineAdapter inspect", () => {
     expect(fail.budget.status).toBe("fail");
     expect(fail.diagnostics.map((diagnostic) => diagnostic.code)).toContain("budget-failed");
   });
+
+  test("skips unchanged generated artifact rebuilds when cache policy allows reuse", async () => {
+    const tempRoot = await mkdtemp(join(tmpdir(), "sinan-asset-pipeline-rebuild-skip-"));
+    await copyFile(join(process.cwd(), "fixtures", "minimal-triangle.gltf"), join(tempRoot, "minimal-triangle.gltf"));
+    const adapter = createGltfAssetPipelineAdapter({
+      packageRoot: tempRoot,
+      config: {
+        sourceRoot: ".",
+        outputRoot: "generated",
+        generatedArtifactPolicy: {
+          outputRoot: "generated"
+        }
+      }
+    });
+    const normalized = normalizeAssetBuildRequest(
+      {
+        assetId: "asset:minimal-triangle",
+        sourcePath: "minimal-triangle.gltf",
+        outputArtifactPath: "minimal-triangle-runtime.glb"
+      },
+      adapter.config
+    );
+    const buildRequest = normalized.value?.request as AssetBuildRequest;
+    const first = await adapter.build(buildRequest);
+    const second = await adapter.rebuild(buildRequest, first);
+
+    expect(second.status).toBe("skipped");
+    expect(second.sourceHash).toBe(first.sourceHash);
+    expect(second.profileHash).toBe(first.profileHash);
+  });
+
+  test("rebuilds stale sources and flags non-reproducible hash mismatches", async () => {
+    const tempRoot = await mkdtemp(join(tmpdir(), "sinan-asset-pipeline-rebuild-stale-"));
+    await copyFile(join(process.cwd(), "fixtures", "minimal-triangle.gltf"), join(tempRoot, "minimal-triangle.gltf"));
+    const adapter = createGltfAssetPipelineAdapter({
+      packageRoot: tempRoot,
+      config: {
+        sourceRoot: ".",
+        outputRoot: "generated",
+        generatedArtifactPolicy: {
+          outputRoot: "generated"
+        }
+      }
+    });
+    const normalized = normalizeAssetBuildRequest(
+      {
+        assetId: "asset:minimal-triangle",
+        sourcePath: "minimal-triangle.gltf",
+        outputArtifactPath: "minimal-triangle-runtime.glb",
+        cachePolicy: "disabled"
+      },
+      adapter.config
+    );
+    const buildRequest = normalized.value?.request as AssetBuildRequest;
+    const first = await adapter.build(buildRequest);
+    await writeFile(join(tempRoot, "minimal-triangle.gltf"), `${await readFile(join(tempRoot, "minimal-triangle.gltf"), "utf8")}\n`, "utf8");
+    const stale = await adapter.rebuild(buildRequest, first);
+    const nonReproducible = await adapter.rebuild(buildRequest, {
+      ...stale,
+      sourceHash: stale.sourceHash,
+      profileHash: stale.profileHash,
+      manifestPatch: {
+        ...stale.manifestPatch,
+        entries: stale.manifestPatch.entries.map((entry) => ({
+          ...entry,
+          artifactHash: "different-artifact-hash"
+        }))
+      }
+    });
+
+    expect(stale.status).toBe("success");
+    expect(stale.diagnostics.map((diagnostic) => diagnostic.code)).toContain("stale-source");
+    expect(nonReproducible.status).toBe("non-reproducible");
+    expect(nonReproducible.diagnostics.map((diagnostic) => diagnostic.code)).toContain("non-reproducible");
+  });
 });

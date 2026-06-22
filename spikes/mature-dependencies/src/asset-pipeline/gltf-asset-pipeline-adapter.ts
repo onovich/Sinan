@@ -24,6 +24,7 @@ import {
   normalizeAssetPipelineConfig,
   type AssetPipelineConfigInput
 } from "./asset-pipeline-normalizer";
+import { compareAssetBuildReproducibility } from "./asset-pipeline-rebuild";
 
 export interface GltfAssetPipelineAdapterOptions {
   config?: AssetPipelineConfigInput;
@@ -200,8 +201,61 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
     }
   }
 
-  async rebuild(request: AssetBuildRequest): Promise<AssetBuildReport> {
-    return this.inspect(request);
+  async rebuild(request: AssetBuildRequest, previous?: AssetBuildReport): Promise<AssetBuildReport> {
+    if (this.state === "disposed") {
+      return this.disposedReport(request, "Cannot rebuild after asset pipeline disposal.");
+    }
+
+    const source = await this.readSource(request);
+    if (!source.ok) {
+      return this.failureReport(request, source.status, source.diagnostics);
+    }
+
+    const digest = profileHash(this.config, request.profileId);
+    if (previous && request.cachePolicy !== "force-rebuild" && request.cachePolicy !== "disabled" && previous.sourceHash === source.hash && previous.profileHash === digest) {
+      this.state = "skipped";
+      return {
+        ...previous,
+        status: "skipped",
+        diagnostics: [
+          ...previous.diagnostics,
+          createAssetPipelineDiagnostic("stale-source", "Source and profile are unchanged; generated artifact rebuild skipped.", "info", false, {
+            assetId: request.assetId
+          })
+        ],
+        manifestPatch: {
+          ...previous.manifestPatch,
+          diagnostics: [
+            ...previous.manifestPatch.diagnostics,
+            createAssetPipelineDiagnostic("stale-source", "Source and profile are unchanged; generated artifact rebuild skipped.", "info", false, {
+              assetId: request.assetId
+            })
+          ]
+        }
+      };
+    }
+
+    const rebuilt = await this.build(request);
+    if (!previous) {
+      return rebuilt;
+    }
+
+    const rebuildDiagnostics = compareAssetBuildReproducibility(previous, rebuilt);
+    if (rebuildDiagnostics.length === 0) {
+      return rebuilt;
+    }
+
+    const status = rebuildDiagnostics.some((diagnostic) => diagnostic.code === "non-reproducible") ? "non-reproducible" : rebuilt.status;
+    return {
+      ...rebuilt,
+      status,
+      reproducible: status !== "non-reproducible",
+      diagnostics: [...rebuilt.diagnostics, ...rebuildDiagnostics],
+      manifestPatch: {
+        ...rebuilt.manifestPatch,
+        diagnostics: [...rebuilt.manifestPatch.diagnostics, ...rebuildDiagnostics]
+      }
+    };
   }
 
   async dispose(): Promise<AssetPipelineResult> {
