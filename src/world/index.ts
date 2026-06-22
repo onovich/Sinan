@@ -13,5 +13,14 @@ export {
   type SphericalPlacementResult,
   type SphericalPlacementSnapshot,
 } from './SphericalPlacement';
+export {
+  stepSurfaceMovement,
+  type SurfaceMovementCommand,
+  type SurfaceMovementEdgeStatus,
+  type SurfaceMovementOptions,
+  type SurfaceMovementResult,
+  type SurfaceMovementState,
+  type SurfaceMovementStepInput,
+} from './SurfaceMovement';
 export { World, type WorldTransformResult } from './World';
 export type { WorldEntitySnapshot, WorldSnapshot } from './WorldSnapshot';
