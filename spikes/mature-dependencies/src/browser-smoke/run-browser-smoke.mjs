@@ -86,6 +86,14 @@ if (!existsSync(expectedExecutable)) {
       ]
     },
     {
+      fileName: "physics-adapter-summary.json",
+      candidate: "PhysicsAdapter / RapierPhysicsAdapter",
+      diagnostics: [
+        ...diagnostics,
+        "PhysicsAdapter Rapier WASM init, fixed-step, event mapping, query mapping, fallback, and disposal smoke cannot run until Playwright Chromium launches."
+      ]
+    },
+    {
       fileName: "dexie-indexeddb-summary.json",
       candidate: "Dexie / IndexedDB",
       diagnostics: [

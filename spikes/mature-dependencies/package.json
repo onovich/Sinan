@@ -13,7 +13,8 @@
     "smoke:browser:headed": "node src/browser-smoke/run-browser-smoke.mjs --headed",
     "smoke:storage": "node src/storage-adapter/run-storage-smoke.mjs",
     "smoke:worker-task": "node src/worker-task/run-worker-task-smoke.mjs",
-    "smoke:audio-system": "node src/audio-system/run-audio-system-smoke.mjs"
+    "smoke:audio-system": "node src/audio-system/run-audio-system-smoke.mjs",
+    "smoke:physics-adapter": "node src/physics-adapter/run-physics-adapter-smoke.mjs"
   },
   "keywords": [
     "sinan",

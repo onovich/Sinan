@@ -24,6 +24,7 @@ test("loads the isolated mature dependency smoke registry", async ({ page }) => 
     "audioSystem",
     "comlink",
     "dexie",
+    "physicsAdapter",
     "rapier",
     "recast",
     "spector",

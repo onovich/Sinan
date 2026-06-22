@@ -1,0 +1,104 @@
+{
+  "candidate": "PhysicsAdapter aggregate smoke",
+  "status": "PASS",
+  "decision": "PASS",
+  "layer": "candidate",
+  "durationMs": 2191,
+  "command": "npm run smoke:physics-adapter",
+  "diagnostics": [
+    "typecheck: PASS",
+    "typecheck: > sinan-mature-dependency-spikes@1.0.0 typecheck",
+    "typecheck: > tsc --noEmit",
+    "physics-adapter unit tests: PASS",
+    "physics-adapter unit tests: > sinan-mature-dependency-spikes@1.0.0 test",
+    "physics-adapter unit tests: > vitest run physics-adapter",
+    "physics-adapter unit tests:  RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
+    "physics-adapter unit tests:  Test Files  4 passed (4)",
+    "physics-adapter unit tests:       Tests  23 passed (23)",
+    "physics-adapter unit tests:    Start at  18:12:42",
+    "physics-adapter unit tests:    Duration  243ms (transform 157ms, setup 0ms, import 222ms, tests 77ms, environment 0ms)",
+    "physics-adapter boundary guard: PASS",
+    "physics-adapter boundary guard: imports, dynamic-code, and dependency-ownership scans passed",
+    "physics-adapter browser summary: PASS",
+    "physics-adapter browser summary: status: PASS",
+    "physics-adapter browser summary: decision: PASS",
+    "physics-adapter browser summary: console errors: 0",
+    "physics-adapter browser summary: boot/world/body-collider/step: true/true/true/true",
+    "physics-adapter browser summary: event/query/fallback/dispose/contract-clean: true/true/true/true/true",
+    "physics-adapter generated artifact cleanup: PASS",
+    "physics-adapter generated artifact cleanup: test-results not present",
+    "physics-adapter generated artifact cleanup: playwright-report not present",
+    "physics-adapter generated artifact guard: PASS",
+    "physics-adapter generated artifact guard: no generated Playwright artifact directories present"
+  ],
+  "checks": [
+    {
+      "name": "typecheck",
+      "ok": true,
+      "details": [
+        "> sinan-mature-dependency-spikes@1.0.0 typecheck",
+        "> tsc --noEmit"
+      ]
+    },
+    {
+      "name": "physics-adapter unit tests",
+      "ok": true,
+      "details": [
+        "> sinan-mature-dependency-spikes@1.0.0 test",
+        "> vitest run physics-adapter",
+        " RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
+        " Test Files  4 passed (4)",
+        "      Tests  23 passed (23)",
+        "   Start at  18:12:42",
+        "   Duration  243ms (transform 157ms, setup 0ms, import 222ms, tests 77ms, environment 0ms)"
+      ]
+    },
+    {
+      "name": "physics-adapter boundary guard",
+      "ok": true,
+      "details": [
+        "imports, dynamic-code, and dependency-ownership scans passed"
+      ]
+    },
+    {
+      "name": "physics-adapter browser summary",
+      "ok": true,
+      "details": [
+        "status: PASS",
+        "decision: PASS",
+        "console errors: 0",
+        "boot/world/body-collider/step: true/true/true/true",
+        "event/query/fallback/dispose/contract-clean: true/true/true/true/true"
+      ]
+    },
+    {
+      "name": "physics-adapter generated artifact cleanup",
+      "ok": true,
+      "details": [
+        "test-results not present",
+        "playwright-report not present"
+      ]
+    },
+    {
+      "name": "physics-adapter generated artifact guard",
+      "ok": true,
+      "details": [
+        "no generated Playwright artifact directories present"
+      ]
+    }
+  ],
+  "artifactPolicy": {
+    "committed": [
+      "reports/browser-smoke/physics-adapter-summary.json",
+      "reports/physics-adapter/physics-adapter-validation-summary.json"
+    ],
+    "notCommitted": [
+      "test-results",
+      "playwright-report",
+      "dist",
+      "coverage",
+      "browser binaries"
+    ]
+  },
+  "timestamp": "2026-06-22T10:12:42.603Z"
+}
