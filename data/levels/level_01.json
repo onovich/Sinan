@@ -17,6 +17,58 @@
       "saturation": 1.08
     }
   },
+  "worldProjection": {
+    "type": "cube-sphere",
+    "radius": 6,
+    "regions": [
+      {
+        "id": "city",
+        "name": "Switchback City",
+        "label": "City",
+        "face": "front",
+        "localBounds": {
+          "center": [0, 0, 0],
+          "size": [4, 2, 3]
+        },
+        "style": {
+          "color": "#5aa7d6",
+          "tone": "accent"
+        },
+        "lodGroup": "gate-demo-props",
+        "scatterGroup": "scatter_switch_markers"
+      },
+      {
+        "id": "hill",
+        "name": "Signal Hill",
+        "label": "Hill",
+        "face": "right",
+        "localBounds": {
+          "center": [0, 0, 0],
+          "size": [3, 2, 3]
+        },
+        "style": {
+          "color": "#76b28b",
+          "tone": "base"
+        },
+        "lodGroup": "gate-demo-props"
+      },
+      {
+        "id": "beach",
+        "name": "Gate Beach",
+        "label": "Beach",
+        "face": "left",
+        "localBounds": {
+          "center": [0, 0, 0],
+          "size": [3, 2, 3]
+        },
+        "style": {
+          "color": "#d6c75a",
+          "tone": "accent"
+        },
+        "lodGroup": "gate-demo-props"
+      }
+    ]
+  },
   "entities": [
     {
       "id": "room_blockout_01",
@@ -25,6 +77,12 @@
         "position": [2.5, 0, 5.5],
         "rotation": [0, 0, 0, 1],
         "scale": [1, 1, 1]
+      },
+      "placement": {
+        "mode": "spherical-region",
+        "region": "city",
+        "localPosition": [-1.1, -0.1, -0.65],
+        "localYaw": -0.2
       },
       "components": {
         "Renderable": {
@@ -39,6 +97,12 @@
         "position": [0, 0, 3],
         "rotation": [0, 0, 0, 1],
         "scale": [1, 1, 1]
+      },
+      "placement": {
+        "mode": "spherical-region",
+        "region": "hill",
+        "localPosition": [0, 0.15, 0],
+        "localYaw": 0.2
       },
       "components": {
         "PlayerSpawn": {
@@ -59,6 +123,12 @@
         "rotation": [0, 0, 0, 1],
         "scale": [1.4, 1.4, 1.4]
       },
+      "placement": {
+        "mode": "spherical-region",
+        "region": "city",
+        "localPosition": [0.45, 0.2, 0.35],
+        "localYaw": 0.35
+      },
       "components": {
         "Switch": {
           "initialState": false
@@ -75,6 +145,12 @@
         "position": [5, 0, 8],
         "rotation": [0, 0.7071068, 0, 0.7071068],
         "scale": [1, 1, 1]
+      },
+      "placement": {
+        "mode": "spherical-region",
+        "region": "beach",
+        "localPosition": [0.2, 0.1, 0.35],
+        "localYaw": -0.3
       },
       "components": {
         "Renderable": {
@@ -106,6 +182,12 @@
         "position": [4.5, 0, 7],
         "rotation": [0, 0, 0, 1],
         "scale": [1.4, 1, 1.2]
+      },
+      "placement": {
+        "mode": "spherical-region",
+        "region": "beach",
+        "localPosition": [0.15, 0.05, -0.35],
+        "localYaw": -0.25
       },
       "components": {
         "Collider": {

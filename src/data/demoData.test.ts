@@ -21,6 +21,7 @@ import { LevelSchema } from '../schemas/level.schema';
 import { PaletteSchema } from '../schemas/palette.schema';
 import { PrefabSchema } from '../schemas/prefab.schema';
 import { TimelineSchema } from '../schemas/timeline.schema';
+import { World } from '../world';
 
 describe('demo project data', () => {
   it('matches the current core schemas', () => {
@@ -46,5 +47,23 @@ describe('demo project data', () => {
     expect(project.palettes.world_01).toBeDefined();
     expect(project.events.ev_gate_trigger_enter).toBeDefined();
     expect(project.events.ev_gate_trigger_exit).toBeDefined();
+  });
+
+  it('defines compact spherical world regions and source placements', () => {
+    const level = LevelSchema.parse(level01);
+    const world = World.fromLevel(level);
+    const placements = world.getSphericalPlacements();
+
+    expect(level.worldProjection?.type).toBe('cube-sphere');
+    expect(level.worldProjection?.regions.map((region) => region.id)).toEqual([
+      'city',
+      'hill',
+      'beach',
+    ]);
+    expect(new Set(level.entities.map((entity) => entity.placement?.region))).toEqual(
+      new Set(['city', 'hill', 'beach']),
+    );
+    expect(placements.issueCount).toBe(0);
+    expect(placements.placementCount).toBe(5);
   });
 });
