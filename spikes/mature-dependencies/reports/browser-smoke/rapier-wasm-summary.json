@@ -1,18 +1,25 @@
 {
   "candidate": "Rapier / WASM",
-  "status": "ENVIRONMENT-BLOCKED",
-  "decision": "ENVIRONMENT-BLOCKED",
-  "layer": "environment",
+  "status": "PASS",
+  "decision": "PASS",
+  "layer": "candidate",
   "browser": "Playwright Chromium",
   "port": 5184,
-  "durationMs": 12,
+  "durationMs": 260,
   "command": "npm exec -- playwright test -c playwright.config.ts",
   "consoleErrors": [],
   "artifacts": [],
   "diagnostics": [
-    "Expected Playwright Chromium executable is missing: C:\\Users\\Administrator\\AppData\\Local\\ms-playwright\\chromium-1228\\chrome-win64\\chrome.exe",
-    "Run npm exec -- playwright install chromium from spikes/mature-dependencies.",
-    "Rapier dynamic import, WASM init, minimal world step, reload, and bundle path smoke cannot run until Playwright Chromium launches."
+    "package: @dimforge/rapier3d-compat",
+    "version: 0.19.3",
+    "dynamic import base package ok: false",
+    "dynamic import base package error: Skipped in browser smoke so the base @dimforge/rapier3d package does not enter the Vite browser graph; compat package is the exercised candidate.",
+    "WASM init and world step: true",
+    "dynamic body y: 0.249",
+    "raycast hit: true",
+    "contact events: 1",
+    "trigger events: 1",
+    "adapter boundary: Sinan PhysicsAdapter contract -> Rapier adapter -> Rapier world"
   ],
-  "timestamp": "2026-06-21T11:19:16.362Z"
+  "timestamp": "2026-06-22T03:12:06.933Z"
 }

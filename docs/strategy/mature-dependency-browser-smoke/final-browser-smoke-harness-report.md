@@ -1,17 +1,19 @@
 # Mature Dependency Browser Smoke Harness Final Report
 
-Date: 2026-06-21
+Date: 2026-06-22
 Branch: `codex/mature-dependency-browser-smoke-harness`
 Base: `origin/codex/mature-dependency-adapter-contract-rfcs`
-Head before final report commit: `9e11d33`
+Original final report commit: `6861ea5`
 
 ## Status
 
-BLOCKED.
+BROWSER SMOKE HARNESS PASS after environment repair.
 
-The isolated browser smoke harness, Playwright config, browser smoke cases, result schema, reports, and handoff documents were created and pushed. However, this goal cannot be marked PASS because Playwright-managed Chromium 1228 / Headless Shell 1228 could not be installed or launched in the current environment.
+The isolated browser smoke harness, Playwright config, browser smoke cases, result schema, reports, and handoff documents were created and pushed. The acceptance review on 2026-06-22 correctly marked the goal BLOCKED because Playwright-managed Chromium 1228 / Headless Shell 1228 was missing at that time.
 
-The blocker is classified as `ENVIRONMENT-BLOCKED`, not candidate failure and not contract failure.
+The environment repair pass found the required Playwright browser payloads present in the user-level cache, verified `chromium.launch({ headless: true })`, and reran the browser smoke harness. The real browser run now passes all Playwright tests. All browser-sensitive candidates except recast-navigation have `PASS` summaries; recast-navigation remains `POLICY-SKIP` under RFC-013.
+
+This pass still does not authorize adapter implementation, root dependency changes, or Sinan mainline runtime work.
 
 ## Scope
 
@@ -27,9 +29,9 @@ The blocker is classified as `ENVIRONMENT-BLOCKED`, not candidate failure and no
 | --- | --- |
 | Playwright package | `Version 1.61.0` |
 | Expected browser | Playwright Chromium 1228 / Headless Shell 1228 |
-| Browser install result | `ENVIRONMENT-BLOCKED`; `npm exec -- playwright install chromium` timed out in this round, with previous spike evidence also recording a 304 second timeout. |
-| Browser launch result | `ENVIRONMENT-BLOCKED`; expected executables under `C:\Users\Administrator\AppData\Local\ms-playwright\chromium-1228` and `chromium_headless_shell-1228` were missing. |
-| Existing cache | Older `chromium-1217` and `chromium_headless_shell-1217` only. |
+| Browser payload result | PASS; Chromium 1228 and Headless Shell 1228 are present in `C:\Users\Administrator\AppData\Local\ms-playwright`. |
+| Browser launch result | PASS; `chromium.launch({ headless: true })` reports `149.0.7827.55`. |
+| Existing cache | Includes required 1228 payloads; older 1217 payloads may also remain. |
 | Port | `5184`; port `5174` not used. |
 | Headless/headed | Headless default, headed wrapper available through `smoke:browser:headed`. |
 
@@ -37,12 +39,12 @@ The blocker is classified as `ENVIRONMENT-BLOCKED`, not candidate failure and no
 
 | Candidate | Status | Browser evidence | Main blocker or risk | Next gate |
 | --- | --- | --- | --- | --- |
-| Browser baseline | `ENVIRONMENT-BLOCKED` | `browser-baseline-summary.json` | Missing Playwright Chromium executable. | Environment repair. |
-| Web Audio | `ENVIRONMENT-BLOCKED` | `web-audio-summary.json` | AudioContext unlock/autoplay cannot run until Chromium launches. | RFC-007 plus browser smoke policy. |
-| Dexie / IndexedDB | `ENVIRONMENT-BLOCKED` | `dexie-indexeddb-summary.json` | IndexedDB quota/reload/cleanup cannot run until Chromium launches. | RFC-008 plus browser smoke policy. |
-| Comlink / Worker | `ENVIRONMENT-BLOCKED` | `comlink-worker-summary.json` | Worker URL/RPC/transferable smoke cannot run until Chromium launches. | RFC-010 plus browser smoke policy. |
-| Spector.js | `ENVIRONMENT-BLOCKED` | `spector-dev-only-summary.json` | Dev-only browser guard cannot run until Chromium launches. Production static exclusion check found no `spectorjs` or `SPECTOR` matches in `dist/**`. | RFC-012 plus RFC-011 production exclusion. |
-| Rapier / WASM | `ENVIRONMENT-BLOCKED` | `rapier-wasm-summary.json` | WASM init, dynamic import, and bundle path cannot run until Chromium launches. | RFC-006 plus RFC-011. |
+| Browser baseline | `PASS` | `browser-baseline-summary.json` | None for isolated browser environment. | Adapter-specific implementation guide still required. |
+| Web Audio | `PASS` | `web-audio-summary.json` | Browser API behavior proven only in isolated smoke. | RFC-007 plus browser smoke policy. |
+| Dexie / IndexedDB | `PASS` | `dexie-indexeddb-summary.json` | Browser-local persistence only; canonical `data/**/*.json` remains source of truth. | RFC-008 plus storage/save adapter contract. |
+| Comlink / Worker | `PASS` | `comlink-worker-summary.json` | Worker behavior must stay behind Sinan-owned task contract. | RFC-010 plus WorkerTask adapter contract. |
+| Spector.js | `PASS` | `spector-dev-only-summary.json` | Dev-only package must remain disabled by default and excluded from production behavior. | RFC-012 plus RFC-011 production exclusion. |
+| Rapier / WASM | `PASS` | `rapier-wasm-summary.json` | Browser smoke exercises `@dimforge/rapier3d-compat`; base `@dimforge/rapier3d` remains a packaging decision for a future PhysicsAdapter guide. | RFC-006 plus RFC-011. |
 | recast-navigation | `POLICY-SKIP` | `recast-policy-skip-summary.json` | RFC-013 keeps navigation on hold. | Dedicated navigation RFC before implementation. |
 
 ## Reports And Artifacts
@@ -62,9 +64,9 @@ Committed artifacts are limited to source, config, Markdown reports, and small J
 | Command | Result |
 | --- | --- |
 | `npm --prefix spikes\mature-dependencies exec -- playwright --version` | PASS, `Version 1.61.0`. |
-| `npm exec -- playwright install chromium` from `spikes/mature-dependencies` | `ENVIRONMENT-BLOCKED`, timed out. |
+| `chromium.launch({ headless: true })` from `spikes/mature-dependencies` | PASS, browser version `149.0.7827.55`. |
 | `npm --prefix spikes\mature-dependencies run check` | PASS. |
-| `npm --prefix spikes\mature-dependencies run smoke:browser` | Completed repeatably and emitted normalized `ENVIRONMENT-BLOCKED` / `POLICY-SKIP` summaries. It cannot be interpreted as browser PASS while Chromium is missing. |
+| `npm --prefix spikes\mature-dependencies run smoke:browser` | PASS, 7 Playwright tests passed and emitted normalized `PASS` / `POLICY-SKIP` summaries. |
 | Production Spector static exclusion | PASS, no `spectorjs` or `SPECTOR` matches found in `dist/**` after build. |
 | `git diff --check` | PASS. |
 | Forbidden path scan | PASS, branch changes are limited to `spikes/mature-dependencies/**` and `docs/strategy/mature-dependency-browser-smoke/**`. |
@@ -84,11 +86,11 @@ Committed artifacts are limited to source, config, Markdown reports, and small J
 | Port `5174` used | no |
 | recast-navigation moved out of hold | no |
 
-## Blocker
+## Resolved Environment Blocker
 
-Blocker: Playwright-managed Chromium install and launch unavailable.
+Original blocker: Playwright-managed Chromium install and launch unavailable.
 
-Candidate: all browser-sensitive candidates except recast-navigation.
+Repair result: resolved for the local environment.
 
 Layer: `environment`.
 
@@ -104,32 +106,31 @@ Repro command:
 ```powershell
 cd D:\LabProjects\Sinan-MatureDependencySpikes\spikes\mature-dependencies
 npm exec -- playwright --version
-npm exec -- playwright install chromium
 node -e "import('playwright').then(async ({chromium})=>{const browser=await chromium.launch({headless:true}); console.log(browser.version()); await browser.close();})"
+npm run smoke:browser
 ```
 
 Observed result:
 
 - Playwright CLI is available.
-- Browser install timed out.
-- Browser launch reports missing Playwright-managed Chromium / Headless Shell executables.
+- Browser launch succeeds.
+- Browser smoke runs actual page/candidate tests and passes.
 
 Expected result:
 
-- `playwright install chromium` completes.
 - `chromium.launch({ headless: true })` starts and reports a browser version.
 - `npm --prefix spikes\mature-dependencies run smoke:browser` runs actual page/candidate tests.
 
-Why this blocks:
+Why this no longer blocks:
 
-- The guide requires Playwright Chromium to install, locate, and launch before the goal can be PASS.
-- Browser-sensitive candidates cannot produce real browser evidence without this environment.
+- The guide requires Playwright Chromium to locate and launch before browser-sensitive candidates can produce evidence.
+- Chromium now locates and launches, so the harness can emit real browser evidence.
 
 Suggested next step:
 
-- Repair the Playwright browser installation environment or provide an approved cached Chromium 1228 / Headless Shell 1228 payload.
-- Re-run `npm --prefix spikes\mature-dependencies run smoke:browser`.
-- If it launches, update the JSON summaries and this report from BLOCKED to the appropriate candidate statuses.
+- Use the updated summaries as browser smoke evidence only.
+- Do not enter adapter implementation until a separate adapter-specific guide explicitly authorizes it.
+- Keep recast-navigation on RFC-013 hold.
 
 Touched files:
 
@@ -155,7 +156,7 @@ All commits below were pushed to `origin/codex/mature-dependency-browser-smoke-h
 
 ## Handoff
 
-This goal produced a reusable isolated browser smoke harness and normalized reports, but the goal is BLOCKED on Playwright Chromium environment repair. Future adapter implementation guides must not consume these results as browser PASS evidence.
+This goal produced a reusable isolated browser smoke harness and normalized reports. After the environment repair pass, the harness now has real Playwright Chromium evidence for browser-sensitive candidates, with recast-navigation still intentionally skipped by policy.
 
 After the environment is repaired, the same branch can be resumed by running:
 

@@ -1,16 +1,19 @@
 # Mature Dependency Browser Smoke Environment Audit
 
-Date: 2026-06-21
+Date: 2026-06-21, updated 2026-06-22
 Round: 2
 Branch: `codex/mature-dependency-browser-smoke-harness`
 Scope: isolated `spikes/mature-dependencies` Playwright / Chromium audit
-Status: `ENVIRONMENT-BLOCKED`
+Original status: `ENVIRONMENT-BLOCKED`
+Current status after 2026-06-22 repair pass: `PASS`
 
 ## Summary
 
 The isolated package has Playwright installed and callable, but the required Playwright-managed Chromium 1228 browser payload is not fully installed. Browser launch currently fails because the expected Playwright Chromium Headless Shell executable is missing. Re-running `playwright install chromium` timed out and left install/download processes that had to be cleaned up.
 
 This means browser-dependent candidate PASS results must not be claimed yet. The goal may continue building harness structure and normalized reporting, but the final goal status must remain BLOCKED unless the Playwright-managed browser can be installed and launched.
+
+2026-06-22 update: the required Playwright Chromium 1228 and Headless Shell 1228 payloads are now present in the user-level Playwright cache. `chromium.launch({ headless: true })` succeeds and reports browser version `149.0.7827.55`; `npm --prefix spikes\mature-dependencies run smoke:browser` now runs real browser tests. The original environment-blocked evidence remains below as historical acceptance context.
 
 ## Commands Run
 
@@ -52,11 +55,11 @@ Layer: `environment`
 
 Candidate impact:
 
-- Web Audio browser smoke: `ENVIRONMENT-BLOCKED` until Chromium launches.
-- Dexie / IndexedDB browser smoke: `ENVIRONMENT-BLOCKED` until Chromium launches.
-- Comlink / Web Worker browser smoke: `ENVIRONMENT-BLOCKED` until Chromium launches.
-- Spector dev-only guard smoke: `ENVIRONMENT-BLOCKED` until Chromium launches.
-- Rapier / WASM browser smoke: `ENVIRONMENT-BLOCKED` until Chromium launches.
+- Web Audio browser smoke: originally `ENVIRONMENT-BLOCKED`; now `PASS` after Chromium launch repair.
+- Dexie / IndexedDB browser smoke: originally `ENVIRONMENT-BLOCKED`; now `PASS` after Chromium launch repair.
+- Comlink / Web Worker browser smoke: originally `ENVIRONMENT-BLOCKED`; now `PASS` after Chromium launch repair.
+- Spector dev-only guard smoke: originally `ENVIRONMENT-BLOCKED`; now `PASS` after Chromium launch repair.
+- Rapier / WASM browser smoke: originally `ENVIRONMENT-BLOCKED`; now `PASS` after Chromium launch repair, using `@dimforge/rapier3d-compat` as the exercised browser package while skipping the base package diagnostic import in browser runtime.
 - recast-navigation: remains `POLICY-SKIP` because RFC-013 holds navigation regardless of browser availability.
 
 ## Repro Command
@@ -78,3 +81,9 @@ node -e "import('playwright').then(async ({chromium})=>{const browser=await chro
 - `.codex/**` modified: no.
 - Browser binaries/cache committed: no.
 - Port `5174` used: no.
+
+## 2026-06-22 Repair Self-Check
+
+Debug self-check: Playwright package `1.61.0` locates Chromium 1228, launches headless Chromium, and completes `smoke:browser` with 7 passed Playwright tests.
+
+Architecture self-check: repair state lives in the Playwright user cache outside the repository. Repository changes remain limited to the isolated spike harness and browser-smoke reports; no browser binaries, cache folders, traces, videos, screenshots, `dist/**`, `coverage/**`, or `node_modules/**` are committed.

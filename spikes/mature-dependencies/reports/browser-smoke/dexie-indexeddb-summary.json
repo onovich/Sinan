@@ -1,18 +1,24 @@
 {
   "candidate": "Dexie / IndexedDB",
-  "status": "ENVIRONMENT-BLOCKED",
-  "decision": "ENVIRONMENT-BLOCKED",
-  "layer": "environment",
+  "status": "PASS",
+  "decision": "PASS",
+  "layer": "candidate",
   "browser": "Playwright Chromium",
   "port": 5184,
-  "durationMs": 12,
+  "durationMs": 294,
   "command": "npm exec -- playwright test -c playwright.config.ts",
   "consoleErrors": [],
   "artifacts": [],
   "diagnostics": [
-    "Expected Playwright Chromium executable is missing: C:\\Users\\Administrator\\AppData\\Local\\ms-playwright\\chromium-1228\\chrome-win64\\chrome.exe",
-    "Run npm exec -- playwright install chromium from spikes/mature-dependencies.",
-    "IndexedDB availability, quota, reload, cleanup, export, and import smoke cannot run until Playwright Chromium launches."
+    "IndexedDB available: true",
+    "Dexie used fake IndexedDB: false",
+    "schema version: 2",
+    "inserted/export/import: 2/2/2",
+    "cleanup: true",
+    "quota: 9663676416",
+    "usage: 0",
+    "reload IndexedDB available: true",
+    "reload storage estimate available: true"
   ],
-  "timestamp": "2026-06-21T11:19:16.362Z"
+  "timestamp": "2026-06-22T03:12:06.950Z"
 }

@@ -1,18 +1,21 @@
 {
   "candidate": "Web Audio",
-  "status": "ENVIRONMENT-BLOCKED",
-  "decision": "ENVIRONMENT-BLOCKED",
-  "layer": "environment",
+  "status": "PASS",
+  "decision": "PASS",
+  "layer": "candidate",
   "browser": "Playwright Chromium",
   "port": 5184,
-  "durationMs": 11,
+  "durationMs": 326,
   "command": "npm exec -- playwright test -c playwright.config.ts",
   "consoleErrors": [],
   "artifacts": [],
   "diagnostics": [
-    "Expected Playwright Chromium executable is missing: C:\\Users\\Administrator\\AppData\\Local\\ms-playwright\\chromium-1228\\chrome-win64\\chrome.exe",
-    "Run npm exec -- playwright install chromium from spikes/mature-dependencies.",
-    "AudioContext unlock, autoplay, fallback, and diagnostic smoke cannot run until Playwright Chromium launches."
+    "AudioContext supported: true",
+    "AudioContext state before unlock: running",
+    "AudioContext state after unlock: running",
+    "unlock attempted: true",
+    "autoplay/user gesture path exercised: true",
+    "fallback diagnostics: none"
   ],
-  "timestamp": "2026-06-21T11:19:16.361Z"
+  "timestamp": "2026-06-22T03:12:06.965Z"
 }

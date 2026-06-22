@@ -1,9 +1,9 @@
 # Mature Dependency Browser Smoke Results
 
-Date: 2026-06-21
+Date: 2026-06-22
 Branch: `codex/mature-dependency-browser-smoke-harness`
 Port policy: use `5184`, never `5174`
-Status: partial harness, environment currently blocked by missing Playwright Chromium 1228 payload
+Status: browser smoke harness resumed after Playwright Chromium 1228 payload repair
 
 ## Result Status Enum
 
@@ -57,12 +57,12 @@ Do not commit:
 
 | Candidate | Status | Browser evidence | Main blocker or risk | Next gate |
 | --- | --- | --- | --- | --- |
-| Browser baseline | `ENVIRONMENT-BLOCKED` | `browser-baseline-summary.json` records missing Playwright Chromium executable on port `5184`. | Playwright 1.61 requires Chromium 1228 / Headless Shell 1228, but cache only had older 1217 payloads after install timeout. | Environment repair before candidate PASS. |
-| Web Audio | `ENVIRONMENT-BLOCKED` | `web-audio-summary.json` records that AudioContext unlock, autoplay, fallback, and diagnostic smoke are blocked by missing Playwright Chromium. | Real browser cannot launch yet. | RFC-007 plus browser smoke policy. |
-| Dexie / IndexedDB | `ENVIRONMENT-BLOCKED` | `dexie-indexeddb-summary.json` records that Dexie, IndexedDB, quota, reload, cleanup, export, and import smoke are blocked by missing Playwright Chromium. | Real browser cannot launch yet. | RFC-008 plus browser smoke policy. |
-| Comlink / Worker | `ENVIRONMENT-BLOCKED` | `comlink-worker-summary.json` records that Comlink, Worker, worker URL, transferable, diagnostic error mapping, and terminate smoke are blocked by missing Playwright Chromium. | Real browser cannot launch yet. | RFC-010 plus browser smoke policy. |
-| Spector.js | `ENVIRONMENT-BLOCKED` | `spector-dev-only-summary.json` records that Spector dev-only dynamic import guard is blocked by missing Playwright Chromium, with production static exclusion diagnostics after build. | Real browser cannot launch yet; must also remain `dev-only` and excluded from production behavior. | RFC-012 plus RFC-011 production exclusion. |
-| Rapier / WASM | `ENVIRONMENT-BLOCKED` | `rapier-wasm-summary.json` records that Rapier dynamic import, WASM init, minimal world step, reload, and bundle path smoke are blocked by missing Playwright Chromium. | Real browser cannot launch yet; WASM/bundle path still unproven. | RFC-006 plus RFC-011. |
+| Browser baseline | `PASS` | `browser-baseline-summary.json` records Playwright Chromium loading the isolated registry on port `5184`. | None for browser environment baseline. | Adapter-specific implementation guide still required before production integration. |
+| Web Audio | `PASS` | `web-audio-summary.json` records AudioContext support, unlock behavior, fallback diagnostics, and playback state in Chromium. | Browser API support proven only in the isolated harness. | RFC-007 plus a future `AudioSystem` adapter contract. |
+| Dexie / IndexedDB | `PASS` | `dexie-indexeddb-summary.json` records IndexedDB availability, Dexie write/read/reload/cleanup/export/import evidence. | Browser-local persistence only; canonical `data/**/*.json` remains the source of truth. | RFC-008 plus storage/save adapter contract. |
+| Comlink / Worker | `PASS` | `comlink-worker-summary.json` records Worker support, RPC, transferable payload, diagnostic error mapping, and terminate behavior. | Worker implementation must remain behind a Sinan-owned task contract. | RFC-010 plus WorkerTask adapter contract. |
+| Spector.js | `PASS` | `spector-dev-only-summary.json` records that Spector remains disabled by default and only loads through the dev-only dynamic import path. | Dev-only diagnostic package must stay out of production behavior. | RFC-012 plus RFC-011 production exclusion. |
+| Rapier / WASM | `PASS` | `rapier-wasm-summary.json` records compat package init, WASM-backed world step, raycast, contact, and trigger evidence in Chromium. | Base `@dimforge/rapier3d` remains a separate packaging decision; browser smoke exercises `@dimforge/rapier3d-compat` without pulling the base package into the Vite graph. | RFC-006 plus RFC-011 and a future PhysicsAdapter guide. |
 | recast-navigation | `POLICY-SKIP` | `recast-policy-skip-summary.json` records RFC-013 hold. | Navigation remains `hold-for-rfc`; no browser smoke result can promote it in this goal. | Dedicated navigation RFC before implementation. |
 
 Storage boundary note: Dexie / IndexedDB smoke can only prove a browser-local persistence surface. It does not move source-of-truth away from canonical `data/**/*.json`, repository schemas, or migrations.
@@ -79,8 +79,18 @@ Storage boundary note: Dexie / IndexedDB smoke can only prove a browser-local pe
 
 No external review feedback was received during this execution pass. The consistency self-review checked that:
 
+The following bullets describe the historical Round 11 state before the 2026-06-22 Chromium repair pass:
+
 - Every browser-sensitive candidate has exactly one committed JSON summary under `spikes/mature-dependencies/reports/browser-smoke/**`.
 - `browser-baseline`, Web Audio, Dexie / IndexedDB, Comlink / Worker, Spector.js, and Rapier / WASM are `ENVIRONMENT-BLOCKED` because Playwright Chromium 1228 cannot launch.
 - `recast-navigation` is `POLICY-SKIP` because RFC-013 keeps NavigationAdapter on hold.
 - `environment-audit.md` and this results file agree that the goal cannot be PASS until Playwright-managed Chromium installs and launches.
 - No summary promotes a candidate to production integration, hard dependency status, or mainline `src/**` work.
+
+## 2026-06-22 Environment Repair Notes
+
+- Playwright Chromium 1228 and Headless Shell 1228 are now present in the user-level Playwright cache.
+- `chromium.launch({ headless: true })` succeeds and reports browser version `149.0.7827.55`.
+- `npm --prefix spikes\mature-dependencies run smoke:browser` now runs real browser tests and completes with 7 passed Playwright tests.
+- The Rapier browser smoke skips the base `@dimforge/rapier3d` diagnostic import in browser runtime so the unsupported base package path does not enter the Vite graph. The exercised browser candidate is `@dimforge/rapier3d-compat`.
+- The updated PASS summaries are browser evidence only. They do not authorize adapter implementation, root dependency changes, or Sinan mainline source changes.

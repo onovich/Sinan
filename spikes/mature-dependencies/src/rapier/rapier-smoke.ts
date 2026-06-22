@@ -17,7 +17,19 @@ export interface RapierSmokeResult {
   adapterBoundary: string;
 }
 
+function isBrowserRuntime(): boolean {
+  return typeof window !== "undefined" && typeof document !== "undefined";
+}
+
 export async function probeBaseRapierImport(): Promise<PackageImportProbe> {
+  if (isBrowserRuntime()) {
+    return {
+      ok: false,
+      error:
+        "Skipped in browser smoke so the base @dimforge/rapier3d package does not enter the Vite browser graph; compat package is the exercised candidate."
+    };
+  }
+
   try {
     await import(/* @vite-ignore */ "@dimforge/rapier3d");
     return { ok: true };
