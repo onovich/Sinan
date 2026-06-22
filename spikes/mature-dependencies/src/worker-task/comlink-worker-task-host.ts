@@ -4,6 +4,7 @@ import type {
   TaskCancellationToken,
   TaskRequest,
   TaskResult,
+  TaskSnapshotRef,
   WorkerTaskConfig,
   WorkerTaskLifecycleState
 } from "./worker-task-types";
@@ -19,6 +20,7 @@ export interface WorkerTaskRemoteApi {
 export interface WorkerTaskHostOptions {
   config?: Partial<WorkerTaskConfig>;
   registry?: TaskRegistry;
+  isStaleSnapshot?: (snapshot: TaskSnapshotRef, request: TaskRequest) => boolean;
   now?: () => number;
 }
 
@@ -58,6 +60,7 @@ export function createWorkerTaskHost(options: WorkerTaskHostOptions = {}): Worke
     config: mergeConfig(options.config),
     registry: options.registry ?? createTaskRegistry(),
     successStatus: "success",
+    isStaleSnapshot: options.isStaleSnapshot,
     disposedMessage: "Comlink worker task host has been disposed.",
     now: options.now
   });

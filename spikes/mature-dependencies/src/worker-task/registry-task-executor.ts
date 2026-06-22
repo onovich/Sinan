@@ -8,11 +8,14 @@ import {
   type TaskJsonObject,
   type TaskRequest,
   type TaskResult,
+  type TaskSnapshotRef,
   type WorkerTaskAdapter,
   type WorkerTaskConfig,
   type WorkerTaskLifecycleState,
   type WorkerTaskResultStatus
 } from "./worker-task-types";
+
+export type StaleSnapshotPredicate = (snapshot: TaskSnapshotRef, request: TaskRequest) => boolean;
 
 export interface RegistryTaskExecutorOptions {
   config: WorkerTaskConfig;
@@ -20,6 +23,7 @@ export interface RegistryTaskExecutorOptions {
   successStatus?: Extract<WorkerTaskResultStatus, "success" | "fallback">;
   bootDiagnostics?: () => TaskDiagnostic[];
   successDiagnostics?: (request: TaskRequest) => TaskDiagnostic[];
+  isStaleSnapshot?: StaleSnapshotPredicate;
   disposedMessage?: string;
   now?: () => number;
 }
@@ -43,10 +47,12 @@ export class RegistryTaskExecutor implements WorkerTaskAdapter {
   private readonly successStatus: Extract<WorkerTaskResultStatus, "success" | "fallback">;
   private readonly bootDiagnostics: () => TaskDiagnostic[];
   private readonly successDiagnostics: (request: TaskRequest) => TaskDiagnostic[];
+  private readonly isStaleSnapshot: StaleSnapshotPredicate;
   private readonly disposedMessage: string;
   private readonly now: () => number;
   private readonly cancelledTokens = new Set<string>();
   private active = 0;
+  private queued = 0;
   private state: WorkerTaskLifecycleState;
 
   constructor(options: RegistryTaskExecutorOptions) {
@@ -55,6 +61,7 @@ export class RegistryTaskExecutor implements WorkerTaskAdapter {
     this.successStatus = options.successStatus ?? "success";
     this.bootDiagnostics = options.bootDiagnostics ?? (() => []);
     this.successDiagnostics = options.successDiagnostics ?? (() => []);
+    this.isStaleSnapshot = options.isStaleSnapshot ?? (() => false);
     this.disposedMessage = options.disposedMessage ?? "Worker task executor has been disposed.";
     this.now = options.now ?? Date.now;
     this.state = this.config.lifecycle;
@@ -95,6 +102,12 @@ export class RegistryTaskExecutor implements WorkerTaskAdapter {
       });
     }
 
+    if (this.isQueueOverflow()) {
+      return this.finish("queue-overflow", request, startedAt, {
+        diagnostics: [this.queueOverflowDiagnostic()]
+      });
+    }
+
     const lookup = this.registry.get(request.taskId);
     if (!lookup.ok || !lookup.entry) {
       return this.finish("failed", request, startedAt, {
@@ -109,6 +122,12 @@ export class RegistryTaskExecutor implements WorkerTaskAdapter {
       });
     }
 
+    if (request.snapshot && this.isStaleSnapshot(request.snapshot, request)) {
+      return this.finish("stale", request, startedAt, {
+        diagnostics: [this.staleSnapshotDiagnostic(request.snapshot)]
+      });
+    }
+
     if (this.isCancelled(request.cancellationToken)) {
       return this.finish("cancelled", request, startedAt, {
         diagnostics: [this.cancellationDiagnostic(request.cancellationToken)]
@@ -119,7 +138,19 @@ export class RegistryTaskExecutor implements WorkerTaskAdapter {
     this.setLifecycle("busy");
 
     try {
-      const output = await lookup.entry.handler(request);
+      const execution = await this.runWithTimeout(lookup.entry.handler(request), this.effectiveTimeoutMs(request, lookup.entry.defaultTimeoutMs));
+
+      if (execution.kind === "timeout") {
+        return this.finish("timeout", request, startedAt, {
+          diagnostics: [this.timeoutDiagnostic(this.effectiveTimeoutMs(request, lookup.entry.defaultTimeoutMs), request.taskId)]
+        });
+      }
+
+      if (execution.kind === "error") {
+        throw execution.error;
+      }
+
+      const output = execution.output;
 
       if (this.isCancelled(request.cancellationToken)) {
         return this.finish("cancelled", request, startedAt, {
@@ -171,6 +202,35 @@ export class RegistryTaskExecutor implements WorkerTaskAdapter {
     });
   }
 
+  private isQueueOverflow(): boolean {
+    const { maxConcurrent, maxQueued } = this.config.queuePolicy;
+    return this.active >= maxConcurrent && this.queued >= maxQueued;
+  }
+
+  private queueOverflowDiagnostic(): TaskDiagnostic {
+    return createTaskDiagnostic("queue-overflow", "Worker task queue capacity has been exceeded.", "error", true, {
+      active: this.active,
+      queued: this.queued,
+      maxConcurrent: this.config.queuePolicy.maxConcurrent,
+      maxQueued: this.config.queuePolicy.maxQueued
+    });
+  }
+
+  private staleSnapshotDiagnostic(snapshot: TaskSnapshotRef): TaskDiagnostic {
+    return createTaskDiagnostic("stale-snapshot", "Task snapshot is stale and must be refreshed before execution.", "warning", true, {
+      snapshotSource: snapshot.source,
+      snapshotId: snapshot.id,
+      snapshotVersion: snapshot.version
+    });
+  }
+
+  private timeoutDiagnostic(timeoutMs: number, taskId: string): TaskDiagnostic {
+    return createTaskDiagnostic("timeout", "Worker task exceeded its timeout.", "error", true, {
+      taskId,
+      timeoutMs
+    });
+  }
+
   private setLifecycle(state: WorkerTaskLifecycleState): void {
     this.state = state;
     this.config.lifecycle = state;
@@ -188,6 +248,49 @@ export class RegistryTaskExecutor implements WorkerTaskAdapter {
     return createTaskDiagnostic("cancellation", token?.reason ?? "Cancellation requested.", "info", false, {
       tokenId: token?.id ?? "unknown"
     });
+  }
+
+  private effectiveTimeoutMs(request: TaskRequest, taskDefaultTimeoutMs: number): number {
+    return request.timeoutMs ?? taskDefaultTimeoutMs ?? this.config.defaultTimeoutMs;
+  }
+
+  private async runWithTimeout<TOutput extends TaskJsonObject>(
+    operation: Promise<TOutput> | TOutput,
+    timeoutMs: number
+  ): Promise<{ kind: "timeout" } | { kind: "output"; output: TOutput } | { kind: "error"; error: unknown }> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const operationPromise = Promise.resolve(operation);
+    const timeoutPromise = new Promise<"timeout">((resolve) => {
+      timeoutId = setTimeout(() => resolve("timeout"), Math.max(0, timeoutMs));
+    });
+
+    try {
+      const result = await Promise.race([
+        operationPromise.then((output) => ({ kind: "output" as const, output })),
+        timeoutPromise.then(() => ({ kind: "timeout" as const }))
+      ]);
+
+      if (result.kind === "timeout") {
+        operationPromise.catch(() => undefined);
+        return {
+          kind: "timeout"
+        };
+      }
+
+      return {
+        kind: "output",
+        output: result.output
+      };
+    } catch (error) {
+      return {
+        kind: "error",
+        error
+      };
+    } finally {
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+      }
+    }
   }
 
   private finish<TOutput extends TaskJsonObject>(

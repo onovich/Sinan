@@ -116,6 +116,90 @@ describe("FakeWorkerTaskAdapter", () => {
     });
   });
 
+  test("honors cancellation tokens while a fallback task is running", async () => {
+    const adapter = createFakeWorkerTaskAdapter();
+    const token = {
+      id: "cancel-during-submit",
+      requested: false,
+      reason: "cancel during task"
+    };
+
+    const pending = adapter.submit({
+      ...request("delayed-success", { delayMs: 20, label: "cancelled-later" }),
+      cancellationToken: token
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await adapter.cancel(token);
+    const result = await pending;
+
+    expect(result.status).toBe("cancelled");
+    expect(result.diagnostics[0]).toMatchObject({
+      code: "cancellation",
+      message: "cancel during task"
+    });
+  });
+
+  test("times out slow tasks with retryable diagnostics", async () => {
+    const adapter = createFakeWorkerTaskAdapter();
+
+    const result = await adapter.submit({
+      ...request("delayed-success", { delayMs: 20, label: "slow" }),
+      timeoutMs: 1
+    });
+
+    expect(result.status).toBe("timeout");
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics[0]).toMatchObject({
+      code: "timeout",
+      retryable: true
+    });
+  });
+
+  test("rejects stale snapshots before running handlers", async () => {
+    const adapter = createFakeWorkerTaskAdapter({
+      isStaleSnapshot: (snapshot) => snapshot.source === "smoke-fixture" && snapshot.version < 2
+    });
+
+    const result = await adapter.submit({
+      ...request("echo-json", { value: "stale" }),
+      snapshot: {
+        source: "smoke-fixture",
+        id: "fixture-snapshot",
+        version: 1
+      }
+    });
+
+    expect(result.status).toBe("stale");
+    expect(result.stale).toBe(true);
+    expect(result.diagnostics[0]).toMatchObject({
+      code: "stale-snapshot",
+      retryable: true
+    });
+  });
+
+  test("reports queue overflow when capacity is exhausted", async () => {
+    const adapter = createFakeWorkerTaskAdapter({
+      config: {
+        queuePolicy: {
+          maxConcurrent: 1,
+          maxQueued: 0
+        }
+      }
+    });
+
+    const first = adapter.submit(request("delayed-success", { delayMs: 20, label: "active" }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const overflow = await adapter.submit(request("echo-json", { value: "overflow" }));
+    await first;
+
+    expect(overflow.status).toBe("queue-overflow");
+    expect(overflow.diagnostics[0]).toMatchObject({
+      code: "queue-overflow",
+      retryable: true
+    });
+  });
+
   test("rejects submissions after dispose with the shared result shape", async () => {
     const adapter = createFakeWorkerTaskAdapter();
 

@@ -1,6 +1,8 @@
 import { createTaskRegistry, type TaskRegistry } from "./task-registry";
 import {
   createTaskDiagnostic,
+  type TaskRequest,
+  type TaskSnapshotRef,
   type WorkerTaskAdapter,
   type WorkerTaskConfig
 } from "./worker-task-types";
@@ -10,6 +12,7 @@ export interface FakeWorkerTaskAdapterOptions {
   config?: Partial<WorkerTaskConfig>;
   registry?: TaskRegistry;
   fallbackReason?: string;
+  isStaleSnapshot?: (snapshot: TaskSnapshotRef, request: TaskRequest) => boolean;
   now?: () => number;
 }
 
@@ -59,6 +62,7 @@ export class FakeWorkerTaskAdapter extends RegistryTaskExecutor {
       successStatus: "fallback",
       bootDiagnostics: () => [createTaskDiagnostic("fallback-used", fallbackReason, "info")],
       successDiagnostics: () => [createTaskDiagnostic("fallback-used", fallbackReason, "info")],
+      isStaleSnapshot: options.isStaleSnapshot,
       disposedMessage: "Fake worker task adapter has been disposed.",
       now: options.now
     });
