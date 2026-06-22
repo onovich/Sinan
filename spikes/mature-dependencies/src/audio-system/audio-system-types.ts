@@ -21,7 +21,11 @@ export const audioDiagnosticCodes = [
   "latency-warning",
   "spatial-target-missing",
   "silent-fallback",
-  "disposed-scene"
+  "disposed-scene",
+  "invalid-cue",
+  "unknown-bus",
+  "invalid-gain",
+  "invalid-duration"
 ] as const;
 
 export type AudioDiagnosticCode = (typeof audioDiagnosticCodes)[number];
