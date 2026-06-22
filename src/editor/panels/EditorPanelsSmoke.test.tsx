@@ -5,6 +5,7 @@ import type { AssetManifestData } from '../../schemas/asset.schema';
 import type { LevelData } from '../../schemas/level.schema';
 import type { TransformData } from '../../schemas/transform.schema';
 import { AssetPanel } from './AssetPanel';
+import { DeliveryJobPanel } from './DeliveryJobPanel';
 import { EventDebugPanel } from './EventDebugPanel';
 import { HierarchyPanel } from './HierarchyPanel';
 import { InspectorPanel } from './InspectorPanel';
@@ -39,6 +40,27 @@ const level: LevelData = {
   events: [],
   timelines: [],
   cameraShots: [],
+  deliveryJobs: [
+    {
+      acceptEndpointId: 'delivery.pickup',
+      completion: {
+        endpointId: 'delivery.drop',
+        type: 'deliverToEndpoint',
+      },
+      defaultStatus: 'available',
+      description: 'Carry a packet.',
+      feedback: {
+        accepted: 'Accepted.',
+        completed: 'Complete.',
+        inProgress: 'In progress.',
+        readyToDeliver: 'Ready.',
+      },
+      id: 'job.mail',
+      routeHints: [],
+      targetEndpointId: 'delivery.drop',
+      title: 'Mail Run',
+    },
+  ],
 };
 
 const assets: AssetManifestData = {
@@ -69,6 +91,7 @@ describe('editor panel smoke', () => {
           selectedAssetId="model.switch_wall"
           onSelectAsset={() => undefined}
         />
+        <DeliveryJobPanel level={level} onApplyJob={() => undefined} />
         <InspectorPanel entity={level.entities[0]} />
         <EventDebugPanel
           debugState={{
@@ -86,6 +109,8 @@ describe('editor panel smoke', () => {
     expect(markup).toContain('Switch A');
     expect(markup).toContain('2 assets');
     expect(markup).toContain('/models/switch_wall.glb');
+    expect(markup).toContain('Delivery Jobs');
+    expect(markup).toContain('Mail Run');
     expect(markup).toContain('1 component');
     expect(markup).toContain('1 fired');
     expect(markup).toContain('1 command');

@@ -23,6 +23,7 @@ import {
 } from '../schemas/cameraShot.schema';
 import type { ComponentMapData, ComponentPayloadData } from '../schemas/entity.schema';
 import { EventSchema, type EventData } from '../schemas/event.schema';
+import type { DeliveryJobData } from '../schemas/delivery.schema';
 import { LevelSchema, type LevelData } from '../schemas/level.schema';
 import {
   TimelineSchema,
@@ -36,6 +37,7 @@ import { ReorderLevelEntityCommand } from './commands/ReorderLevelEntityCommand'
 import { TransformEntityCommand } from './commands/TransformEntityCommand';
 import { AddCameraShotCommand, UpdateCameraShotCommand } from './commands/UpdateCameraShotCommand';
 import { UpdateEntityComponentCommand } from './commands/UpdateEntityComponentCommand';
+import { UpdateDeliveryJobCommand } from './commands/UpdateDeliveryJobCommand';
 import { UpdateEventCommand } from './commands/UpdateEventCommand';
 import {
   AddTimelineItemCommand,
@@ -58,6 +60,7 @@ import {
 import { getSaveStatusPill, type EditorSaveStatus } from './editorStatus';
 import { AssetPanel } from './panels/AssetPanel';
 import { CameraShotPanel, type CameraShotSaveStatus } from './panels/CameraShotPanel';
+import { DeliveryJobPanel } from './panels/DeliveryJobPanel';
 import { EventDebugPanel, type EventDebugState } from './panels/EventDebugPanel';
 import { EventInspector, type EventSaveStatus } from './panels/EventInspector';
 import { HierarchyPanel } from './panels/HierarchyPanel';
@@ -417,6 +420,24 @@ export function EditorApp() {
     );
     dispatch({ type: 'selectEntity', entityId });
     setTransformPreview(undefined);
+    markLevelDirty(setDirtyState);
+    setSaveStatus('idle');
+    clearLevelSaveError(setSaveErrors);
+    refreshHistoryState(commandHistoryRef.current, setHistoryState);
+  };
+
+  const applyDeliveryJob = (job: DeliveryJobData) => {
+    const current = projectRef.current;
+    const currentJob = current?.level.deliveryJobs?.find((candidate) => candidate.id === job.id);
+
+    if (!current || !currentJob || deliveryJobDataEqual(currentJob, job)) {
+      return;
+    }
+
+    commandHistoryRef.current.execute(
+      new UpdateDeliveryJobCommand(job.id, current.level, job),
+      commandContext,
+    );
     markLevelDirty(setDirtyState);
     setSaveStatus('idle');
     clearLevelSaveError(setSaveErrors);
@@ -1395,6 +1416,7 @@ export function EditorApp() {
               selectedAssetId={selectedAssetId}
               onSelectAsset={setSelectedAssetId}
             />
+            <DeliveryJobPanel level={project?.level ?? null} onApplyJob={applyDeliveryJob} />
             {projectError ? <p className="panel-error">{projectError}</p> : null}
           </aside>
         ) : null}
@@ -2479,6 +2501,10 @@ function createDefaultCameraShot(
 }
 
 function eventDataEqual(left: EventData, right: EventData): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function deliveryJobDataEqual(left: DeliveryJobData, right: DeliveryJobData): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
