@@ -1,7 +1,9 @@
 import type { EntityData } from '../schemas/entity.schema';
 import type { LevelData } from '../schemas/level.schema';
 import { TransformSchema, type TransformData } from '../schemas/transform.schema';
+import type { WorldProjectionData } from '../schemas/worldProjection.schema';
 import { EntityStore, cloneEntityData, cloneTransform } from './EntityStore';
+import { deriveSphericalPlacements, type SphericalPlacementSnapshot } from './SphericalPlacement';
 import type { WorldSnapshot } from './WorldSnapshot';
 
 export type WorldTransformResult =
@@ -19,16 +21,19 @@ export type WorldTransformResult =
 
 export class World {
   private readonly entities: EntityStore;
+  private readonly worldProjection: WorldProjectionData | undefined;
 
   private constructor(
     private readonly levelId: string,
+    worldProjection: LevelData['worldProjection'],
     entities: readonly EntityData[],
   ) {
     this.entities = new EntityStore(entities);
+    this.worldProjection = worldProjection ? cloneJsonData(worldProjection) : undefined;
   }
 
   static fromLevel(level: LevelData): World {
-    return new World(level.id, level.entities);
+    return new World(level.id, level.worldProjection, level.entities);
   }
 
   getEntity(entityId: string): EntityData | undefined {
@@ -41,6 +46,14 @@ export class World {
 
   getTransform(entityId: string): TransformData | undefined {
     return this.entities.getTransform(entityId);
+  }
+
+  getSphericalPlacements(): SphericalPlacementSnapshot {
+    return deriveSphericalPlacements({
+      entities: this.entities.list(),
+      levelId: this.levelId,
+      worldProjection: this.worldProjection,
+    });
   }
 
   setTransform(entityId: string, transform: unknown): WorldTransformResult {
@@ -92,4 +105,8 @@ export class World {
   toEntityData(): EntityData[] {
     return this.entities.list().map(cloneEntityData);
   }
+}
+
+function cloneJsonData<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }

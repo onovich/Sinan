@@ -46,6 +46,7 @@ export class EntityStore {
 export function cloneEntityData(entity: EntityData): EntityData {
   return {
     ...entity,
+    ...(entity.placement ? { placement: cloneJsonData(entity.placement) } : {}),
     transform: cloneTransform(entity.transform),
     components: cloneJsonData(entity.components),
   };

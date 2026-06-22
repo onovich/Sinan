@@ -9,6 +9,42 @@ export interface RuntimeTransform {
   scale: Vec3;
 }
 
+export interface RuntimeSphericalSurfaceFrame {
+  position: Vec3;
+  normal: Vec3;
+  tangent: Vec3;
+  bitangent: Vec3;
+  rotation: Quat;
+}
+
+export type RuntimeSphericalPlacementIssueReason =
+  | 'missing_world_projection'
+  | 'missing_region'
+  | 'invalid_projection';
+
+export interface RuntimeSphericalPlacementIssue {
+  entityId: string;
+  message: string;
+  reason: RuntimeSphericalPlacementIssueReason;
+  regionId?: string;
+}
+
+export interface RuntimeSphericalPlacement {
+  authoredLocalPosition: Vec3;
+  authoredLocalYaw: number;
+  entityId: string;
+  regionId: string;
+  surfaceFrame: RuntimeSphericalSurfaceFrame;
+  transform: RuntimeTransform;
+}
+
+export interface RuntimeSphericalPlacementDiagnostics {
+  issueCount: number;
+  issues: readonly RuntimeSphericalPlacementIssue[];
+  placementCount: number;
+  placements: readonly RuntimeSphericalPlacement[];
+}
+
 export interface RuntimeSize {
   width: number;
   height: number;
