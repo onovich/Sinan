@@ -59,6 +59,19 @@ Dexie and IndexedDB own browser persistence mechanics only.
 Repository data and data/**/*.json remain canonical source-of-truth.
 ```
 
+## Snapshot Envelope Rule
+
+Storage export/import uses the Sinan-owned `StorageSnapshot` envelope:
+
+- `format`
+- `schemaVersion`
+- `namespace`
+- `exportedAt`
+- `records`
+- `diagnostics`
+
+The envelope records Sinan keys, record kinds, versions, checksums, retention classes, JSON payloads, and diagnostics. It must not require or expose Dexie metadata such as database names, table names, transactions, requests, object stores, or IndexedDB handles. A corrupted checksum or unsupported snapshot version must be rejected before a replace-mode import clears namespace data.
+
 ## Allowed Paths
 
 - `spikes/mature-dependencies/**`

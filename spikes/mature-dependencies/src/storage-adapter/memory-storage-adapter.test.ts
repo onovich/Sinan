@@ -171,6 +171,84 @@ describe("MemoryStorageAdapter", () => {
     });
   });
 
+  test("rejects invalid versions and checksum mismatches without accepting a bad snapshot", async () => {
+    const adapter = new MemoryStorageAdapter(config);
+    await adapter.open();
+
+    await expect(
+      adapter.put({
+        ...createRecord("invalid-version", 1, "recoverable"),
+        version: config.schemaVersion + 1
+      })
+    ).resolves.toMatchObject({
+      ok: false,
+      status: "invalid-version",
+      diagnostics: [
+        {
+          code: "upgrade"
+        }
+      ]
+    });
+
+    await adapter.put(createRecord("valid-before-import", 2, "recoverable"));
+    const snapshot = await adapter.exportSnapshot({
+      namespace: config.namespace
+    });
+    const corruptedSnapshot = {
+      ...snapshot.value!,
+      records: snapshot.value!.records.map((record) => ({
+        ...record,
+        payload: {
+          corrupted: true
+        },
+        checksum: "fnv1a-deadbeef"
+      }))
+    };
+
+    await expect(
+      adapter.importSnapshot(corruptedSnapshot, {
+        mode: "replace",
+        allowOlderVersions: false
+      })
+    ).resolves.toMatchObject({
+      ok: false,
+      status: "conflict",
+      diagnostics: [
+        {
+          code: "corruption-checksum"
+        }
+      ]
+    });
+
+    await expect(
+      adapter.list({
+        namespace: config.namespace
+      })
+    ).resolves.toMatchObject({
+      value: [
+        {
+          key: "valid-before-import"
+        }
+      ]
+    });
+
+    await expect(
+      adapter.importSnapshot(
+        {
+          ...snapshot.value!,
+          schemaVersion: config.schemaVersion + 1
+        },
+        {
+          mode: "merge",
+          allowOlderVersions: false
+        }
+      )
+    ).resolves.toMatchObject({
+      ok: false,
+      status: "invalid-version"
+    });
+  });
+
   test("cleans transient records while retaining persistent records", async () => {
     const adapter = new MemoryStorageAdapter(config);
     await adapter.open();

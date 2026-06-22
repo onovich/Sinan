@@ -221,4 +221,83 @@ describe("DexieStorageAdapter", () => {
     });
     expect(JSON.stringify(snapshot.value)).not.toMatch(/Dexie|indexedDB|table|transaction|request/i);
   });
+
+  test("rejects invalid versions and checksum mismatches before replacing namespace data", async () => {
+    const config = createConfig("sinan-storage-integrity");
+    const adapter = createAdapter(config);
+    await adapter.open();
+
+    await expect(
+      adapter.put({
+        ...createRecord(config, "invalid-version", 1),
+        version: config.schemaVersion + 1
+      })
+    ).resolves.toMatchObject({
+      ok: false,
+      status: "invalid-version",
+      diagnostics: [
+        {
+          code: "upgrade"
+        }
+      ]
+    });
+
+    await adapter.put(createRecord(config, "valid-before-import", 2));
+    const snapshot = await adapter.exportSnapshot({
+      namespace: config.namespace
+    });
+    const corruptedSnapshot = {
+      ...snapshot.value!,
+      records: snapshot.value!.records.map((record) => ({
+        ...record,
+        payload: {
+          corrupted: true
+        },
+        checksum: "fnv1a-deadbeef"
+      }))
+    };
+
+    await expect(
+      adapter.importSnapshot(corruptedSnapshot, {
+        mode: "replace",
+        allowOlderVersions: false
+      })
+    ).resolves.toMatchObject({
+      ok: false,
+      status: "conflict",
+      diagnostics: [
+        {
+          code: "corruption-checksum"
+        }
+      ]
+    });
+
+    await expect(
+      adapter.list({
+        namespace: config.namespace
+      })
+    ).resolves.toMatchObject({
+      value: [
+        {
+          key: "valid-before-import"
+        }
+      ]
+    });
+
+    await expect(
+      adapter.importSnapshot(
+        {
+          ...snapshot.value!,
+          schemaVersion: config.schemaVersion + 1
+        },
+        {
+          mode: "merge",
+          allowOlderVersions: false
+        }
+      )
+    ).resolves.toMatchObject({
+      ok: false,
+      status: "invalid-version"
+    });
+  });
 });

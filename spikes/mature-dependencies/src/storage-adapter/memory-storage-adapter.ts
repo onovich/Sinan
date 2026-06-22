@@ -61,6 +61,15 @@ function createChecksum(record: StorageRecordSpec): string {
   return `fnv1a-${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 
+function createChecksumMismatchDiagnostic(record: StorageRecordSpec): StorageDiagnostic {
+  return {
+    code: "corruption-checksum",
+    severity: "error",
+    message: `Checksum mismatch for ${record.kind}:${record.key}.`,
+    retryable: false
+  };
+}
+
 function createRecordId(ref: StorageRecordRef): string {
   return `${ref.namespace}\u0000${ref.kind}\u0000${ref.key}`;
 }
@@ -135,11 +144,18 @@ export class MemoryStorageAdapter implements StorageAdapter {
       ]);
     }
 
+    const checksum = createChecksum(record);
+    if (record.checksum && record.checksum !== checksum) {
+      return this.createResult<StorageStoredRecord<TPayload>>("conflict", undefined, [
+        createChecksumMismatchDiagnostic(record)
+      ]);
+    }
+
     const id = createRecordId(record);
     const existing = this.records.get(id);
     const stored: StorageStoredRecord<TPayload> = {
       ...cloneJson(record),
-      checksum: record.checksum ?? createChecksum(record),
+      checksum: record.checksum ?? checksum,
       createdAt: existing?.createdAt ?? this.options.now()
     };
 
@@ -216,6 +232,11 @@ export class MemoryStorageAdapter implements StorageAdapter {
     const namespaceCheck = this.validateNamespace<StorageSnapshot>(snapshot.namespace);
     if (namespaceCheck) {
       return namespaceCheck;
+    }
+
+    const snapshotRecordCheck = this.validateSnapshotRecords(snapshot);
+    if (snapshotRecordCheck) {
+      return snapshotRecordCheck;
     }
 
     if (options.mode === "replace") {
@@ -346,6 +367,27 @@ export class MemoryStorageAdapter implements StorageAdapter {
         retryable: false
       }
     ]);
+  }
+
+  private validateSnapshotRecords(snapshot: StorageSnapshot): StorageResult<StorageSnapshot> | undefined {
+    for (const record of snapshot.records) {
+      if (record.namespace !== snapshot.namespace) {
+        return this.createResult<StorageSnapshot>("conflict", undefined, [
+          {
+            code: "source-of-truth-guard",
+            severity: "error",
+            message: `Snapshot record ${record.key} uses namespace ${record.namespace}, not ${snapshot.namespace}.`,
+            retryable: false
+          }
+        ]);
+      }
+
+      if (record.checksum !== createChecksum(record)) {
+        return this.createResult<StorageSnapshot>("conflict", undefined, [createChecksumMismatchDiagnostic(record)]);
+      }
+    }
+
+    return undefined;
   }
 
   private volatileDiagnostics(): StorageDiagnostic[] {
