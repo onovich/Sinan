@@ -55,6 +55,8 @@ Use `docs/phase-26-vertical-slice-rc-hardening-goal-mode-execution-guide.md` for
 
 Phase 26 is PASS in `docs/phase-26-vertical-slice-rc-hardening-final-report.md`. Treat the current vertical slice as the local release-candidate baseline. The next project move should be a new scoped guide, not an automatic production networking, auth, persistence, text/voice chat, Physics/Rapier, external adapter, Runtime UI, Audio, deployment, or broad engine-expansion phase.
 
+Use `docs/phase-26-5-rc-release-packaging-and-baseline-tagging-goal-mode-execution-guide.md` for Phase 26.5. The guide uses 6 rounds and keeps the phase focused on internal RC release notes, demo script, validation evidence index, tag policy, and the annotated tag `vertical-slice-rc-2026-06-22`. Do not treat Phase 26.5 as approval for product feature work, production backend, auth, persistence, hosted deployment, text/voice chat, mobile input implementation, Physics/Rapier, external adapters, Runtime UI, Audio runtime, or broad engine expansion.
+
 During Phase 21 and later shader work, use the "Shader Production Quality Checklist" in `docs/developer-guide.md`. New production materials or postprocess passes should not be accepted with editor-only evidence; they need compile smoke, visual regression coverage, fallback diagnostics, precompile consideration, and low-end baseline evidence appropriate to the change.
 
 ## Execution Budget
