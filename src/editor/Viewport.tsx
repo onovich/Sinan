@@ -187,7 +187,7 @@ export function Viewport({
 
       session = activeSession;
       sessionRef.current = activeSession;
-      activeSession.setSocialRuntimeSnapshot(socialRuntimeSnapshotRef.current);
+      activeSession.setSocialRuntimeSnapshot?.(socialRuntimeSnapshotRef.current);
       bridgeRef.current = activeBridge;
       runtimeReadyRef.current?.(activeRuntime);
       if (readEditorRuntimeDiagnosticsEnabled()) {
@@ -234,6 +234,7 @@ export function Viewport({
       .loadProject(project, { isCancelled: () => disposed })
       .then((world) => {
         if (!disposed && world) {
+          session.setSocialRuntimeSnapshot?.(socialRuntimeSnapshotRef.current);
           bridgeRef.current?.setTriggerDebugVisible(showTriggerDebugRef.current);
           setStatus('Level loaded');
         }

@@ -117,6 +117,44 @@ test('showcase mode editor shell hides authoring panels and returns to edit', as
   expect(browserErrors).toEqual([]);
 });
 
+test('multiplayer-lite social smoke shows ten remotes and stamp diagnostics', async ({ page }) => {
+  const browserErrors = collectBrowserErrors(page);
+
+  await page.goto('/?runtimeDiagnostics=1');
+  const shell = page.getByTestId('editor-shell');
+  const modeNav = page.getByRole('navigation', { name: 'Editor modes' });
+  await expect(shell).toBeVisible();
+  await expect(page.locator('.viewport-status')).toContainText('runtime ready');
+
+  await modeNav.getByRole('button', { name: 'Showcase', exact: true }).click();
+  await expect(shell).toHaveAttribute('data-mode', 'showcase');
+  const hud = page.getByTestId('showcase-hud');
+  await expect(hud).toContainText('Room full');
+  await expect(hud).toContainText('10 active social stamp');
+
+  await expect
+    .poll(() => readSocialRuntimeSmokeSignals(page))
+    .toMatchObject({
+      activeStampCount: 10,
+      invalidMessageCount: 0,
+      rateLimitedMessageCount: 0,
+      remoteCount: 10,
+      roomFullCount: 0,
+      roomStatus: 'full',
+      visibleRemoteCount: 10,
+      visibleStampCount: 10,
+    });
+
+  await expect
+    .poll(() => readDeliveryRouteFeedbackSmokeSignals(page))
+    .toMatchObject({
+      issueCount: 0,
+      markerCount: 3,
+      visibleMarkerCount: 3,
+    });
+  expect(browserErrors).toEqual([]);
+});
+
 test('delivery showcase smoke completes a job flow and editor can inspect job data', async ({
   page,
 }) => {
@@ -1661,6 +1699,21 @@ interface RuntimeSmokeDiagnostics {
     instanceCount: number;
     sourceAsset: string;
   }>;
+  social: {
+    activeStampCount: number;
+    disconnectedRemoteCount: number;
+    invalidMessageCount: number;
+    lowEndSuppressedStampCount: number;
+    lowEndSuppressedRemoteCount: number;
+    rateLimitedMessageCount: number;
+    remoteCount: number;
+    roomFullCount: number;
+    roomStatus: string;
+    staleRemoteCount: number;
+    staleSnapshotCount: number;
+    visibleRemoteCount: number;
+    visibleStampCount: number;
+  };
   spherical: {
     issueCount: number;
     placementCount: number;
@@ -1797,6 +1850,14 @@ async function readDeliveryRouteFeedbackSmokeSignals(
   const diagnostics = await readRuntimeDiagnostics(page);
 
   return diagnostics?.deliveryRouteFeedback;
+}
+
+async function readSocialRuntimeSmokeSignals(
+  page: Page,
+): Promise<RuntimeSmokeDiagnostics['social'] | undefined> {
+  const diagnostics = await readRuntimeDiagnostics(page);
+
+  return diagnostics?.social;
 }
 
 async function readRuntimeSmokeSignals(page: Page): Promise<{
