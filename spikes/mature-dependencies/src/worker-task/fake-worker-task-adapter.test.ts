@@ -200,6 +200,101 @@ describe("FakeWorkerTaskAdapter", () => {
     });
   });
 
+  test("accepts declared transferables when adapter and task policies allow them", async () => {
+    const adapter = createFakeWorkerTaskAdapter();
+
+    const result = await adapter.submit({
+      ...request("sum-float32", { values: [1, 2, 3] }),
+      transferables: [
+        {
+          id: "values-buffer",
+          kind: "array-buffer",
+          byteLength: 12,
+          ownership: "transfer"
+        }
+      ]
+    });
+
+    expect(result.status).toBe("fallback");
+    expect(result.output).toEqual({
+      sum: 6,
+      count: 3
+    });
+  });
+
+  test("rejects transferables that violate task or byte-size policy", async () => {
+    const adapter = createFakeWorkerTaskAdapter();
+
+    const disallowed = await adapter.submit({
+      ...request("echo-json", { value: "no-transfer" }),
+      transferables: [
+        {
+          id: "echo-buffer",
+          kind: "array-buffer",
+          byteLength: 4,
+          ownership: "transfer"
+        }
+      ]
+    });
+    const oversized = await adapter.submit({
+      ...request("sum-float32", { values: [1] }),
+      transferables: [
+        {
+          id: "too-large",
+          kind: "array-buffer",
+          byteLength: 1024 * 1024 + 1,
+          ownership: "transfer"
+        }
+      ]
+    });
+
+    expect(disallowed.status).toBe("serialization-failed");
+    expect(disallowed.diagnostics[0]).toMatchObject({
+      code: "serialization-failure",
+      detail: {
+        transferId: "echo-buffer"
+      }
+    });
+    expect(oversized.status).toBe("serialization-failed");
+    expect(oversized.diagnostics[0]?.message).toContain("byteLength");
+  });
+
+  test("rejects non-JSON input payloads before task validation", async () => {
+    const adapter = createFakeWorkerTaskAdapter();
+
+    const result = await adapter.submit(
+      request("echo-json", {
+        value: () => "not-json"
+      } as unknown as TaskJsonObject)
+    );
+
+    expect(result.status).toBe("serialization-failed");
+    expect(result.diagnostics[0]).toMatchObject({
+      code: "serialization-failure"
+    });
+  });
+
+  test("rejects non-JSON handler outputs before returning results", async () => {
+    const [echo] = createFixtureTaskDefinitions();
+    const nonSerializableEcho: FixtureTaskDefinition = {
+      ...echo,
+      handler: () =>
+        ({
+          echo: () => "not-json"
+        }) as unknown as TaskJsonObject
+    };
+    const adapter = createFakeWorkerTaskAdapter({
+      registry: createTaskRegistry([nonSerializableEcho])
+    });
+
+    const result = await adapter.submit(request("echo-json", { value: "non-json-output" }));
+
+    expect(result.status).toBe("serialization-failed");
+    expect(result.diagnostics[0]).toMatchObject({
+      code: "serialization-failure"
+    });
+  });
+
   test("rejects submissions after dispose with the shared result shape", async () => {
     const adapter = createFakeWorkerTaskAdapter();
 

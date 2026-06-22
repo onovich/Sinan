@@ -6,9 +6,12 @@ import {
   type TaskCancellationToken,
   type TaskDiagnostic,
   type TaskJsonObject,
+  type TaskJsonValue,
   type TaskRequest,
   type TaskResult,
   type TaskSnapshotRef,
+  type TaskTransferPolicy,
+  type TaskTransferableDescriptor,
   type WorkerTaskAdapter,
   type WorkerTaskConfig,
   type WorkerTaskLifecycleState,
@@ -115,6 +118,20 @@ export class RegistryTaskExecutor implements WorkerTaskAdapter {
       });
     }
 
+    const transferDiagnostics = this.validateTransferDescriptors(request.transferables ?? [], lookup.entry.transferPolicy);
+    if (transferDiagnostics.length > 0) {
+      return this.finish("serialization-failed", request, startedAt, {
+        diagnostics: transferDiagnostics
+      });
+    }
+
+    const inputSerializationDiagnostics = this.validateSerializableValue(request.input, "input");
+    if (inputSerializationDiagnostics.length > 0) {
+      return this.finish("serialization-failed", request, startedAt, {
+        diagnostics: inputSerializationDiagnostics
+      });
+    }
+
     const inputValidation = this.registry.validateInput(request);
     if (!inputValidation.ok) {
       return this.finish("invalid-input", request, startedAt, {
@@ -151,6 +168,12 @@ export class RegistryTaskExecutor implements WorkerTaskAdapter {
       }
 
       const output = execution.output;
+      const outputSerializationDiagnostics = this.validateSerializableValue(output, "output");
+      if (outputSerializationDiagnostics.length > 0) {
+        return this.finish("serialization-failed", request, startedAt, {
+          diagnostics: outputSerializationDiagnostics
+        });
+      }
 
       if (this.isCancelled(request.cancellationToken)) {
         return this.finish("cancelled", request, startedAt, {
@@ -228,6 +251,77 @@ export class RegistryTaskExecutor implements WorkerTaskAdapter {
     return createTaskDiagnostic("timeout", "Worker task exceeded its timeout.", "error", true, {
       taskId,
       timeoutMs
+    });
+  }
+
+  private validateTransferDescriptors(descriptors: TaskTransferableDescriptor[], taskPolicy: TaskTransferPolicy): TaskDiagnostic[] {
+    return descriptors.flatMap((descriptor) => {
+      const diagnostics: TaskDiagnostic[] = [];
+      const effectiveMaxBytes = Math.min(
+        this.config.transferPolicy.maxBytes ?? Number.POSITIVE_INFINITY,
+        taskPolicy.maxBytes ?? Number.POSITIVE_INFINITY
+      );
+
+      if (!this.config.transferPolicy.allowTransfer || !taskPolicy.allowTransfer) {
+        diagnostics.push(this.serializationDiagnostic("Transferables are not allowed for this adapter or task.", descriptor));
+      }
+
+      if (!this.config.transferPolicy.allowedKinds.includes(descriptor.kind) || !taskPolicy.allowedKinds.includes(descriptor.kind)) {
+        diagnostics.push(this.serializationDiagnostic(`Transferable kind ${descriptor.kind} is not allowed.`, descriptor));
+      }
+
+      if (!Number.isFinite(descriptor.byteLength) || descriptor.byteLength < 0 || descriptor.byteLength > effectiveMaxBytes) {
+        diagnostics.push(this.serializationDiagnostic("Transferable byteLength exceeds the effective policy.", descriptor));
+      }
+
+      return diagnostics;
+    });
+  }
+
+  private validateSerializableValue(value: unknown, path: string): TaskDiagnostic[] {
+    return this.isSerializableJson(value)
+      ? []
+      : [
+          this.serializationDiagnostic(`Task ${path} is not JSON-serializable.`, {
+            id: path,
+            kind: "array-buffer",
+            byteLength: 0,
+            ownership: "copy"
+          })
+        ];
+  }
+
+  private isSerializableJson(value: unknown): value is TaskJsonValue {
+    if (value === null || typeof value === "string" || typeof value === "boolean") {
+      return true;
+    }
+
+    if (typeof value === "number") {
+      return Number.isFinite(value);
+    }
+
+    if (Array.isArray(value)) {
+      return value.every((entry) => this.isSerializableJson(entry));
+    }
+
+    if (typeof value === "object" && value !== null) {
+      const prototype = Object.getPrototypeOf(value);
+      if (prototype !== Object.prototype && prototype !== null) {
+        return false;
+      }
+
+      return Object.values(value as Record<string, unknown>).every((entry) => this.isSerializableJson(entry));
+    }
+
+    return false;
+  }
+
+  private serializationDiagnostic(message: string, descriptor: TaskTransferableDescriptor): TaskDiagnostic {
+    return createTaskDiagnostic("serialization-failure", message, "error", false, {
+      transferId: descriptor.id,
+      kind: descriptor.kind,
+      byteLength: descriptor.byteLength,
+      ownership: descriptor.ownership
     });
   }
 
