@@ -71,6 +71,24 @@ function markerUnsupportedMessage(): DiagnosticsMessage {
   );
 }
 
+function productionDisabledMessage(): DiagnosticsMessage {
+  return createDiagnosticsMessage(
+    "production-disabled",
+    "Diagnostics are disabled in production behavior.",
+    "info",
+    false
+  );
+}
+
+function featureDisabledMessage(): DiagnosticsMessage {
+  return createDiagnosticsMessage(
+    "feature-disabled",
+    "Diagnostics feature flag is disabled.",
+    "info",
+    false
+  );
+}
+
 export function createPerformanceDiagnosticsAdapter(options: PerformanceDiagnosticsAdapterOptions = {}): DiagnosticsAdapter {
   return new PerformanceDiagnosticsAdapter(options);
 }
@@ -100,11 +118,15 @@ export class PerformanceDiagnosticsAdapter implements DiagnosticsAdapter {
     return createDiagnosticsResult(command.commandId, this.state, {
       capabilityId: "performance-marker",
       messages: [
-        this.state === "ready"
-          ? createDiagnosticsMessage("diagnostics-ready", "Performance marker diagnostics are ready.", "info", false, {
-              capabilityId: "performance-marker"
-            })
-          : markerUnsupportedMessage()
+        this.state === "production-disabled"
+          ? productionDisabledMessage()
+          : this.state === "ready"
+            ? createDiagnosticsMessage("diagnostics-ready", "Performance marker diagnostics are ready.", "info", false, {
+                capabilityId: "performance-marker"
+              })
+            : this.config.diagnosticsEnabled
+              ? markerUnsupportedMessage()
+              : featureDisabledMessage()
       ]
     });
   }
@@ -112,6 +134,11 @@ export class PerformanceDiagnosticsAdapter implements DiagnosticsAdapter {
   async markPerformance(command: DiagnosticsPerformanceMarkerCommand): Promise<DiagnosticsResult> {
     if (this.state === "disposed") {
       return this.disposedResult(command.commandId);
+    }
+
+    const blocked = this.blockedResult(command.commandId, "performance-marker");
+    if (blocked) {
+      return blocked;
     }
 
     if (!isValidMarkerName(command.markerName)) {
@@ -136,35 +163,56 @@ export class PerformanceDiagnosticsAdapter implements DiagnosticsAdapter {
 
     const start = `${command.markerName}:start`;
     const end = `${command.markerName}:end`;
-    this.performance!.mark!(start);
-    this.performance!.mark!(end);
-    this.performance!.measure!(command.markerName, start, end);
-    const latest = this.performance!.getEntriesByName?.(command.markerName, "measure").at(-1);
-    this.performance!.clearMarks?.(start);
-    this.performance!.clearMarks?.(end);
-    this.performance!.clearMeasures?.(command.markerName);
-    this.state = "complete";
+    try {
+      this.performance!.mark!(start);
+      this.performance!.mark!(end);
+      this.performance!.measure!(command.markerName, start, end);
+      const latest = this.performance!.getEntriesByName?.(command.markerName, "measure").at(-1);
+      this.performance!.clearMarks?.(start);
+      this.performance!.clearMarks?.(end);
+      this.performance!.clearMeasures?.(command.markerName);
+      this.state = "complete";
 
-    return createDiagnosticsResult(command.commandId, "complete", {
-      capabilityId: "performance-marker",
-      messages: [
-        createDiagnosticsMessage("performance-marker-recorded", "Performance marker recorded and cleaned.", "info", false, {
-          markerName: command.markerName,
-          label: command.label ?? command.markerName
-        })
-      ],
-      metrics: [
-        {
-          metricId: command.markerName,
-          label: command.label ?? command.markerName,
-          value: latest?.duration ?? 0,
-          unit: "ms"
-        }
-      ]
-    });
+      return createDiagnosticsResult(command.commandId, "complete", {
+        capabilityId: "performance-marker",
+        messages: [
+          createDiagnosticsMessage("performance-marker-recorded", "Performance marker recorded and cleaned.", "info", false, {
+            markerName: command.markerName,
+            label: command.label ?? command.markerName
+          })
+        ],
+        metrics: [
+          {
+            metricId: command.markerName,
+            label: command.label ?? command.markerName,
+            value: latest?.duration ?? 0,
+            unit: "ms"
+          }
+        ]
+      });
+    } catch (error) {
+      this.state = "failed";
+      return createDiagnosticsResult(command.commandId, "failed", {
+        capabilityId: "performance-marker",
+        messages: [
+          createDiagnosticsMessage("capture-failed", "Performance marker command failed.", "error", true, {
+            error: error instanceof Error ? `${error.name}: ${error.message}` : String(error)
+          })
+        ]
+      });
+    }
   }
 
   async startCapture(command: DiagnosticsCaptureStartCommand): Promise<DiagnosticsResult> {
+    if (this.state === "disposed") {
+      return this.disposedResult(command.commandId);
+    }
+
+    const blocked = this.blockedResult(command.commandId, command.capabilityId);
+    if (blocked) {
+      return blocked;
+    }
+
     return createDiagnosticsResult(command.commandId, "unavailable", {
       capabilityId: command.capabilityId,
       messages: [
@@ -180,6 +228,15 @@ export class PerformanceDiagnosticsAdapter implements DiagnosticsAdapter {
   }
 
   async stopCapture(command: DiagnosticsCaptureStopCommand): Promise<DiagnosticsResult> {
+    if (this.state === "disposed") {
+      return this.disposedResult(command.commandId);
+    }
+
+    const blocked = this.blockedResult(command.commandId, command.capabilityId);
+    if (blocked) {
+      return blocked;
+    }
+
     return createDiagnosticsResult(command.commandId, "unavailable", {
       capabilityId: command.capabilityId,
       messages: [
@@ -195,6 +252,10 @@ export class PerformanceDiagnosticsAdapter implements DiagnosticsAdapter {
   }
 
   async cleanupArtifacts(command: DiagnosticsCleanupArtifactsCommand): Promise<DiagnosticsResult> {
+    if (this.state === "disposed") {
+      return this.disposedResult(command.commandId);
+    }
+
     this.performance?.clearMarks?.();
     this.performance?.clearMeasures?.();
     return createDiagnosticsResult(command.commandId, "complete", {
@@ -210,6 +271,14 @@ export class PerformanceDiagnosticsAdapter implements DiagnosticsAdapter {
   }
 
   private resolveInitialStatus(): DiagnosticsStatus {
+    if (this.config.production) {
+      return "production-disabled";
+    }
+
+    if (!this.config.diagnosticsEnabled) {
+      return "unavailable";
+    }
+
     return this.isPerformanceSupported() ? "ready" : "unavailable";
   }
 
@@ -221,5 +290,26 @@ export class PerformanceDiagnosticsAdapter implements DiagnosticsAdapter {
     return createDiagnosticsResult(commandId, "disposed", {
       messages: [createDiagnosticsMessage("disposed-adapter", "Diagnostics adapter has been disposed.")]
     });
+  }
+
+  private blockedResult(commandId: string, capabilityId: string): DiagnosticsResult | undefined {
+    const status = this.resolveInitialStatus();
+    if (status === "production-disabled") {
+      this.state = "production-disabled";
+      return createDiagnosticsResult(commandId, "production-disabled", {
+        capabilityId,
+        messages: [productionDisabledMessage()]
+      });
+    }
+
+    if (!this.config.diagnosticsEnabled) {
+      this.state = "unavailable";
+      return createDiagnosticsResult(commandId, "unavailable", {
+        capabilityId,
+        messages: [featureDisabledMessage()]
+      });
+    }
+
+    return undefined;
   }
 }

@@ -117,4 +117,94 @@ describe("PerformanceDiagnosticsAdapter", () => {
     expect(performance.clearMarkCalls).toEqual([undefined]);
     expect(performance.clearMeasureCalls).toEqual([undefined]);
   });
+
+  test("returns production-disabled without touching marker APIs", async () => {
+    const performance = fakePerformance();
+    const adapter = createPerformanceDiagnosticsAdapter({
+      performance,
+      config: {
+        production: true,
+        devMode: false
+      }
+    });
+
+    const availability = await adapter.queryAvailability({
+      ...commandBase("command:production-availability"),
+      type: "query-availability"
+    });
+    const marker = await adapter.markPerformance({
+      ...commandBase("command:production-marker"),
+      type: "mark-performance",
+      markerName: "sinan-frame-marker"
+    });
+
+    expect(availability.status).toBe("production-disabled");
+    expect(marker.status).toBe("production-disabled");
+    expect(marker.messages[0]?.code).toBe("production-disabled");
+    expect(performance.marks).toEqual([]);
+  });
+
+  test("returns unavailable when diagnostics feature flag is disabled", async () => {
+    const performance = fakePerformance();
+    const adapter = createPerformanceDiagnosticsAdapter({
+      performance,
+      config: {
+        diagnosticsEnabled: false
+      }
+    });
+
+    const result = await adapter.markPerformance({
+      ...commandBase("command:feature-disabled"),
+      type: "mark-performance",
+      markerName: "sinan-frame-marker"
+    });
+
+    expect(result.status).toBe("unavailable");
+    expect(result.messages[0]?.code).toBe("feature-disabled");
+    expect(performance.marks).toEqual([]);
+  });
+
+  test("normalizes marker API exceptions to failed diagnostics", async () => {
+    const adapter = createPerformanceDiagnosticsAdapter({
+      performance: {
+        mark() {
+          throw new Error("marker failed");
+        },
+        measure() {
+          throw new Error("measure should not run");
+        },
+        getEntriesByName() {
+          return [];
+        }
+      }
+    });
+
+    const result = await adapter.markPerformance({
+      ...commandBase("command:marker-failure"),
+      type: "mark-performance",
+      markerName: "sinan-frame-marker"
+    });
+
+    expect(result.status).toBe("failed");
+    expect(result.messages[0]?.code).toBe("capture-failed");
+    expect(result.messages[0]?.detail?.error).toContain("marker failed");
+  });
+
+  test("disposes and blocks later marker work", async () => {
+    const adapter = createPerformanceDiagnosticsAdapter({ performance: fakePerformance() });
+
+    const disposed = await adapter.dispose({
+      ...commandBase("command:dispose"),
+      type: "dispose"
+    });
+    const later = await adapter.markPerformance({
+      ...commandBase("command:after-dispose"),
+      type: "mark-performance",
+      markerName: "sinan-frame-marker"
+    });
+
+    expect(disposed.status).toBe("disposed");
+    expect(later.status).toBe("disposed");
+    expect(later.messages[0]?.code).toBe("disposed-adapter");
+  });
 });
