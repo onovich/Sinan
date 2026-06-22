@@ -53,6 +53,7 @@ Results:
   - Worker-task tests passed.
   - Boundary guard passed.
   - WorkerTaskAdapter browser summary validation passed.
+  - Ignored Playwright artifact cleanup passed.
   - Generated artifact guard passed.
 - `git diff --check`: PASS.
 - Scope diff: PASS; changed files are limited to `spikes/mature-dependencies/**` and `docs/strategy/mature-dependency-worker-task-adapter-spike/**`.
@@ -61,6 +62,8 @@ Results:
 
 - `spikes/mature-dependencies/reports/browser-smoke/worker-task-adapter-summary.json`
 - `spikes/mature-dependencies/reports/worker-task-adapter/worker-task-adapter-validation-summary.json`
+- `docs/strategy/mature-dependency-worker-task-adapter-spike/worker-task-evidence-matrix.md`
+- `docs/strategy/mature-dependency-worker-task-adapter-spike/worker-task-browser-smoke-results.md`
 - `docs/strategy/mature-dependency-worker-task-adapter-spike/round-09-worker-task-aggregate-smoke-report.md`
 - `docs/strategy/mature-dependency-worker-task-adapter-spike/round-11-worker-task-report-consistency-review.md`
 
@@ -89,7 +92,7 @@ Final browser summary confirms:
 
 `npm --prefix spikes\mature-dependencies run smoke:browser` refreshed several pre-existing browser/storage JSON summary timestamp and duration fields. They remain local validation traces and are intentionally not included in the final WorkerTaskAdapter commits, except for the WorkerTaskAdapter-owned summaries listed above.
 
-Playwright-created `test-results` was removed before final aggregate validation.
+`smoke:browser` can create ignored Playwright `test-results` metadata. `smoke:worker-task` now removes ignored Playwright artifact directories before its generated artifact guard, so the documented final validation order is repeatable.
 
 ## Handoff
 

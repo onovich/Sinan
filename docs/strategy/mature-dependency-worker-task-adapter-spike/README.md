@@ -65,7 +65,9 @@ WorkerTaskAdapter browser smoke now has real Playwright Chromium evidence throug
 Aggregate WorkerTaskAdapter smoke also passes:
 
 - Evidence file: `spikes/mature-dependencies/reports/worker-task-adapter/worker-task-adapter-validation-summary.json`.
-- It validates typecheck, worker-task unit tests, worker-task boundary guard, browser summary status, and absence of generated test/browser artifact directories.
+- It validates typecheck, worker-task unit tests, worker-task boundary guard, browser summary status, ignored Playwright artifact cleanup, and absence of generated test/browser artifact directories.
+- Evidence matrix: `docs/strategy/mature-dependency-worker-task-adapter-spike/worker-task-evidence-matrix.md`.
+- Browser smoke results: `docs/strategy/mature-dependency-worker-task-adapter-spike/worker-task-browser-smoke-results.md`.
 
 ## Boundary Principle
 
@@ -132,6 +134,8 @@ npm --prefix spikes\mature-dependencies run smoke:worker-task
 Commit source files, Markdown reports, small JSON summaries, and isolated package scripts only. Do not commit generated browser caches, Playwright traces, screenshots, videos, `dist/**`, `coverage/**`, `test-results/**`, `playwright-report/**`, or `node_modules/**`.
 
 Existing uncommitted browser-smoke and storage-adapter JSON timestamp changes may be present from acceptance validation. They are validation artifacts and must not be mixed into WorkerTaskAdapter round commits unless a later round intentionally updates worker-task evidence.
+
+`smoke:browser` may create ignored Playwright `test-results` metadata. `smoke:worker-task` removes ignored Playwright artifact directories before its generated artifact guard, so the documented final validation order is repeatable.
 
 ## Round Plan
 

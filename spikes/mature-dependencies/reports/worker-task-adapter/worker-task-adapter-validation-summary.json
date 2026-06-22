@@ -3,7 +3,7 @@
   "status": "PASS",
   "decision": "PASS",
   "layer": "candidate",
-  "durationMs": 2111,
+  "durationMs": 2939,
   "command": "npm run smoke:worker-task",
   "diagnostics": [
     "typecheck: PASS",
@@ -15,8 +15,8 @@
     "worker-task unit tests:  RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
     "worker-task unit tests:  Test Files  4 passed (4)",
     "worker-task unit tests:       Tests  27 passed (27)",
-    "worker-task unit tests:    Start at  15:00:21",
-    "worker-task unit tests:    Duration  255ms (transform 146ms, setup 0ms, import 207ms, tests 102ms, environment 0ms)",
+    "worker-task unit tests:    Start at  16:35:48",
+    "worker-task unit tests:    Duration  348ms (transform 160ms, setup 0ms, import 278ms, tests 105ms, environment 0ms)",
     "worker-task boundary guard: PASS",
     "worker-task boundary guard: imports and dynamic-code scan passed",
     "worker-task browser summary: PASS",
@@ -24,6 +24,9 @@
     "worker-task browser summary: decision: PASS",
     "worker-task browser summary: console errors: 0",
     "worker-task browser summary: diagnostics: catalog entry available: true | Worker supported: true | boot/load: true/true | echo/sum/transfer: true/true/true | invalid-input/timeout/cancel/dispose: true/true/true/true | boot: success | load: success | echo: success | sum: success | invalidInput: invalid-input | timeout: timeout | cancel: cancelled | cancelled: cancelled | dispose: disposed | adapter boundary: Sinan WorkerTaskAdapter contract -> Comlink RPC -> Web Worker",
+    "worker-task generated artifact cleanup: PASS",
+    "worker-task generated artifact cleanup: removed test-results",
+    "worker-task generated artifact cleanup: playwright-report not present",
     "worker-task generated artifact guard: PASS",
     "worker-task generated artifact guard: no generated test/browser artifact directories present"
   ],
@@ -45,8 +48,8 @@
         " RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
         " Test Files  4 passed (4)",
         "      Tests  27 passed (27)",
-        "   Start at  15:00:21",
-        "   Duration  255ms (transform 146ms, setup 0ms, import 207ms, tests 102ms, environment 0ms)"
+        "   Start at  16:35:48",
+        "   Duration  348ms (transform 160ms, setup 0ms, import 278ms, tests 105ms, environment 0ms)"
       ]
     },
     {
@@ -64,6 +67,14 @@
         "decision: PASS",
         "console errors: 0",
         "diagnostics: catalog entry available: true | Worker supported: true | boot/load: true/true | echo/sum/transfer: true/true/true | invalid-input/timeout/cancel/dispose: true/true/true/true | boot: success | load: success | echo: success | sum: success | invalidInput: invalid-input | timeout: timeout | cancel: cancelled | cancelled: cancelled | dispose: disposed | adapter boundary: Sinan WorkerTaskAdapter contract -> Comlink RPC -> Web Worker"
+      ]
+    },
+    {
+      "name": "worker-task generated artifact cleanup",
+      "ok": true,
+      "details": [
+        "removed test-results",
+        "playwright-report not present"
       ]
     },
     {
@@ -86,5 +97,5 @@
       "browser binaries"
     ]
   },
-  "timestamp": "2026-06-22T07:00:21.725Z"
+  "timestamp": "2026-06-22T08:35:48.861Z"
 }

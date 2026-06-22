@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
@@ -88,6 +88,39 @@ function runBoundaryGuard() {
   recordCheck("worker-task boundary guard", failures.length === 0, failures.length === 0 ? ["imports and dynamic-code scan passed"] : failures);
 }
 
+function cleanupIgnoredPlaywrightArtifacts() {
+  const cleanupArtifacts = ["test-results", "playwright-report"];
+  const details = [];
+  const failures = [];
+
+  for (const artifact of cleanupArtifacts) {
+    const artifactPath = resolve(packageRoot, artifact);
+    const relativePath = relative(packageRoot, artifactPath);
+    if (relativePath.startsWith("..") || resolve(artifactPath) === resolve(packageRoot)) {
+      failures.push(`refusing to remove outside package root: ${artifactPath}`);
+      continue;
+    }
+
+    if (!existsSync(artifactPath)) {
+      details.push(`${artifact} not present`);
+      continue;
+    }
+
+    try {
+      rmSync(artifactPath, { recursive: true, force: true });
+      details.push(`removed ${artifact}`);
+    } catch (error) {
+      failures.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  recordCheck(
+    "worker-task generated artifact cleanup",
+    failures.length === 0,
+    failures.length === 0 ? details : [...details, ...failures]
+  );
+}
+
 function validateGeneratedArtifactsAbsent() {
   const forbiddenArtifacts = ["test-results", "playwright-report", "coverage"];
   const present = forbiddenArtifacts.filter((artifact) => existsSync(join(packageRoot, artifact)));
@@ -158,6 +191,7 @@ if (!existsSync(workerTaskRoot) || !statSync(workerTaskRoot).isDirectory()) {
   runCommand("worker-task unit tests", ["run", "test", "--", "worker-task"]);
   runBoundaryGuard();
   validateBrowserSummary();
+  cleanupIgnoredPlaywrightArtifacts();
   validateGeneratedArtifactsAbsent();
 }
 
