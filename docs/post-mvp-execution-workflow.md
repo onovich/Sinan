@@ -41,6 +41,8 @@ Phase 22 is PASS in `docs/phase-22-lod-instancing-and-vegetation-final-report.md
 
 Use `docs/phase-23-compact-spherical-world-prototype-goal-mode-execution-guide.md` for Phase 23. The guide uses 16 rounds and keeps the phase focused on cube-sphere projection, spherical placement, compact region data, minimal deterministic player surface movement, stable spherical camera behavior, director camera compatibility, and smoke/perf evidence. Do not treat Phase 23 as approval for Phase 24 delivery jobs, full Showcase Mode, Physics/Rapier, InputFlow, ViewRig, Runtime UI, Audio, multiplayer, or external adapter integration.
 
+Phase 23 is PASS in `docs/phase-23-compact-spherical-world-prototype-final-report.md`. The active next implementation target is Phase 24: Delivery Gameplay Showcase from `docs/abeto-messenger-development-plan.md`. Phase 24 should build on the compact spherical-world prototype only through its own scoped guide, with delivery jobs, route feedback, player interaction, Runtime UI, audio, and new input semantics kept inside that guide.
+
 During Phase 21 and later shader work, use the "Shader Production Quality Checklist" in `docs/developer-guide.md`. New production materials or postprocess passes should not be accepted with editor-only evidence; they need compile smoke, visual regression coverage, fallback diagnostics, precompile consideration, and low-end baseline evidence appropriate to the change.
 
 ## Execution Budget

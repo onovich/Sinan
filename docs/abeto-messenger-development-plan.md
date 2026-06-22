@@ -545,3 +545,9 @@ Complete Phase 23 from docs/abeto-messenger-development-plan.md: Compact Spheric
 ```
 
 Use `docs/phase-23-compact-spherical-world-prototype-goal-mode-execution-guide.md` before implementation. The guide uses 16 rounds: 12 implementation rounds, 3 buffer rounds, and 1 final validation/handoff round. Phase 23 should produce the compact spherical-world prototype only: projection schema, cube-sphere math, spherical placement, three readable regions, minimal deterministic player surface movement, stable spherical camera behavior, director camera compatibility, and smoke/perf evidence. Delivery jobs, full Showcase Mode, Physics/Rapier, InputFlow, ViewRig, Runtime UI, Audio, multiplayer, and external adapters remain out of scope.
+
+Phase 23 is PASS in `docs/phase-23-compact-spherical-world-prototype-final-report.md`. The next goal should be Phase 24: Delivery Gameplay Showcase.
+
+```txt
+Complete Phase 24 from docs/abeto-messenger-development-plan.md: Delivery Gameplay Showcase. Start only after Phase 23 is PASS and pushed. Use the compact spherical-world prototype as the playable environment, but keep delivery jobs, route feedback, player interaction, Runtime UI, audio, and any new input semantics scoped by the Phase 24 guide.
+```

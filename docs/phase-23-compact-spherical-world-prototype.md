@@ -1,7 +1,7 @@
 # Phase 23 Compact Spherical World Prototype Design Lock
 
 Date: 2026-06-22
-Status: Round 23.1 design lock.
+Status: PASS; see `docs/phase-23-compact-spherical-world-prototype-final-report.md`.
 
 ## Baseline
 
