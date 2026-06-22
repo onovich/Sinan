@@ -4,7 +4,7 @@ Use this checklist before calling the current Sinan checkout demo-ready as a loc
 
 ## Current RC Scope
 
-Status target: Phase 26 Vertical Slice RC Hardening.
+Status target: Phase 26.5 RC Release Packaging And Baseline Tagging.
 
 The RC includes:
 
@@ -14,6 +14,7 @@ The RC includes:
 - LOD/scatter/spherical world diagnostics and standard/low-end budget evidence.
 - Asset report and vertical-slice budget report gates.
 - README, developer guide, release validation profile, release checklist, and final report evidence.
+- Internal RC release notes, demo script, validation evidence index, tag policy, and planned annotated tag `vertical-slice-rc-2026-06-22`.
 
 The RC does not include production backend, auth, persistence, text chat, voice chat, production matchmaking, production WebSocket deployment, Physics/Rapier, external InputFlow/ViewRig/LudoWeave/Inscape adapters, production Runtime UI framework, Audio runtime, or unrelated external adapters.
 
@@ -123,7 +124,24 @@ npm run dev -- --port 5174 --strictPort
 - [ ] `README.md` explains setup, validation, current Phase 26 status, vertical-slice demo flow, architecture boundaries, and docs map.
 - [ ] `docs/developer-guide.md` covers vertical-slice validation, asset/budget guidance, low-end/mobile evidence, social/delivery demo flow, and smoke/perf triage.
 - [ ] `docs/vertical-slice-release-validation-profile.md` matches actual wrapper and direct commands.
+- [ ] `docs/vertical-slice-rc-release-notes.md` describes the internal RC without production overclaiming.
+- [ ] `docs/vertical-slice-rc-demo-script.md` provides a local demo flow that matches the current app.
+- [ ] `docs/vertical-slice-rc-validation-evidence-index.md` links the validation commands, reports, smoke specs, perf/budget evidence, asset report, and CRLF limitation.
+- [ ] `docs/vertical-slice-rc-tag-policy.md` records the tag name, no-overwrite rule, conflict handling, and retagging policy.
 - [ ] `docs/phase-26-vertical-slice-rc-hardening-final-report.md` records validation, smoke, perf/budget, fresh-checkout evidence, commits, push status, known limitations, and recommended next route.
+
+## Tag Gate
+
+- [ ] Confirm the target tag is absent before creation:
+
+```powershell
+git tag --list vertical-slice-rc-2026-06-22
+git ls-remote --tags origin vertical-slice-rc-2026-06-22
+```
+
+- [ ] Create `vertical-slice-rc-2026-06-22` only after final Phase 26.5 validation passes.
+- [ ] Push the tag to `origin`.
+- [ ] Confirm the local and remote tag point at the final validated Phase 26.5 commit.
 
 ## Git Gate
 

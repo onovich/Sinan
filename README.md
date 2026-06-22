@@ -89,6 +89,9 @@ Three.js must stay inside `src/runtime/three/**` and accepted thin editor/smoke 
 
 - `docs/developer-guide.md` - setup, validation, assets, actions, conditions, timelines, camera shots, and vertical-slice RC guidance.
 - `docs/vertical-slice-rc-tag-policy.md` - Phase 26.5 internal RC tag policy, no-overwrite rule, and retagging policy.
+- `docs/vertical-slice-rc-release-notes.md` - internal RC scope, validation summary, demo highlights, and limitations.
+- `docs/vertical-slice-rc-demo-script.md` - local presenter script for the internal vertical-slice RC.
+- `docs/vertical-slice-rc-validation-evidence-index.md` - command and document index for rerunning the RC gate.
 - `docs/vertical-slice-release-validation-profile.md` - Phase 26 release validation, smoke, asset, perf/budget, and local mobile/low-end evidence profile.
 - `docs/phase-26-vertical-slice-rc-hardening.md` - Phase 26 hardening scope, baseline evidence, gaps, and round map.
 - `docs/release-checklist.md` - release checklist, updated during Phase 26 RC hardening.

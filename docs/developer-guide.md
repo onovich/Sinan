@@ -76,6 +76,13 @@ Demo flow:
 
 Mobile/low-end evidence is local Chromium evidence only. The smoke suite covers a 390x844 editor viewport and a 360x640 low-end shader baseline. Do not describe this as real mobile hardware certification unless a separate device run is recorded.
 
+Phase 26.5 packaging docs:
+
+- `docs/vertical-slice-rc-release-notes.md`: internal RC scope, validation summary, demo highlights, and known limits.
+- `docs/vertical-slice-rc-demo-script.md`: local demo script for a presenter.
+- `docs/vertical-slice-rc-validation-evidence-index.md`: command and document index for rerunning the RC gate.
+- `docs/vertical-slice-rc-tag-policy.md`: internal annotated tag policy and no-overwrite rules for `vertical-slice-rc-2026-06-22`.
+
 ## Repository Shape
 
 - `data/assets.manifest.json`: asset ids, types, URLs, and optional metadata.
