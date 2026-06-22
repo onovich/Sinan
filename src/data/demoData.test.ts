@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import assetsManifest from '../../data/assets.manifest.json';
 import gateRevealCameraShot from '../../data/cameraShots/cam_gate_reveal.json';
+import deliveryAcceptEvent from '../../data/events/ev_delivery_accept.json';
+import deliveryCompleteEvent from '../../data/events/ev_delivery_complete.json';
+import deliveryProgressEvent from '../../data/events/ev_delivery_progress.json';
+import deliveryReadyEvent from '../../data/events/ev_delivery_ready.json';
 import gateTriggerEnterEvent from '../../data/events/ev_gate_trigger_enter.json';
 import gateTriggerExitEvent from '../../data/events/ev_gate_trigger_exit.json';
 import switchEvent from '../../data/events/ev_switch_a_open_gate.json';
@@ -33,6 +37,10 @@ describe('demo project data', () => {
     expect(PrefabSchema.safeParse(triggerBox).success).toBe(true);
     expect(PaletteSchema.safeParse(world01Palette).success).toBe(true);
     expect(CameraShotSchema.safeParse(gateRevealCameraShot).success).toBe(true);
+    expect(EventSchema.safeParse(deliveryAcceptEvent).success).toBe(true);
+    expect(EventSchema.safeParse(deliveryCompleteEvent).success).toBe(true);
+    expect(EventSchema.safeParse(deliveryProgressEvent).success).toBe(true);
+    expect(EventSchema.safeParse(deliveryReadyEvent).success).toBe(true);
     expect(EventSchema.safeParse(switchEvent).success).toBe(true);
     expect(EventSchema.safeParse(gateTriggerEnterEvent).success).toBe(true);
     expect(EventSchema.safeParse(gateTriggerExitEvent).success).toBe(true);
@@ -45,8 +53,19 @@ describe('demo project data', () => {
 
     expect(project.prefabs.trigger_box).toBeDefined();
     expect(project.palettes.world_01).toBeDefined();
+    expect(Object.keys(project.events)).toEqual([
+      'ev_gate_trigger_enter',
+      'ev_gate_trigger_exit',
+      'ev_switch_a_open_gate',
+      'ev_delivery_accept',
+      'ev_delivery_progress',
+      'ev_delivery_ready',
+      'ev_delivery_complete',
+    ]);
     expect(project.events.ev_gate_trigger_enter).toBeDefined();
     expect(project.events.ev_gate_trigger_exit).toBeDefined();
+    expect(project.events.ev_delivery_accept).toBeDefined();
+    expect(project.events.ev_delivery_complete).toBeDefined();
   });
 
   it('defines compact spherical world regions and source placements', () => {

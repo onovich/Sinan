@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "ev_delivery_complete",
+  "name": "Complete Hill Mail Run",
+  "trigger": {
+    "type": "entity.interact",
+    "entityId": "mailbox_hill_01"
+  },
+  "condition": {
+    "type": "delivery.statusEquals",
+    "jobId": "job.hill_mail_run",
+    "status": "readyToDeliver"
+  },
+  "actions": [
+    {
+      "type": "delivery.complete",
+      "jobId": "job.hill_mail_run",
+      "endpointId": "delivery.mailbox_hill"
+    },
+    {
+      "type": "flag.set",
+      "flag": "job_hill_mail_run_complete",
+      "value": true
+    },
+    {
+      "type": "subtitle.show",
+      "text": "Hill mail run complete.",
+      "duration": 1.8,
+      "speaker": "mailbox_hill_01"
+    }
+  ]
+}

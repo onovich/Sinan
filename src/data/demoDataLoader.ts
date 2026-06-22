@@ -1,5 +1,9 @@
 import assetsManifest from '../../data/assets.manifest.json';
 import gateRevealCameraShot from '../../data/cameraShots/cam_gate_reveal.json';
+import deliveryAcceptEvent from '../../data/events/ev_delivery_accept.json';
+import deliveryCompleteEvent from '../../data/events/ev_delivery_complete.json';
+import deliveryProgressEvent from '../../data/events/ev_delivery_progress.json';
+import deliveryReadyEvent from '../../data/events/ev_delivery_ready.json';
 import gateTriggerEnterEvent from '../../data/events/ev_gate_trigger_enter.json';
 import gateTriggerExitEvent from '../../data/events/ev_gate_trigger_exit.json';
 import switchEvent from '../../data/events/ev_switch_a_open_gate.json';
@@ -17,6 +21,10 @@ import type { ProjectJsonLoader } from './loadJson';
 const demoJsonByPath: Record<string, unknown> = {
   'data/assets.manifest.json': assetsManifest,
   'data/cameraShots/cam_gate_reveal.json': gateRevealCameraShot,
+  'data/events/ev_delivery_accept.json': deliveryAcceptEvent,
+  'data/events/ev_delivery_complete.json': deliveryCompleteEvent,
+  'data/events/ev_delivery_progress.json': deliveryProgressEvent,
+  'data/events/ev_delivery_ready.json': deliveryReadyEvent,
   'data/events/ev_gate_trigger_enter.json': gateTriggerEnterEvent,
   'data/events/ev_gate_trigger_exit.json': gateTriggerExitEvent,
   'data/events/ev_switch_a_open_gate.json': switchEvent,

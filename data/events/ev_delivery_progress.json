@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "ev_delivery_progress",
+  "name": "Start Hill Mail Run",
+  "trigger": {
+    "type": "entity.interact",
+    "entityId": "courier_hill_01"
+  },
+  "condition": {
+    "type": "delivery.statusEquals",
+    "jobId": "job.hill_mail_run",
+    "status": "accepted"
+  },
+  "actions": [
+    {
+      "type": "delivery.progress",
+      "jobId": "job.hill_mail_run"
+    }
+  ]
+}

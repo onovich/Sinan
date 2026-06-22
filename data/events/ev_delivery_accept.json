@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "ev_delivery_accept",
+  "name": "Accept Hill Mail Run",
+  "trigger": {
+    "type": "entity.interact",
+    "entityId": "courier_hill_01"
+  },
+  "condition": {
+    "type": "delivery.statusEquals",
+    "jobId": "job.hill_mail_run",
+    "status": "available"
+  },
+  "actions": [
+    {
+      "type": "delivery.accept",
+      "jobId": "job.hill_mail_run",
+      "endpointId": "delivery.courier_hill"
+    },
+    {
+      "type": "subtitle.show",
+      "text": "Gate permit packet accepted.",
+      "duration": 1.6,
+      "speaker": "courier_hill_01"
+    }
+  ]
+}

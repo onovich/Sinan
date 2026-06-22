@@ -353,7 +353,15 @@
       }
     }
   ],
-  "events": ["ev_gate_trigger_enter", "ev_gate_trigger_exit", "ev_switch_a_open_gate"],
+  "events": [
+    "ev_gate_trigger_enter",
+    "ev_gate_trigger_exit",
+    "ev_switch_a_open_gate",
+    "ev_delivery_accept",
+    "ev_delivery_progress",
+    "ev_delivery_ready",
+    "ev_delivery_complete"
+  ],
   "timelines": ["tl_open_gate"],
   "cameraShots": ["cam_gate_reveal"]
 }

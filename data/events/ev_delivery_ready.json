@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "ev_delivery_ready",
+  "name": "Hill Mailbox Reached",
+  "trigger": {
+    "type": "entity.interact",
+    "entityId": "mailbox_hill_01"
+  },
+  "condition": {
+    "all": [
+      {
+        "type": "delivery.activeJobEquals",
+        "jobId": "job.hill_mail_run"
+      },
+      {
+        "type": "delivery.statusEquals",
+        "jobId": "job.hill_mail_run",
+        "status": "inProgress"
+      }
+    ]
+  },
+  "actions": [
+    {
+      "type": "delivery.deliver",
+      "jobId": "job.hill_mail_run",
+      "endpointId": "delivery.mailbox_hill"
+    }
+  ]
+}
