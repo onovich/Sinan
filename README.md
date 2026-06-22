@@ -8,7 +8,7 @@ The original Scene Director scope is now treated as a first-party Director Syste
 
 ## Current Status
 
-The current route is Phase 26 Vertical Slice RC Hardening. The local release-candidate slice includes the Phase 24 Showcase delivery flow, Phase 25 multiplayer-lite social simulator/WebSocket prototype evidence, shader/postprocess low-end baseline, LOD/scatter/spherical world budgets, asset reporting, and reproducible validation gates.
+The current route is Phase 26.5 RC Release Packaging And Baseline Tagging. The local release-candidate slice includes the Phase 24 Showcase delivery flow, Phase 25 multiplayer-lite social simulator/WebSocket prototype evidence, shader/postprocess low-end baseline, LOD/scatter/spherical world budgets, asset reporting, and reproducible validation gates. Phase 26.5 packages that internal RC with release notes, a demo script, validation evidence, tag policy, and the annotated tag `vertical-slice-rc-2026-06-22`.
 
 The editor opens the `level_01` vertical slice with spherical placement, LOD/scatter diagnostics, a switch/gate timeline, camera shot, subtitle/audio feedback, delivery job affordances, local social remotes/stamps, and save/reload authoring workflows.
 
@@ -88,6 +88,7 @@ Three.js must stay inside `src/runtime/three/**` and accepted thin editor/smoke 
 ## More Docs
 
 - `docs/developer-guide.md` - setup, validation, assets, actions, conditions, timelines, camera shots, and vertical-slice RC guidance.
+- `docs/vertical-slice-rc-tag-policy.md` - Phase 26.5 internal RC tag policy, no-overwrite rule, and retagging policy.
 - `docs/vertical-slice-release-validation-profile.md` - Phase 26 release validation, smoke, asset, perf/budget, and local mobile/low-end evidence profile.
 - `docs/phase-26-vertical-slice-rc-hardening.md` - Phase 26 hardening scope, baseline evidence, gaps, and round map.
 - `docs/release-checklist.md` - release checklist, updated during Phase 26 RC hardening.
