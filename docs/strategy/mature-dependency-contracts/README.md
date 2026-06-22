@@ -45,6 +45,10 @@ The work is documentation and architecture-contract work only. It creates RFCs, 
 - `docs/rfcs/RFC-013-navigation-adapter-hold-policy.md`
 - `docs/rfcs/RFC-014-navigation-adapter-boundary-proposal.md`
 
+## Final Consolidation
+
+- `docs/strategy/mature-dependency-final-consolidation/README.md` is the final docs-only handoff packet for accepted evidence, adapter decisions, future gates, and mainline non-authorization.
+
 ## Allowed Paths
 
 - `docs/rfcs/**`
