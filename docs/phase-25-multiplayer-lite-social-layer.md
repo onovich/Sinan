@@ -187,4 +187,3 @@ diagnostics where practical, and preservation of Phase 24 delivery flow.
 - Rounds 25.13 through 25.15 remain buffers for Phase 25-only fixes.
 - Round 25.16 writes the final report, runs full validation/smoke, pushes, and
   reports back to planner/checker.
-
