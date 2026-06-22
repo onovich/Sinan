@@ -53,6 +53,8 @@ Phase 25 is PASS in `docs/phase-25-multiplayer-lite-social-layer-final-report.md
 
 Use `docs/phase-26-vertical-slice-rc-hardening-goal-mode-execution-guide.md` for Phase 26. The guide uses 10 rounds and keeps the phase focused on release validation, smoke/perf budget reporting, low-end/mobile evidence, README/developer/release docs, and fresh-checkout evidence where practical. Do not treat Phase 26 as approval for production backend, auth, persistence, text/voice chat, new gameplay systems, Physics/Rapier, external InputFlow, ViewRig, Runtime UI framework, Audio runtime, or unrelated external adapter integration.
 
+Phase 26 is PASS in `docs/phase-26-vertical-slice-rc-hardening-final-report.md`. Treat the current vertical slice as the local release-candidate baseline. The next project move should be a new scoped guide, not an automatic production networking, auth, persistence, text/voice chat, Physics/Rapier, external adapter, Runtime UI, Audio, deployment, or broad engine-expansion phase.
+
 During Phase 21 and later shader work, use the "Shader Production Quality Checklist" in `docs/developer-guide.md`. New production materials or postprocess passes should not be accepted with editor-only evidence; they need compile smoke, visual regression coverage, fallback diagnostics, precompile consideration, and low-end baseline evidence appropriate to the change.
 
 ## Execution Budget
