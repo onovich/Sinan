@@ -7,13 +7,8 @@ const packageRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const sourceRoot = join(packageRoot, "src");
 const assetPipelineRoot = join(packageRoot, "src", "asset-pipeline");
 const reportDir = join(packageRoot, "reports", "asset-pipeline");
-const startedAt = Date.now();
 const diagnostics = [];
 const checks = [];
-
-function nowIso() {
-  return new Date().toISOString();
-}
 
 function normalizePath(path) {
   return path.split("\\").join("/");
@@ -37,7 +32,8 @@ function runCommand(name, args) {
   });
   const output = `${result.stdout ?? ""}\n${result.stderr ?? ""}`.trim();
   const tail = output.split(/\r?\n/).filter(Boolean).slice(-10);
-  recordCheck(name, result.status === 0, tail);
+  const ok = result.status === 0;
+  recordCheck(name, ok, ok ? [`${name} completed`] : tail);
 }
 
 function listFiles(root) {
@@ -128,14 +124,9 @@ function cleanupArtifacts() {
       continue;
     }
 
-    if (!existsSync(artifactPath)) {
-      details.push(`${normalizePath(artifact)} not present`);
-      continue;
-    }
-
     try {
       rmSync(artifactPath, { recursive: true, force: true });
-      details.push(`removed ${normalizePath(artifact)}`);
+      details.push(`cleared ${normalizePath(artifact)}`);
     } catch (error) {
       failures.push(error instanceof Error ? error.message : String(error));
     }
@@ -181,7 +172,7 @@ function writeSummary() {
     status: ok ? "PASS" : "CONTRACT-BLOCKED",
     decision: ok ? "PASS" : "CONTRACT-BLOCKED",
     layer: ok ? "candidate" : "contract",
-    durationMs: Date.now() - startedAt,
+    durationMs: 0,
     command: "npm run smoke:asset-pipeline",
     diagnostics,
     checks,
@@ -192,7 +183,7 @@ function writeSummary() {
       ],
       notCommitted: ["reports/asset-pipeline/generated", "test-results", "playwright-report", "dist", "coverage", "large GLB/texture artifacts"]
     },
-    timestamp: nowIso()
+    timestamp: "deterministic-smoke"
   };
   const summaryPath = join(reportDir, "asset-pipeline-validation-summary.json");
   writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, "utf8");

@@ -3,20 +3,13 @@
   "status": "PASS",
   "decision": "PASS",
   "layer": "candidate",
-  "durationMs": 2365,
+  "durationMs": 0,
   "command": "npm run smoke:asset-pipeline",
   "diagnostics": [
     "typecheck: PASS",
-    "typecheck: > sinan-mature-dependency-spikes@1.0.0 typecheck",
-    "typecheck: > tsc --noEmit",
+    "typecheck: typecheck completed",
     "asset-pipeline unit tests: PASS",
-    "asset-pipeline unit tests: > sinan-mature-dependency-spikes@1.0.0 test",
-    "asset-pipeline unit tests: > vitest run asset-pipeline",
-    "asset-pipeline unit tests:  RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
-    "asset-pipeline unit tests:  Test Files  5 passed (5)",
-    "asset-pipeline unit tests:       Tests  24 passed (24)",
-    "asset-pipeline unit tests:    Start at  22:04:44",
-    "asset-pipeline unit tests:    Duration  294ms (transform 167ms, setup 0ms, import 333ms, tests 54ms, environment 0ms)",
+    "asset-pipeline unit tests: asset-pipeline unit tests completed",
     "asset-pipeline boundary guard: PASS",
     "asset-pipeline boundary guard: offline tooling imports and dynamic-code scans passed",
     "asset-pipeline report surface: PASS",
@@ -25,11 +18,11 @@
     "asset-pipeline report surface: source fixture: true",
     "asset-pipeline report surface: baseline glTF report: true",
     "asset-pipeline generated artifact cleanup: PASS",
-    "asset-pipeline generated artifact cleanup: test-results not present",
-    "asset-pipeline generated artifact cleanup: playwright-report not present",
-    "asset-pipeline generated artifact cleanup: coverage not present",
-    "asset-pipeline generated artifact cleanup: removed dist",
-    "asset-pipeline generated artifact cleanup: reports/asset-pipeline/generated not present",
+    "asset-pipeline generated artifact cleanup: cleared test-results",
+    "asset-pipeline generated artifact cleanup: cleared playwright-report",
+    "asset-pipeline generated artifact cleanup: cleared coverage",
+    "asset-pipeline generated artifact cleanup: cleared dist",
+    "asset-pipeline generated artifact cleanup: cleared reports/asset-pipeline/generated",
     "asset-pipeline generated artifact guard: PASS",
     "asset-pipeline generated artifact guard: no forbidden generated artifact directories or large report artifacts present"
   ],
@@ -38,21 +31,14 @@
       "name": "typecheck",
       "ok": true,
       "details": [
-        "> sinan-mature-dependency-spikes@1.0.0 typecheck",
-        "> tsc --noEmit"
+        "typecheck completed"
       ]
     },
     {
       "name": "asset-pipeline unit tests",
       "ok": true,
       "details": [
-        "> sinan-mature-dependency-spikes@1.0.0 test",
-        "> vitest run asset-pipeline",
-        " RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
-        " Test Files  5 passed (5)",
-        "      Tests  24 passed (24)",
-        "   Start at  22:04:44",
-        "   Duration  294ms (transform 167ms, setup 0ms, import 333ms, tests 54ms, environment 0ms)"
+        "asset-pipeline unit tests completed"
       ]
     },
     {
@@ -76,11 +62,11 @@
       "name": "asset-pipeline generated artifact cleanup",
       "ok": true,
       "details": [
-        "test-results not present",
-        "playwright-report not present",
-        "coverage not present",
-        "removed dist",
-        "reports/asset-pipeline/generated not present"
+        "cleared test-results",
+        "cleared playwright-report",
+        "cleared coverage",
+        "cleared dist",
+        "cleared reports/asset-pipeline/generated"
       ]
     },
     {
@@ -105,5 +91,5 @@
       "large GLB/texture artifacts"
     ]
   },
-  "timestamp": "2026-06-22T14:04:44.995Z"
+  "timestamp": "deterministic-smoke"
 }
