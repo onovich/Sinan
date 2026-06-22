@@ -30,5 +30,7 @@ The spike keeps Sinan-owned AudioSystem state data-first:
 - `npm run test -- audio-system`
 - production boundary guard for forbidden imports, dynamic code, and browser object leakage outside WebAudio-owned files
 - browser summary validation from `reports/browser-smoke/audio-system-summary.json`
+- generated artifact cleanup for ignored Playwright directories: `test-results` and `playwright-report`
+- generated artifact guard proving those directories are absent after cleanup
 
 The aggregate result is written to `reports/audio-system/audio-system-validation-summary.json`.

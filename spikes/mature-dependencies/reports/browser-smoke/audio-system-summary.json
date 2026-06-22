@@ -5,7 +5,7 @@
   "layer": "candidate",
   "browser": "Playwright Chromium",
   "port": 5184,
-  "durationMs": 308,
+  "durationMs": 426,
   "command": "npm exec -- playwright test -c playwright.config.ts",
   "consoleErrors": [],
   "artifacts": [
@@ -31,7 +31,7 @@
     "snapshot lifecycle after dispose: disposed",
     "AudioSystem contract -> WebAudioSystemAdapter -> browser audio output"
   ],
-  "timestamp": "2026-06-22T09:17:41.901Z",
+  "timestamp": "2026-06-22T09:28:33.546Z",
   "result": {
     "adapter": "WebAudioSystemAdapter",
     "supported": true,

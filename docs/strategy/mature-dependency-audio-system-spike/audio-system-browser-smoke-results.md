@@ -55,4 +55,6 @@ Latest successful aggregate command:
 npm --prefix spikes\mature-dependencies run smoke:audio-system
 ```
 
+The aggregate smoke now cleans ignored Playwright directories created by the browser smoke sequence and then guards that `test-results` and `playwright-report` are absent.
+
 The full browser harness currently runs 10 Playwright tests and includes the AudioSystem adapter smoke entry in the catalog baseline.

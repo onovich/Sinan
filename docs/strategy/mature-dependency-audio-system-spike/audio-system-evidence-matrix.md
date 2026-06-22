@@ -18,6 +18,8 @@ Branch: `codex/mature-dependency-audio-system-spike`
 | Browser smoke through AudioSystem adapter | `src/browser-smoke/audio-system-adapter.pw.ts`, `reports/browser-smoke/audio-system-summary.json` | PASS |
 | Aggregate validation command | `src/audio-system/run-audio-system-smoke.mjs`, `reports/audio-system/audio-system-validation-summary.json` | PASS |
 | Boundary guard for forbidden imports and browser object leakage | `run-audio-system-smoke.mjs` boundary guard | PASS |
+| Ignored Playwright artifact cleanup | `run-audio-system-smoke.mjs` removes `test-results` and `playwright-report` before guard | PASS |
+| Generated artifact guard | `audio-system generated artifact guard` fails if `test-results` or `playwright-report` remains | PASS |
 | Mainline remains untouched | Scope limited to `spikes/mature-dependencies/**` and this docs directory | PASS |
 
 ## Report Mapping

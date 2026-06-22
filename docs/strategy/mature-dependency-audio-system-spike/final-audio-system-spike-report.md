@@ -52,7 +52,8 @@ Mainline paths were not intentionally modified:
 | Mixer policy | bus gain, mute, effective gain update | PASS |
 | Buffer lifecycle | decoded buffer reuse and node disconnect on disposal | PASS |
 | Browser smoke | AudioSystem Playwright smoke through adapter catalog | PASS |
-| Aggregate smoke | `smoke:audio-system` validates unit, boundary, browser summary | PASS |
+| Aggregate smoke | `smoke:audio-system` validates unit, boundary, browser summary, artifact cleanup, and artifact guard | PASS |
+| Artifact hygiene | `smoke:audio-system` removes `test-results` and `playwright-report`, then fails if either remains | PASS |
 
 ## Validation Commands
 
@@ -63,6 +64,8 @@ npm --prefix spikes\mature-dependencies run check
 npm --prefix spikes\mature-dependencies run smoke:browser
 npm --prefix spikes\mature-dependencies run smoke:audio-system
 git diff --check
+Test-Path spikes\mature-dependencies\test-results
+Test-Path spikes\mature-dependencies\playwright-report
 ```
 
 Observed results:
@@ -71,6 +74,7 @@ Observed results:
 - `smoke:browser`: PASS, 10 Playwright tests
 - `smoke:audio-system`: PASS
 - `git diff --check`: PASS, with existing LF/CRLF warnings only
+- explicit artifact absence check: `test-results` absent and `playwright-report` absent after `smoke:audio-system`
 
 ## PASS / Blocked Rules
 
@@ -80,6 +84,7 @@ PASS requires all of:
 - `check` passes
 - browser smoke reaches real Playwright Chromium PASS
 - AudioSystem aggregate smoke reads PASS browser summary
+- AudioSystem aggregate smoke cleans and guards ignored Playwright artifacts
 - reports and matrix exist
 - only allowed paths are committed
 
@@ -89,6 +94,7 @@ Blocked if any of:
 - AudioSystem browser summary is missing or not PASS
 - browser object names leak into public result/snapshot/report
 - aggregate boundary guard fails
+- `test-results` or `playwright-report` remains after `smoke:audio-system`
 - any forbidden mainline path is modified
 
 ## Known Risks
