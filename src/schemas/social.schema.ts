@@ -82,6 +82,11 @@ export const SocialPresetSchema = z
   })
   .strict();
 
+export const SocialAvatarListSchema = z.array(SocialAvatarSchema);
+export const SocialEmoteListSchema = z.array(SocialEmoteSchema);
+export const SocialStampListSchema = z.array(SocialStampSchema);
+export const SocialPresetListSchema = z.array(SocialPresetSchema);
+
 export type SocialAvatarData = z.infer<typeof SocialAvatarSchema>;
 export type SocialEmoteData = z.infer<typeof SocialEmoteSchema>;
 export type SocialStampData = z.infer<typeof SocialStampSchema>;

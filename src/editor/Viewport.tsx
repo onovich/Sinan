@@ -4,11 +4,13 @@ import type { ProjectData } from '../data/DataRepository';
 import { EngineSession } from '../engine/EngineSession';
 import type { EngineMode } from '../engine/EngineMode';
 import type { DeliveryJobRuntimeSnapshot } from '../game/delivery';
+import type { SocialRuntimeSnapshot } from '../game/social';
 import type {
   RuntimeCameraPose,
   RuntimeDeliveryRouteFeedbackDiagnostics,
   RuntimeLodDiagnostics,
   RuntimeScatterDiagnostics,
+  RuntimeSocialDiagnostics,
   RuntimeSphericalPlacementDiagnostics,
 } from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
@@ -40,6 +42,7 @@ interface RuntimeDiagnosticsSnapshot {
   deliveryRouteFeedback: RuntimeDeliveryRouteFeedbackDiagnostics;
   lod: readonly RuntimeLodDiagnostics[];
   scatter: readonly RuntimeScatterDiagnostics[];
+  social: RuntimeSocialDiagnostics;
   spherical: RuntimeSphericalPlacementDiagnostics;
 }
 
@@ -60,6 +63,7 @@ export interface ViewportProps {
   mode: EngineMode;
   project: ProjectData | null;
   deliveryJobSnapshot?: DeliveryJobRuntimeSnapshot;
+  socialRuntimeSnapshot?: SocialRuntimeSnapshot;
   selectionEnabled: boolean;
   showTriggerDebug: boolean;
   selectedEntityId: string | undefined;
@@ -75,6 +79,7 @@ export function Viewport({
   mode,
   project,
   deliveryJobSnapshot,
+  socialRuntimeSnapshot,
   selectionEnabled,
   showTriggerDebug,
   selectedEntityId,
@@ -93,6 +98,7 @@ export function Viewport({
   const transformPreviewRef = useRef(onTransformPreview);
   const transformCommitRef = useRef(onTransformCommit);
   const runtimeReadyRef = useRef(onRuntimeReady);
+  const socialRuntimeSnapshotRef = useRef(socialRuntimeSnapshot);
   const showTriggerDebugRef = useRef(showTriggerDebug);
   const selectedEntityIdRef = useRef(selectedEntityId);
   const pointerInteractionRef = useRef<ViewportPointerInteraction | undefined>(undefined);
@@ -132,6 +138,11 @@ export function Viewport({
   useEffect(() => {
     sessionRef.current?.setDeliveryJobSnapshot(deliveryJobSnapshot);
   }, [deliveryJobSnapshot]);
+
+  useEffect(() => {
+    socialRuntimeSnapshotRef.current = socialRuntimeSnapshot;
+    sessionRef.current?.setSocialRuntimeSnapshot(socialRuntimeSnapshot);
+  }, [socialRuntimeSnapshot]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -176,6 +187,7 @@ export function Viewport({
 
       session = activeSession;
       sessionRef.current = activeSession;
+      activeSession.setSocialRuntimeSnapshot(socialRuntimeSnapshotRef.current);
       bridgeRef.current = activeBridge;
       runtimeReadyRef.current?.(activeRuntime);
       if (readEditorRuntimeDiagnosticsEnabled()) {
@@ -462,6 +474,7 @@ function installRuntimeDiagnostics(runtime: WebRuntime, session: EngineSession):
       runtime.getDeliveryRouteFeedbackDiagnostics?.() ?? createEmptyDeliveryRouteDiagnostics(),
     lod: runtime.getLodDiagnostics?.() ?? [],
     scatter: runtime.getScatterDiagnostics?.() ?? [],
+    social: runtime.getSocialDiagnostics?.() ?? createEmptySocialDiagnostics(),
     spherical: runtime.getSphericalPlacementDiagnostics?.() ?? {
       issueCount: 0,
       issues: [],
@@ -475,6 +488,24 @@ function installRuntimeDiagnostics(runtime: WebRuntime, session: EngineSession):
     runtime.setCameraPose(pose);
 
     return pose;
+  };
+}
+
+function createEmptySocialDiagnostics(): RuntimeSocialDiagnostics {
+  return {
+    activeStampCount: 0,
+    disconnectedRemoteCount: 0,
+    invalidMessageCount: 0,
+    lowEndSuppressedRemoteCount: 0,
+    lowEndSuppressedStampCount: 0,
+    rateLimitedMessageCount: 0,
+    remoteCount: 0,
+    roomFullCount: 0,
+    roomStatus: 'open',
+    staleRemoteCount: 0,
+    staleSnapshotCount: 0,
+    visibleRemoteCount: 0,
+    visibleStampCount: 0,
   };
 }
 

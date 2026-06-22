@@ -148,6 +148,10 @@ const fixtures: Record<string, unknown> = {
       },
     ],
   },
+  'data/social/avatars.json': [],
+  'data/social/emotes.json': [],
+  'data/social/presets.json': [],
+  'data/social/stamps.json': [],
 };
 
 describe('DataRepository', () => {
@@ -161,6 +165,10 @@ describe('DataRepository', () => {
     expect(Object.keys(project.events)).toEqual(['ev_switch_a_open_gate']);
     expect(Object.keys(project.timelines)).toEqual(['tl_open_gate']);
     expect(Object.keys(project.cameraShots)).toEqual(['cam_gate_reveal']);
+    expect(project.socialAvatars).toEqual([]);
+    expect(project.socialEmotes).toEqual([]);
+    expect(project.socialPresets).toEqual([]);
+    expect(project.socialStamps).toEqual([]);
     expect(project.level.entities.map((entity) => entity.id)).toEqual(['switch_a', 'gate_a']);
   });
 

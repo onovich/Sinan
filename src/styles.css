@@ -871,7 +871,7 @@ button:hover {
   left: 14px;
   z-index: 3;
   display: grid;
-  width: min(760px, calc(100% - 28px));
+  width: min(880px, calc(100% - 28px));
   gap: 10px 16px;
   grid-template-columns: minmax(180px, 1fr) minmax(230px, auto);
   border: 1px solid rgb(112 181 139 / 52%);
@@ -922,7 +922,7 @@ button:hover {
 .showcase-hud-stats {
   display: grid;
   min-width: 0;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
   margin: 0;
 }
@@ -946,6 +946,7 @@ button:hover {
   white-space: nowrap;
 }
 
+.showcase-hud-social,
 .showcase-hud-prompt,
 .showcase-hud-feedback {
   grid-column: 1 / -1;
@@ -953,6 +954,14 @@ button:hover {
   color: #dce8df;
   font-size: 12px;
   line-height: 1.45;
+}
+
+.showcase-hud-social {
+  color: #b9d7f0;
+}
+
+.showcase-hud-social[data-tone='warning'] {
+  color: #ffd88a;
 }
 
 .showcase-hud-feedback {

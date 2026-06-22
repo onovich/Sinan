@@ -14,6 +14,10 @@ import playerSpawn from '../../data/prefabs/player_spawn.json';
 import roomBlockout from '../../data/prefabs/room_blockout.json';
 import switchWall from '../../data/prefabs/switch_wall.json';
 import triggerBox from '../../data/prefabs/trigger_box.json';
+import socialAvatars from '../../data/social/avatars.json';
+import socialEmotes from '../../data/social/emotes.json';
+import socialPresets from '../../data/social/presets.json';
+import socialStamps from '../../data/social/stamps.json';
 import openGateTimeline from '../../data/timelines/tl_open_gate.json';
 import { DataRepository } from './DataRepository';
 import type { ProjectJsonLoader } from './loadJson';
@@ -35,6 +39,10 @@ const demoJsonByPath: Record<string, unknown> = {
   'data/prefabs/room_blockout.json': roomBlockout,
   'data/prefabs/switch_wall.json': switchWall,
   'data/prefabs/trigger_box.json': triggerBox,
+  'data/social/avatars.json': socialAvatars,
+  'data/social/emotes.json': socialEmotes,
+  'data/social/presets.json': socialPresets,
+  'data/social/stamps.json': socialStamps,
   'data/timelines/tl_open_gate.json': openGateTimeline,
 };
 

@@ -22,6 +22,12 @@ import {
   type DeliveryJobRuntime,
   type DeliveryJobRuntimeSnapshot,
 } from '../game/delivery';
+import {
+  SocialRemotePlayerSimulator,
+  SocialRuntimeState,
+  createSocialHudViewModel,
+  type SocialRuntimeSnapshot,
+} from '../game/social';
 import type { RuntimeTransform } from '../runtime/RuntimeTypes';
 import type { WebRuntime } from '../runtime/WebRuntime';
 import {
@@ -123,6 +129,9 @@ export function EditorApp() {
   const [deliveryJobSnapshot, setDeliveryJobSnapshot] = useState<
     DeliveryJobRuntimeSnapshot | undefined
   >(undefined);
+  const [socialRuntimeSnapshot, setSocialRuntimeSnapshot] = useState<
+    SocialRuntimeSnapshot | undefined
+  >(undefined);
   const [eventRuntimePreviewState, setEventRuntimePreviewState] = useState<EventRuntimeState>(
     createEditorEventRuntimeState,
   );
@@ -130,6 +139,7 @@ export function EditorApp() {
   const commandHistoryRef = useRef(new CommandHistory());
   const eventRuntimeStateRef = useRef<EventRuntimeState>(eventRuntimePreviewState);
   const deliveryJobRuntimeRef = useRef<DeliveryJobRuntime | null>(null);
+  const socialRuntimeRef = useRef<SocialRuntimeState | null>(null);
   const directorCommandsRef = useRef<DirectorCommand[]>([]);
   const runtimeRef = useRef<WebRuntime | null>(null);
   const timelinePlaybackRef = useRef<TimelinePlaybackSession | null>(null);
@@ -205,6 +215,9 @@ export function EditorApp() {
     routeFeedback: showcaseRouteFeedback,
     snapshot: deliveryJobSnapshot,
   });
+  const socialHud = createSocialHudViewModel({
+    snapshot: socialRuntimeSnapshot,
+  });
   const commandContext: EditorCommandContext = {
     updateLevel: (level) => {
       setProject((current) => updateProjectLevel(current, level));
@@ -240,11 +253,14 @@ export function EditorApp() {
         if (!cancelled) {
           const deliveryJobRuntime = createDeliveryJobRuntimeFromLevel(loadedProject.level);
           const deliverySnapshot = deliveryJobRuntime.getSnapshot();
+          const socialRuntime = createSocialRuntimeFromProject(loadedProject);
           const nextEventRuntimeState = createEditorEventRuntimeState(deliverySnapshot);
 
           deliveryJobRuntimeRef.current = deliveryJobRuntime;
+          socialRuntimeRef.current = socialRuntime.runtime;
           eventRuntimeStateRef.current = nextEventRuntimeState;
           setDeliveryJobSnapshot(deliverySnapshot);
+          setSocialRuntimeSnapshot(socialRuntime.snapshot);
           setEventRuntimePreviewState(cloneEventRuntimeState(nextEventRuntimeState));
           setEventDebugState(createEventDebugState([], nextEventRuntimeState, []));
           projectRef.current = loadedProject;
@@ -1551,6 +1567,7 @@ export function EditorApp() {
             mode={shellModeState.mode}
             project={project}
             deliveryJobSnapshot={deliveryJobSnapshot}
+            socialRuntimeSnapshot={socialRuntimeSnapshot}
             selectionEnabled={shellModeState.selectionEnabled}
             showTriggerDebug={shellModeState.showTriggerDebug}
             selectedEntityId={editorState.selectedEntityId}
@@ -1593,7 +1610,18 @@ export function EditorApp() {
                   <dt>Target</dt>
                   <dd>{showcaseHud.targetVisible ? (showcaseHud.targetLabel ?? 'target') : '-'}</dd>
                 </div>
+                <div>
+                  <dt>Social</dt>
+                  <dd>{socialHud.remoteCount}</dd>
+                </div>
+                <div>
+                  <dt>Stamps</dt>
+                  <dd>{socialHud.activeStampCount}</dd>
+                </div>
               </dl>
+              <p className="showcase-hud-social" data-tone={socialHud.tone}>
+                {socialHud.statusLabel}: {socialHud.prompt}
+              </p>
               {showcaseHud.promptVisible ? (
                 <p className="showcase-hud-prompt">{showcaseHud.prompt}</p>
               ) : null}
@@ -2760,6 +2788,57 @@ function createEditorEventRuntimeState(
   }
 
   return state;
+}
+
+function createSocialRuntimeFromProject(project: ProjectData): {
+  runtime: SocialRuntimeState | null;
+  snapshot?: SocialRuntimeSnapshot;
+} {
+  const avatars = project.socialAvatars ?? [];
+  const emotes = project.socialEmotes ?? [];
+  const stamps = project.socialStamps ?? [];
+  const preset = project.socialPresets?.[0];
+
+  if (avatars.length === 0 || emotes.length === 0 || stamps.length === 0 || !preset) {
+    return {
+      runtime: null,
+    };
+  }
+
+  const runtime = new SocialRuntimeState({
+    avatars,
+    emotes,
+    limits: {
+      maxRemotePlayers: preset.maxRemotePlayers,
+      messagesPerPlayerPerSecond: 60,
+    },
+    stamps,
+  });
+  const simulator = new SocialRemotePlayerSimulator({
+    avatars,
+    emotes,
+    preset,
+    roomId: 'room.showcase',
+    seed: 7,
+    stamps,
+    startAtMs: 1000,
+    worldProjection: project.level.worldProjection,
+  });
+
+  for (const message of simulator.reset().messages) {
+    runtime.apply(message);
+  }
+
+  for (let step = 0; step < 4; step += 1) {
+    for (const message of simulator.step(250).messages) {
+      runtime.apply(message);
+    }
+  }
+
+  return {
+    runtime,
+    snapshot: runtime.getSnapshot(),
+  };
 }
 
 function createDeliveryShowcaseSmokeSnapshot(

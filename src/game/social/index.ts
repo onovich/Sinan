@@ -14,3 +14,9 @@ export {
   type SocialRemotePlayerSimulatorStep,
   type SocialSimulatorDiagnostic,
 } from './SocialRemotePlayerSimulator';
+export {
+  createSocialHudViewModel,
+  type SocialHudTone,
+  type SocialHudViewModel,
+  type SocialHudViewModelInput,
+} from './SocialHudViewModel';

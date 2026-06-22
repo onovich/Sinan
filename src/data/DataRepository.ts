@@ -10,6 +10,16 @@ import type { PaletteData } from '../schemas/palette.schema';
 import { PaletteSchema } from '../schemas/palette.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 import { PrefabSchema } from '../schemas/prefab.schema';
+import {
+  SocialAvatarListSchema,
+  SocialEmoteListSchema,
+  SocialPresetListSchema,
+  SocialStampListSchema,
+  type SocialAvatarData,
+  type SocialEmoteData,
+  type SocialPresetData,
+  type SocialStampData,
+} from '../schemas/social.schema';
 import type { TimelineData } from '../schemas/timeline.schema';
 import { TimelineSchema } from '../schemas/timeline.schema';
 import { FetchJsonLoader, loadAndParseJson, type ProjectJsonLoader } from './loadJson';
@@ -21,6 +31,10 @@ export interface ProjectData {
   prefabs: Record<string, PrefabData>;
   palettes: Record<string, PaletteData>;
   events: Record<string, EventData>;
+  socialAvatars?: readonly SocialAvatarData[];
+  socialEmotes?: readonly SocialEmoteData[];
+  socialPresets?: readonly SocialPresetData[];
+  socialStamps?: readonly SocialStampData[];
   timelines: Record<string, TimelineData>;
   cameraShots: Record<string, CameraShotData>;
 }
@@ -56,8 +70,32 @@ export class DataRepository {
     return loadAndParseJson(this.loader, `data/cameraShots/${cameraShotId}.json`, CameraShotSchema);
   }
 
+  loadSocialAvatars(path = 'data/social/avatars.json'): Promise<readonly SocialAvatarData[]> {
+    return loadAndParseJson(this.loader, path, SocialAvatarListSchema);
+  }
+
+  loadSocialEmotes(path = 'data/social/emotes.json'): Promise<readonly SocialEmoteData[]> {
+    return loadAndParseJson(this.loader, path, SocialEmoteListSchema);
+  }
+
+  loadSocialStamps(path = 'data/social/stamps.json'): Promise<readonly SocialStampData[]> {
+    return loadAndParseJson(this.loader, path, SocialStampListSchema);
+  }
+
+  loadSocialPresets(path = 'data/social/presets.json'): Promise<readonly SocialPresetData[]> {
+    return loadAndParseJson(this.loader, path, SocialPresetListSchema);
+  }
+
   async loadProjectLevel(levelId: string): Promise<ProjectData> {
-    const [assets, level] = await Promise.all([this.loadAssetManifest(), this.loadLevel(levelId)]);
+    const [assets, level, socialAvatars, socialEmotes, socialStamps, socialPresets] =
+      await Promise.all([
+        this.loadAssetManifest(),
+        this.loadLevel(levelId),
+        this.loadSocialAvatars(),
+        this.loadSocialEmotes(),
+        this.loadSocialStamps(),
+        this.loadSocialPresets(),
+      ]);
     const prefabIds = Array.from(
       new Set(level.entities.map((entity) => entity.prefab).filter((id) => id !== undefined)),
     );
@@ -83,6 +121,10 @@ export class DataRepository {
       events: Object.fromEntries(events.map((event) => [event.id, event])),
       timelines: Object.fromEntries(timelines.map((timeline) => [timeline.id, timeline])),
       cameraShots: Object.fromEntries(cameraShots.map((shot) => [shot.id, shot])),
+      socialAvatars,
+      socialEmotes,
+      socialPresets,
+      socialStamps,
     };
   }
 }
