@@ -27,6 +27,7 @@ describe("AssetPipelineAdapter contract types", () => {
       "missing-source",
       "unsupported-format",
       "tool-failed",
+      "path-blocked",
       "stale-source",
       "non-reproducible",
       "manifest-conflict",

@@ -1,4 +1,10 @@
 import {
+  isAbsolute,
+  relative,
+  resolve,
+  sep
+} from "node:path";
+import {
   createAssetPipelineDiagnostic,
   type AssetBudgetPolicy,
   type AssetBudgetResult,
@@ -116,6 +122,90 @@ function hasPathTraversal(path: string): boolean {
     .some((segment) => segment === "..");
 }
 
+function isDriveQualifiedPath(path: string): boolean {
+  return /^[a-zA-Z]:/.test(path);
+}
+
+function isUrlLikePath(path: string): boolean {
+  return /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(path);
+}
+
+function isUncPath(path: string): boolean {
+  return path.startsWith("\\\\") || path.startsWith("//");
+}
+
+function isAbsoluteLikePath(path: string): boolean {
+  return isAbsolute(path) || isDriveQualifiedPath(path) || isUncPath(path) || isUrlLikePath(path);
+}
+
+function isWithinRoot(root: string, target: string): boolean {
+  const relation = relative(root, target);
+  return relation === "" || (!relation.startsWith("..") && !isAbsolute(relation));
+}
+
+function pathPolicyDiagnostics(
+  kind: "source" | "artifact",
+  rawPath: string,
+  rootPath: string,
+  targetPath: string,
+  detailKey: "sourcePath" | "outputArtifactPath"
+): AssetPipelineDiagnostic[] {
+  const diagnostics: AssetPipelineDiagnostic[] = [];
+  const normalizedRawPath = normalizeSlashes(rawPath.trim());
+
+  if (!normalizedRawPath) {
+    diagnostics.push(
+      createAssetPipelineDiagnostic("path-traversal", `${kind === "source" ? "Asset source" : "Generated artifact"} path must be non-empty.`, "error", false, {
+        [detailKey]: normalizedRawPath
+      })
+    );
+  }
+
+  if (isAbsoluteLikePath(rawPath.trim())) {
+    diagnostics.push(
+      createAssetPipelineDiagnostic(
+        "path-traversal",
+        `${kind === "source" ? "Asset source" : "Generated artifact"} path must be relative to the configured ${kind === "source" ? "source" : "output"} root.`,
+        "error",
+        false,
+        {
+          [detailKey]: normalizedRawPath
+        }
+      )
+    );
+  }
+
+  if (hasPathTraversal(normalizedRawPath)) {
+    diagnostics.push(
+      createAssetPipelineDiagnostic(
+        "path-traversal",
+        `${kind === "source" ? "Asset source" : "Generated artifact"} path must not include traversal segments.`,
+        "error",
+        false,
+        {
+          [detailKey]: normalizedRawPath
+        }
+      )
+    );
+  }
+
+  if (!isWithinRoot(rootPath, targetPath)) {
+    diagnostics.push(
+      createAssetPipelineDiagnostic(
+        "path-traversal",
+        `${kind === "source" ? "Asset source" : "Generated artifact"} path must resolve inside the configured ${kind === "source" ? "source" : "output"} root.`,
+        "error",
+        false,
+        {
+          [detailKey]: normalizeSlashes(targetPath.split(sep).join("/"))
+        }
+      )
+    );
+  }
+
+  return diagnostics;
+}
+
 function joinRelative(root: string, relativePath: string): string {
   if (root === "." || root === "") {
     return trimLeadingSlash(relativePath);
@@ -146,39 +236,34 @@ export function normalizeAssetBuildRequest(
   input: AssetBuildRequestInput,
   config: AssetPipelineConfig = defaultAssetPipelineConfig,
   existingManifestIds: string[] = [],
-  usedArtifactPaths: string[] = []
+  usedArtifactPaths: string[] = [],
+  packageRoot = process.cwd()
 ): AssetPipelineNormalizationResult<NormalizedAssetBuildRequest> {
   const diagnostics: AssetPipelineDiagnostic[] = [];
   const assetId = input.assetId.trim();
-  const sourcePath = trimLeadingSlash(normalizeSlashes(input.sourcePath.trim()));
+  const rawSourcePath = input.sourcePath.trim();
+  const sourcePath = trimLeadingSlash(normalizeSlashes(rawSourcePath));
   const variantId = input.variantId ?? config.variants[0]?.variantId ?? "runtime";
   const profileId = input.profileId ?? config.defaultProfileId;
   const budgetId = input.budgetId ?? config.defaultBudgetId;
+  const rawArtifactPath = (input.outputArtifactPath ?? defaultArtifactPath(assetId, variantId)).trim();
   const relativeArtifactPath = trimLeadingSlash(
-    normalizeSlashes(input.outputArtifactPath ?? defaultArtifactPath(assetId, variantId))
+    normalizeSlashes(rawArtifactPath)
   );
   const outputArtifactPath = joinRelative(config.generatedArtifactPolicy.outputRoot, relativeArtifactPath);
   const expectedManifestId = input.expectedManifestId ?? `${assetId}:${variantId}`;
+  const sourceRootPath = resolve(packageRoot, config.sourceRoot);
+  const outputRootPath = resolve(packageRoot, config.generatedArtifactPolicy.outputRoot);
+  const sourceTargetPath = resolve(sourceRootPath, sourcePath);
+  const artifactTargetPath = resolve(outputRootPath, relativeArtifactPath);
 
   if (!assetId) {
     diagnostics.push(createAssetPipelineDiagnostic("manifest-conflict", "Asset build request requires a non-empty assetId."));
   }
 
-  if (!sourcePath || hasPathTraversal(sourcePath)) {
-    diagnostics.push(
-      createAssetPipelineDiagnostic("path-traversal", "Asset source path must stay within the configured source root.", "error", false, {
-        sourcePath
-      })
-    );
-  }
+  diagnostics.push(...pathPolicyDiagnostics("source", rawSourcePath, sourceRootPath, sourceTargetPath, "sourcePath"));
 
-  if (hasPathTraversal(relativeArtifactPath) || !outputArtifactPath.startsWith(trimLeadingSlash(config.generatedArtifactPolicy.outputRoot))) {
-    diagnostics.push(
-      createAssetPipelineDiagnostic("path-traversal", "Generated artifact path must stay within the configured output root.", "error", false, {
-        outputArtifactPath
-      })
-    );
-  }
+  diagnostics.push(...pathPolicyDiagnostics("artifact", rawArtifactPath, outputRootPath, artifactTargetPath, "outputArtifactPath"));
 
   const sourceExtension = extensionOf(sourcePath);
   if (!supportedSourceExtensions.includes(sourceExtension as (typeof supportedSourceExtensions)[number])) {
@@ -243,7 +328,14 @@ export function normalizeAssetBuildRequest(
 
   return {
     ok: diagnostics.length === 0,
-    status: diagnostics.length === 0 ? "success" : diagnostics.some((diagnostic) => diagnostic.code === "unsupported-format") ? "unsupported-format" : "manifest-conflict",
+    status:
+      diagnostics.length === 0
+        ? "success"
+        : diagnostics.some((diagnostic) => diagnostic.code === "path-traversal")
+          ? "path-blocked"
+          : diagnostics.some((diagnostic) => diagnostic.code === "unsupported-format")
+            ? "unsupported-format"
+            : "manifest-conflict",
     value:
       diagnostics.length === 0 && profile && variant && budget
         ? {

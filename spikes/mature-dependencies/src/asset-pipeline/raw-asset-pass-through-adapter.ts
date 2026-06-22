@@ -105,22 +105,33 @@ export class RawAssetPassThroughAdapter implements AssetPipelineAdapter {
       return this.disposedReport(request, "Cannot rebuild after asset pipeline disposal.");
     }
 
-    const source = await this.readSource(request);
+    const normalized = this.validateRequest(request);
+    if (!normalized.ok) {
+      return this.failureReport(request, normalized.status, normalized.diagnostics);
+    }
+
+    const safeRequest = normalized.value!.request;
+    const source = await this.readSource(safeRequest);
     if (!source.ok) {
-      return this.failureReport(request, source.status, source.diagnostics);
+      return this.failureReport(safeRequest, source.status, source.diagnostics);
     }
 
     const sourceHash = stableHash(source.bytes);
-    if (previous && request.cachePolicy !== "force-rebuild" && previous.sourceHash === sourceHash && previous.profileHash === profileHash(this.config, request.profileId)) {
+    if (
+      previous &&
+      safeRequest.cachePolicy !== "force-rebuild" &&
+      previous.sourceHash === sourceHash &&
+      previous.profileHash === profileHash(this.config, safeRequest.profileId)
+    ) {
       this.state = "skipped";
-      return this.reportFromSource(request, source.bytes.byteLength, sourceHash, "skipped", [
+      return this.reportFromSource(safeRequest, source.bytes.byteLength, sourceHash, "skipped", [
         createAssetPipelineDiagnostic("stale-source", "Source and profile are unchanged; pass-through rebuild skipped.", "info", false, {
-          assetId: request.assetId
+          assetId: safeRequest.assetId
         })
       ]);
     }
 
-    return this.reportFromSource(request, source.bytes.byteLength, sourceHash, "fallback", [this.fallbackDiagnostic()]);
+    return this.reportFromSource(safeRequest, source.bytes.byteLength, sourceHash, "fallback", [this.fallbackDiagnostic()]);
   }
 
   async dispose(): Promise<AssetPipelineResult> {
@@ -138,24 +149,32 @@ export class RawAssetPassThroughAdapter implements AssetPipelineAdapter {
       return this.disposedReport(request, "Cannot inspect or build after asset pipeline disposal.");
     }
 
-    const normalized = normalizeAssetBuildRequest(
+    const normalized = this.validateRequest(request);
+    if (!normalized.ok) {
+      return this.failureReport(request, normalized.status, normalized.diagnostics);
+    }
+
+    const safeRequest = normalized.value!.request;
+    const source = await this.readSource(safeRequest);
+    if (!source.ok) {
+      return this.failureReport(safeRequest, source.status, source.diagnostics);
+    }
+
+    return this.reportFromSource(safeRequest, source.bytes.byteLength, stableHash(source.bytes), status, [this.fallbackDiagnostic()]);
+  }
+
+  private validateRequest(request: AssetBuildRequest): ReturnType<typeof normalizeAssetBuildRequest> {
+    return normalizeAssetBuildRequest(
       {
         ...request,
         sourcePath: request.sourcePath.replace(`${this.config.sourceRoot}/`, ""),
         outputArtifactPath: request.outputArtifactPath.replace(`${this.config.generatedArtifactPolicy.outputRoot}/`, "")
       },
-      this.config
+      this.config,
+      [],
+      [],
+      this.packageRoot
     );
-    if (!normalized.ok) {
-      return this.failureReport(request, normalized.status, normalized.diagnostics);
-    }
-
-    const source = await this.readSource(request);
-    if (!source.ok) {
-      return this.failureReport(request, source.status, source.diagnostics);
-    }
-
-    return this.reportFromSource(request, source.bytes.byteLength, stableHash(source.bytes), status, [this.fallbackDiagnostic()]);
   }
 
   private async readSource(request: AssetBuildRequest): Promise<

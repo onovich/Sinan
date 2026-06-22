@@ -124,9 +124,10 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
       return this.failureReport(request, normalized.status, normalized.diagnostics);
     }
 
-    const source = await this.readSource(request);
+    const safeRequest = normalized.value!.request;
+    const source = await this.readSource(safeRequest);
     if (!source.ok) {
-      return this.failureReport(request, source.status, source.diagnostics);
+      return this.failureReport(safeRequest, source.status, source.diagnostics);
     }
 
     try {
@@ -142,12 +143,12 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
       ];
 
       this.state = "reporting";
-      return this.reportFromMetrics(request, source, metrics, "success", diagnostics, {
+      return this.reportFromMetrics(safeRequest, source, metrics, "success", diagnostics, {
         reportKeys: Object.keys(inspection).sort()
       });
     } catch (error) {
       this.state = "failed";
-      return this.failureReport(request, "tool-failed", [this.toolFailureDiagnostic("glTF inspection failed.", error)]);
+      return this.failureReport(safeRequest, "tool-failed", [this.toolFailureDiagnostic("glTF inspection failed.", error)]);
     }
   }
 
@@ -161,9 +162,10 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
       return this.failureReport(request, normalized.status, normalized.diagnostics);
     }
 
-    const source = await this.readSource(request);
+    const safeRequest = normalized.value!.request;
+    const source = await this.readSource(safeRequest);
     if (!source.ok) {
-      return this.failureReport(request, source.status, source.diagnostics);
+      return this.failureReport(safeRequest, source.status, source.diagnostics);
     }
 
     try {
@@ -171,14 +173,14 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
       await MeshoptEncoder.ready;
       const io = this.io ?? new NodeIO();
       const document = await io.read(source.absolutePath);
-      const profile = this.config.profiles.find((candidate) => candidate.profileId === request.profileId);
+      const profile = this.config.profiles.find((candidate) => candidate.profileId === safeRequest.profileId);
 
       if (profile?.pipelineIntent !== "inspect-only") {
         await document.transform(reorder({ encoder: MeshoptEncoder }), prune());
       }
 
       const glb = await io.writeBinary(document);
-      const artifactPath = resolve(this.packageRoot, request.outputArtifactPath);
+      const artifactPath = resolve(this.packageRoot, safeRequest.outputArtifactPath);
       await mkdir(dirname(artifactPath), { recursive: true });
       await writeFile(artifactPath, glb);
 
@@ -188,7 +190,7 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
       const artifactHash = stableHash(glb);
 
       this.state = "reporting";
-      return this.reportFromMetrics(request, source, metrics, "success", [], {
+      return this.reportFromMetrics(safeRequest, source, metrics, "success", [], {
         reportKeys: Object.keys(roundTripInspection).sort(),
         artifact: {
           hash: artifactHash,
@@ -197,7 +199,7 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
       });
     } catch (error) {
       this.state = "failed";
-      return this.failureReport(request, "tool-failed", [this.toolFailureDiagnostic("glTF transform/write failed.", error)]);
+      return this.failureReport(safeRequest, "tool-failed", [this.toolFailureDiagnostic("glTF transform/write failed.", error)]);
     }
   }
 
@@ -206,13 +208,25 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
       return this.disposedReport(request, "Cannot rebuild after asset pipeline disposal.");
     }
 
-    const source = await this.readSource(request);
-    if (!source.ok) {
-      return this.failureReport(request, source.status, source.diagnostics);
+    const normalized = this.validateRequest(request);
+    if (!normalized.ok) {
+      return this.failureReport(request, normalized.status, normalized.diagnostics);
     }
 
-    const digest = profileHash(this.config, request.profileId);
-    if (previous && request.cachePolicy !== "force-rebuild" && request.cachePolicy !== "disabled" && previous.sourceHash === source.hash && previous.profileHash === digest) {
+    const safeRequest = normalized.value!.request;
+    const source = await this.readSource(safeRequest);
+    if (!source.ok) {
+      return this.failureReport(safeRequest, source.status, source.diagnostics);
+    }
+
+    const digest = profileHash(this.config, safeRequest.profileId);
+    if (
+      previous &&
+      safeRequest.cachePolicy !== "force-rebuild" &&
+      safeRequest.cachePolicy !== "disabled" &&
+      previous.sourceHash === source.hash &&
+      previous.profileHash === digest
+    ) {
       this.state = "skipped";
       return {
         ...previous,
@@ -220,7 +234,7 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
         diagnostics: [
           ...previous.diagnostics,
           createAssetPipelineDiagnostic("stale-source", "Source and profile are unchanged; generated artifact rebuild skipped.", "info", false, {
-            assetId: request.assetId
+            assetId: safeRequest.assetId
           })
         ],
         manifestPatch: {
@@ -228,14 +242,14 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
           diagnostics: [
             ...previous.manifestPatch.diagnostics,
             createAssetPipelineDiagnostic("stale-source", "Source and profile are unchanged; generated artifact rebuild skipped.", "info", false, {
-              assetId: request.assetId
+              assetId: safeRequest.assetId
             })
           ]
         }
       };
     }
 
-    const rebuilt = await this.build(request);
+    const rebuilt = await this.build(safeRequest);
     if (!previous) {
       return rebuilt;
     }
@@ -278,7 +292,8 @@ export class GltfAssetPipelineAdapter implements AssetPipelineAdapter {
       },
       this.config,
       this.existingManifestIds,
-      this.usedArtifactPaths
+      this.usedArtifactPaths,
+      this.packageRoot
     );
   }
 

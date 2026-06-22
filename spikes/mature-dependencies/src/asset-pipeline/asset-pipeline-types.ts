@@ -24,6 +24,7 @@ export const assetPipelineResultStatuses = [
   "missing-source",
   "unsupported-format",
   "tool-failed",
+  "path-blocked",
   "stale-source",
   "non-reproducible",
   "manifest-conflict",

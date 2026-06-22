@@ -17,6 +17,15 @@ function request(overrides: Partial<AssetBuildRequest> = {}): AssetBuildRequest 
   return normalized.value?.request as AssetBuildRequest;
 }
 
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await stat(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 describe("GltfAssetPipelineAdapter inspect", () => {
   test("boots and inspects the minimal glTF fixture into a Sinan report", async () => {
     const adapter = createGltfAssetPipelineAdapter();
@@ -58,6 +67,28 @@ describe("GltfAssetPipelineAdapter inspect", () => {
 
     expect(report.status).toBe("unsupported-format");
     expect(report.diagnostics[0]?.code).toBe("unsupported-format");
+  });
+
+  test("rejects unsafe source paths before glTF reads", async () => {
+    const adapter = createGltfAssetPipelineAdapter();
+
+    const absolute = await adapter.inspect({
+      ...request(),
+      requestId: "request:absolute-source",
+      sourcePath: join(process.cwd(), "fixtures", "minimal-triangle.gltf")
+    });
+    const traversal = await adapter.inspect({
+      ...request(),
+      requestId: "request:traversal-source",
+      sourcePath: "../fixtures/minimal-triangle.gltf"
+    });
+
+    expect(absolute.status).toBe("path-blocked");
+    expect(traversal.status).toBe("path-blocked");
+    expect(absolute.diagnostics.map((diagnostic) => diagnostic.code)).toContain("path-traversal");
+    expect(traversal.diagnostics.map((diagnostic) => diagnostic.code)).toContain("path-traversal");
+    expect(absolute.generatedArtifacts).toEqual([]);
+    expect(traversal.generatedArtifacts).toEqual([]);
   });
 
   test("normalizes glTF parser failures to tool-failed diagnostics", async () => {
@@ -120,6 +151,52 @@ describe("GltfAssetPipelineAdapter inspect", () => {
     expect(artifactStat.size).toBeGreaterThan(0);
     expect(sourceBytes.toString("utf8")).toContain("triangle-mesh");
     expect(JSON.stringify(report)).not.toMatch(/NodeIO|Document|MeshoptEncoder|Property|Transform\b/);
+  });
+
+  test("rejects unsafe output artifact paths before writes", async () => {
+    const tempRoot = await mkdtemp(join(tmpdir(), "sinan-asset-pipeline-output-guard-"));
+    await copyFile(join(process.cwd(), "fixtures", "minimal-triangle.gltf"), join(tempRoot, "minimal-triangle.gltf"));
+    const adapter = createGltfAssetPipelineAdapter({
+      packageRoot: tempRoot,
+      config: {
+        sourceRoot: ".",
+        outputRoot: "generated",
+        generatedArtifactPolicy: {
+          outputRoot: "generated"
+        }
+      }
+    });
+    const base = normalizeAssetBuildRequest(
+      {
+        assetId: "asset:minimal-triangle",
+        sourcePath: "minimal-triangle.gltf"
+      },
+      adapter.config,
+      [],
+      [],
+      tempRoot
+    );
+    expect(base.value).toBeDefined();
+    const absoluteArtifact = join(tempRoot, "..", "absolute-escape.glb");
+    const traversalArtifact = join(tempRoot, "..", "traversal-escape.glb");
+
+    const absolute = await adapter.build({
+      ...(base.value?.request as AssetBuildRequest),
+      requestId: "request:absolute-output",
+      outputArtifactPath: absoluteArtifact
+    });
+    const traversal = await adapter.build({
+      ...(base.value?.request as AssetBuildRequest),
+      requestId: "request:traversal-output",
+      outputArtifactPath: "../traversal-escape.glb"
+    });
+
+    expect(absolute.status).toBe("path-blocked");
+    expect(traversal.status).toBe("path-blocked");
+    expect(absolute.diagnostics.map((diagnostic) => diagnostic.code)).toContain("path-traversal");
+    expect(traversal.diagnostics.map((diagnostic) => diagnostic.code)).toContain("path-traversal");
+    expect(await pathExists(absoluteArtifact)).toBe(false);
+    expect(await pathExists(traversalArtifact)).toBe(false);
   });
 
   test("normalizes manifest conflicts before tool execution", async () => {
@@ -260,5 +337,23 @@ describe("GltfAssetPipelineAdapter inspect", () => {
     expect(stale.diagnostics.map((diagnostic) => diagnostic.code)).toContain("stale-source");
     expect(nonReproducible.status).toBe("non-reproducible");
     expect(nonReproducible.diagnostics.map((diagnostic) => diagnostic.code)).toContain("non-reproducible");
+  });
+
+  test("validates rebuild path policy before reading sources", async () => {
+    const adapter = createGltfAssetPipelineAdapter();
+    const previous = await adapter.build(request());
+
+    const report = await adapter.rebuild(
+      {
+        ...request(),
+        requestId: "request:unsafe-rebuild",
+        sourcePath: "../fixtures/minimal-triangle.gltf"
+      },
+      previous
+    );
+
+    expect(report.status).toBe("path-blocked");
+    expect(report.diagnostics.map((diagnostic) => diagnostic.code)).toContain("path-traversal");
+    expect(report.sourceHash).toBe("");
   });
 });

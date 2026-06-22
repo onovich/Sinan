@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { join } from "node:path";
 import { createRawAssetPassThroughAdapter } from "./raw-asset-pass-through-adapter";
 import { normalizeAssetBuildRequest, normalizeAssetPipelineConfig } from "./asset-pipeline-normalizer";
 import type { AssetBuildRequest } from "./asset-pipeline-types";
@@ -57,6 +58,38 @@ describe("RawAssetPassThroughAdapter", () => {
     expect(unsupported.diagnostics.map((diagnostic) => diagnostic.code)).toContain("unsupported-format");
   });
 
+  test("rejects unsafe source and output paths before pass-through reads", async () => {
+    const adapter = createRawAssetPassThroughAdapter();
+
+    const absoluteSource = await adapter.inspect({
+      ...request(),
+      requestId: "request:absolute-source",
+      sourcePath: join(process.cwd(), "fixtures", "minimal-triangle.gltf")
+    });
+    const traversalSource = await adapter.inspect({
+      ...request(),
+      requestId: "request:traversal-source",
+      sourcePath: "../fixtures/minimal-triangle.gltf"
+    });
+    const absoluteOutput = await adapter.build({
+      ...request(),
+      requestId: "request:absolute-output",
+      outputArtifactPath: join(process.cwd(), "reports", "asset-pipeline", "generated", "triangle.glb")
+    });
+    const traversalOutput = await adapter.build({
+      ...request(),
+      requestId: "request:traversal-output",
+      outputArtifactPath: "../triangle.glb"
+    });
+
+    for (const report of [absoluteSource, traversalSource, absoluteOutput, traversalOutput]) {
+      expect(report.status).toBe("path-blocked");
+      expect(report.diagnostics.map((diagnostic) => diagnostic.code)).toContain("path-traversal");
+      expect(report.sourceHash).toBe("");
+      expect(report.generatedArtifacts).toEqual([]);
+    }
+  });
+
   test("skips unchanged source and profile during rebuild", async () => {
     const adapter = createRawAssetPassThroughAdapter();
     const buildRequest = request();
@@ -67,6 +100,23 @@ describe("RawAssetPassThroughAdapter", () => {
     expect(second.status).toBe("skipped");
     expect(second.sourceHash).toBe(first.sourceHash);
     expect(second.profileHash).toBe(first.profileHash);
+  });
+
+  test("validates rebuild path policy before pass-through source reads", async () => {
+    const adapter = createRawAssetPassThroughAdapter();
+    const first = await adapter.build(request());
+    const report = await adapter.rebuild(
+      {
+        ...request(),
+        requestId: "request:unsafe-rebuild",
+        sourcePath: "../fixtures/minimal-triangle.gltf"
+      },
+      first
+    );
+
+    expect(report.status).toBe("path-blocked");
+    expect(report.diagnostics.map((diagnostic) => diagnostic.code)).toContain("path-traversal");
+    expect(report.sourceHash).toBe("");
   });
 
   test("uses budget warnings and failures without pretending optimization happened", async () => {

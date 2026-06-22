@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { resolve } from "node:path";
 import {
   defaultAssetPipelineConfig,
   evaluateAssetBudget,
@@ -34,13 +35,38 @@ describe("asset pipeline request normalization", () => {
     });
 
     expect(normalized.ok).toBe(false);
+    expect(normalized.status).toBe("path-blocked");
     expect(normalized.value).toBeUndefined();
-    expect(normalized.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
-      "path-traversal",
-      "path-traversal",
-      "unsupported-format",
-      "generated-artifact-blocked"
-    ]);
+    expect(normalized.diagnostics.map((diagnostic) => diagnostic.code)).toContain("path-traversal");
+    expect(normalized.diagnostics.map((diagnostic) => diagnostic.code)).toContain("unsupported-format");
+    expect(normalized.diagnostics.map((diagnostic) => diagnostic.code)).toContain("generated-artifact-blocked");
+  });
+
+  test("rejects absolute, drive-qualified, UNC, URL-like, and empty paths", () => {
+    const cases = [
+      { sourcePath: resolve("fixtures", "minimal-triangle.gltf") },
+      { sourcePath: "C:/outside/minimal-triangle.gltf" },
+      { sourcePath: "//server/share/minimal-triangle.gltf" },
+      { sourcePath: "file:///fixtures/minimal-triangle.gltf" },
+      { sourcePath: "" },
+      { sourcePath: "minimal-triangle.gltf", outputArtifactPath: resolve("reports", "asset-pipeline", "generated", "triangle.glb") },
+      { sourcePath: "minimal-triangle.gltf", outputArtifactPath: "C:/outside/triangle.glb" },
+      { sourcePath: "minimal-triangle.gltf", outputArtifactPath: "//server/share/triangle.glb" },
+      { sourcePath: "minimal-triangle.gltf", outputArtifactPath: "file:///reports/triangle.glb" },
+      { sourcePath: "minimal-triangle.gltf", outputArtifactPath: "" }
+    ];
+
+    for (const input of cases) {
+      const normalized = normalizeAssetBuildRequest({
+        assetId: "asset:blocked",
+        ...input
+      });
+
+      expect(normalized.ok, JSON.stringify(input)).toBe(false);
+      expect(normalized.status, JSON.stringify(input)).toBe("path-blocked");
+      expect(normalized.diagnostics.map((diagnostic) => diagnostic.code), JSON.stringify(input)).toContain("path-traversal");
+      expect(normalized.value).toBeUndefined();
+    }
   });
 
   test("reports missing profile, missing budget, duplicate artifact, and manifest conflict", () => {
