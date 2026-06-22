@@ -63,6 +63,7 @@ function listFiles(root) {
 function runBoundaryGuard() {
   const failures = [];
   const allowedComlinkFiles = new Set(["comlink-worker-task-adapter.ts", "comlink-worker-task.worker.ts"]);
+  const comlinkImportPattern = /from\s+["']comlink["']/;
   const forbiddenImportPattern = /from\s+["'][^"']*(three|dexie|rapier|src\/(game|events|director|world|schemas|data|migrations))/i;
   const forbiddenRuntimePattern = /\b(eval|Function)\s*\(/;
 
@@ -75,7 +76,7 @@ function runBoundaryGuard() {
       failures.push(`${rel}: forbidden runtime/dependency import`);
     }
 
-    if (text.includes("\"comlink\"") && !allowedComlinkFiles.has(fileName)) {
+    if (comlinkImportPattern.test(text) && !allowedComlinkFiles.has(fileName)) {
       failures.push(`${rel}: Comlink import outside adapter/worker boundary`);
     }
 
@@ -85,6 +86,16 @@ function runBoundaryGuard() {
   }
 
   recordCheck("worker-task boundary guard", failures.length === 0, failures.length === 0 ? ["imports and dynamic-code scan passed"] : failures);
+}
+
+function validateGeneratedArtifactsAbsent() {
+  const forbiddenArtifacts = ["test-results", "playwright-report", "coverage"];
+  const present = forbiddenArtifacts.filter((artifact) => existsSync(join(packageRoot, artifact)));
+  recordCheck(
+    "worker-task generated artifact guard",
+    present.length === 0,
+    present.length === 0 ? ["no generated test/browser artifact directories present"] : present.map((artifact) => `${artifact} is present`)
+  );
 }
 
 function validateBrowserSummary() {
@@ -147,6 +158,7 @@ if (!existsSync(workerTaskRoot) || !statSync(workerTaskRoot).isDirectory()) {
   runCommand("worker-task unit tests", ["run", "test", "--", "worker-task"]);
   runBoundaryGuard();
   validateBrowserSummary();
+  validateGeneratedArtifactsAbsent();
 }
 
 const written = writeSummary();
