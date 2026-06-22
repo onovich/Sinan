@@ -88,7 +88,7 @@ Non-goals:
 | Phase 19   | Shader Dissolve And Material Timeline   | Add the first story shader material, texture-backed dissolve, material.parameter timeline tracks, material.setParameter actions, and Material Inspector MVP      |                6 |
 | Phase 20   | Shader Globals And Postprocessing Ramp  | Add shared shader globals, a second material, resource sharing/lifecycle checks, and the first postprocessing runtime pass                                       |                6 |
 | Phase 21   | Shader Production Quality Gate          | Add shader visual regression, HMR/fallback/error diagnostics, precompile guidance, and mobile shader baseline                                                    |                4 |
-| Phase 21.5 | Engine Maturity External Contract Gate  | Add Sinan-owned RFCs, adapter boundary policy, POC briefs, mature dependency evaluation templates, and compatibility matrix before external infrastructure work    |                6 |
+| Phase 21.5 | Engine Maturity External Contract Gate  | Add Sinan-owned RFCs, adapter boundary policy, POC briefs, mature dependency evaluation templates, and compatibility matrix before external infrastructure work  |                6 |
 | Phase 22   | LOD, Instancing, And Vegetation         | Add LOD runtime/schema, InstancedMesh scatter, vegetation data, and perf smoke checks                                                                            |                5 |
 | Phase 23   | Compact Spherical World Prototype       | Add cube-sphere projection, spherical placement/camera, player surface movement, and three readable regions                                                      |                6 |
 | Phase 24   | Delivery Gameplay Showcase              | Add Showcase Mode, player controller, delivery jobs, route/target feedback, and 1-2 complete jobs                                                                |                6 |
@@ -440,6 +440,8 @@ Goal: produce a playable single-player Messenger-like vertical slice.
 
 Estimated rounds: 6.
 
+Status: PASS on 2026-06-22. Final report: `docs/phase-24-delivery-gameplay-showcase-final-report.md`.
+
 Scope:
 
 - Add Showcase Mode without editor panels.
@@ -546,10 +548,14 @@ Complete Phase 23 from docs/abeto-messenger-development-plan.md: Compact Spheric
 
 Use `docs/phase-23-compact-spherical-world-prototype-goal-mode-execution-guide.md` before implementation. The guide uses 16 rounds: 12 implementation rounds, 3 buffer rounds, and 1 final validation/handoff round. Phase 23 should produce the compact spherical-world prototype only: projection schema, cube-sphere math, spherical placement, three readable regions, minimal deterministic player surface movement, stable spherical camera behavior, director camera compatibility, and smoke/perf evidence. Delivery jobs, full Showcase Mode, Physics/Rapier, InputFlow, ViewRig, Runtime UI, Audio, multiplayer, and external adapters remain out of scope.
 
-Phase 23 is PASS in `docs/phase-23-compact-spherical-world-prototype-final-report.md`. The next goal should be Phase 24: Delivery Gameplay Showcase.
+Phase 24 is PASS in `docs/phase-24-delivery-gameplay-showcase-final-report.md`. The next full-route goal should be Phase 25: Multiplayer-lite Social Layer.
 
 ```txt
-Complete Phase 24 from docs/abeto-messenger-development-plan.md: Delivery Gameplay Showcase. Start only after Phase 23 is PASS and pushed. Use the compact spherical-world prototype as the playable environment, but keep delivery jobs, route feedback, player interaction, Runtime UI, audio, and any new input semantics scoped by the Phase 24 guide.
+Complete Phase 25 from docs/abeto-messenger-development-plan.md: Multiplayer-lite Social Layer. Start only after Phase 24 is PASS and pushed. Preserve the single-player delivery showcase as the baseline, add local remote-player simulation first, keep avatar/emote/stamp/network schemas data-first and validated, and keep networking scope small enough to avoid regressing Showcase Mode.
 ```
 
-Use `docs/phase-24-delivery-gameplay-showcase-goal-mode-execution-guide.md` before implementation. The guide uses 16 rounds: 12 implementation rounds, 3 buffer rounds, and 1 final validation/handoff round. Phase 24 should produce the playable single-player delivery showcase only: Showcase Mode without editor panels, minimal first-party player controller, interaction radius, delivery job schema/data/runtime state, route and target feedback, completion feedback, editor job affordances, and browser smoke for a successful job flow. Multiplayer-lite, WebSocket rooms, remote avatars, Physics/Rapier, external InputFlow, ViewRig, LudoWeave, Inscape, production Runtime UI framework, Audio runtime, external adapters, and broad gameplay framework work remain out of scope.
+If multiplayer-lite is intentionally skipped, record the Phase 25 skip decision before starting Phase 26. The next core single-player route should then be Phase 26: Vertical Slice RC Hardening.
+
+```txt
+Complete Phase 26 from docs/abeto-messenger-development-plan.md: Vertical Slice RC Hardening. Start only after Phase 24 is PASS and pushed, and only after recording that Phase 25 multiplayer-lite is intentionally skipped. Preserve Showcase Mode and delivery job smoke, lock low-end/mobile budgets, update release docs, and keep hardening focused on the single-player vertical slice.
+```

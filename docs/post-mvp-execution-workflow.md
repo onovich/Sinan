@@ -45,6 +45,8 @@ Phase 23 is PASS in `docs/phase-23-compact-spherical-world-prototype-final-repor
 
 Use `docs/phase-24-delivery-gameplay-showcase-goal-mode-execution-guide.md` for Phase 24. The guide uses 16 rounds and keeps the phase focused on a playable single-player delivery showcase: Showcase Mode without editor panels, minimal first-party player controller, interaction radius, delivery job data/state, route and target feedback, completion feedback, editor job affordances, and browser smoke for a successful job flow. Do not treat Phase 24 as approval for Phase 25 multiplayer-lite, WebSocket rooms, remote avatars, Physics/Rapier, external InputFlow, ViewRig, production Runtime UI framework, Audio runtime, or external adapter integration.
 
+Phase 24 is PASS in `docs/phase-24-delivery-gameplay-showcase-final-report.md`. The next full-route goal is Phase 25: Multiplayer-lite Social Layer. If the project chooses to skip multiplayer-lite, record that decision explicitly before routing to Phase 26: Vertical Slice RC Hardening as the next core single-player goal.
+
 During Phase 21 and later shader work, use the "Shader Production Quality Checklist" in `docs/developer-guide.md`. New production materials or postprocess passes should not be accepted with editor-only evidence; they need compile smoke, visual regression coverage, fallback diagnostics, precompile consideration, and low-end baseline evidence appropriate to the change.
 
 ## Execution Budget
