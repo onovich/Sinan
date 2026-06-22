@@ -882,6 +882,19 @@ button:hover {
   pointer-events: none;
 }
 
+.showcase-hud[data-tone='active'] {
+  border-color: rgb(90 167 214 / 68%);
+}
+
+.showcase-hud[data-tone='success'] {
+  border-color: rgb(118 178 139 / 78%);
+  background: rgb(10 24 17 / 82%);
+}
+
+.showcase-hud[data-tone='warning'] {
+  border-color: rgb(255 207 112 / 72%);
+}
+
 .showcase-hud-title {
   display: grid;
   min-width: 0;
@@ -933,12 +946,18 @@ button:hover {
   white-space: nowrap;
 }
 
-.showcase-hud p {
+.showcase-hud-prompt,
+.showcase-hud-feedback {
   grid-column: 1 / -1;
   margin: 0;
   color: #dce8df;
   font-size: 12px;
   line-height: 1.45;
+}
+
+.showcase-hud-feedback {
+  color: #aee0bd;
+  font-weight: 800;
 }
 
 .runtime-subtitle {

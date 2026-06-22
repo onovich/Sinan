@@ -52,10 +52,20 @@ describe('showcase mode editor shell', () => {
     expect(createShowcaseModeHud(createProject())).toEqual({
       activeJobId: 'job.hill_mail_run',
       activeJobStatus: 'available',
+      blocked: false,
       endpointCount: 2,
+      empty: false,
       jobCount: 1,
       prompt: 'Carry mail from the hill courier to the mailbox.',
+      promptVisible: true,
+      routeMarkerCount: 0,
+      stale: false,
+      statusLabel: 'Available',
+      targetEndpointId: 'delivery.mailbox_hill',
+      targetLabel: 'Mailbox',
+      targetVisible: false,
       title: 'Hill Mail Run',
+      tone: 'neutral',
     });
   });
 });

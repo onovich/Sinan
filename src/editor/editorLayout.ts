@@ -1,5 +1,9 @@
 import type { ProjectData } from '../data/DataRepository';
-import type { DeliveryJobStatusData } from '../schemas/delivery.schema';
+import {
+  createDeliveryHudViewModel,
+  type DeliveryHudViewModel,
+  type DeliveryHudViewModelInput,
+} from '../game/delivery';
 import type { ActiveTool, EditorMode } from './store/editorStore';
 
 export type EditorPanelId = 'hierarchy' | 'viewport' | 'inspector' | 'timeline';
@@ -27,14 +31,8 @@ export interface EditorShellModeStateInput {
   triggerDebugVisible: boolean;
 }
 
-export interface ShowcaseModeHud {
-  activeJobId?: string;
-  activeJobStatus: DeliveryJobStatusData | 'unavailable';
-  endpointCount: number;
-  jobCount: number;
-  prompt: string;
-  title: string;
-}
+export type ShowcaseModeHud = DeliveryHudViewModel;
+export type ShowcaseModeHudOptions = Omit<DeliveryHudViewModelInput, 'level'>;
 
 export const editorModeOptions = ['edit', 'play', 'preview', 'showcase'] as const;
 
@@ -65,68 +63,30 @@ export function createEditorShellModeState({
   };
 }
 
-export function createShowcaseModeHud(project: ProjectData | null): ShowcaseModeHud {
-  const deliveryJobs = project?.level.deliveryJobs ?? [];
-  const activeJob =
-    deliveryJobs.find((job) =>
-      ['accepted', 'inProgress', 'readyToDeliver'].includes(job.defaultStatus),
-    ) ??
-    deliveryJobs.find((job) => job.defaultStatus === 'available') ??
-    deliveryJobs[0];
-  const activeJobStatus = activeJob?.defaultStatus ?? 'unavailable';
-
-  return {
-    ...(activeJob ? { activeJobId: activeJob.id } : {}),
-    activeJobStatus,
-    endpointCount: countDeliveryEndpoints(project),
-    jobCount: deliveryJobs.length,
-    prompt: activeJob
-      ? getDeliveryJobPrompt(activeJob, activeJobStatus)
-      : 'No delivery jobs loaded',
-    title: activeJob?.title ?? 'Delivery Showcase',
-  };
-}
-
-function getDeliveryJobPrompt(
-  job: NonNullable<ProjectData['level']['deliveryJobs']>[number],
-  status: DeliveryJobStatusData | 'unavailable',
-): string {
-  if (status === 'unavailable') {
-    return job.description;
-  }
-
-  if (
-    status === 'accepted' ||
-    status === 'inProgress' ||
-    status === 'readyToDeliver' ||
-    status === 'completed' ||
-    status === 'blocked' ||
-    status === 'failed'
-  ) {
-    return job.feedback[status] ?? job.description;
-  }
-
-  return job.description;
-}
-
-function countDeliveryEndpoints(project: ProjectData | null): number {
+export function createShowcaseModeHud(
+  project: ProjectData | null,
+  options: ShowcaseModeHudOptions = {},
+): ShowcaseModeHud {
   if (!project) {
-    return 0;
+    return {
+      activeJobStatus: 'unavailable',
+      blocked: false,
+      empty: true,
+      endpointCount: 0,
+      jobCount: 0,
+      prompt: 'No delivery jobs loaded',
+      promptVisible: true,
+      routeMarkerCount: 0,
+      stale: false,
+      statusLabel: 'Unavailable',
+      targetVisible: false,
+      title: 'Delivery Showcase',
+      tone: 'muted',
+    };
   }
 
-  const endpointIds = new Set<string>();
-
-  for (const entity of project.level.entities) {
-    const endpoint = entity.components.DeliveryEndpoint;
-
-    if (isRecord(endpoint) && typeof endpoint.endpointId === 'string') {
-      endpointIds.add(endpoint.endpointId);
-    }
-  }
-
-  return endpointIds.size;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+  return createDeliveryHudViewModel({
+    ...options,
+    level: project.level,
+  });
 }

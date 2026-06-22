@@ -13,3 +13,11 @@ export {
   createDeliveryRouteFeedbackState,
   type DeliveryRouteFeedbackInput,
 } from './DeliveryRouteFeedback';
+export {
+  createDeliveryHudViewModel,
+  type DeliveryHudInteractionPrompt,
+  type DeliveryHudStatus,
+  type DeliveryHudTone,
+  type DeliveryHudViewModel,
+  type DeliveryHudViewModelInput,
+} from './DeliveryHudViewModel';

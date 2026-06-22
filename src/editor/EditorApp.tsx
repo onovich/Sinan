@@ -1422,7 +1422,13 @@ export function EditorApp() {
             }}
           />
           {shellModeState.isShowcase ? (
-            <div className="showcase-hud" data-testid="showcase-hud" role="status">
+            <div
+              className="showcase-hud"
+              data-job-status={showcaseHud.activeJobStatus}
+              data-testid="showcase-hud"
+              data-tone={showcaseHud.tone}
+              role="status"
+            >
               <div className="showcase-hud-title">
                 <span>Showcase Mode</span>
                 <strong>{showcaseHud.title}</strong>
@@ -1434,14 +1440,19 @@ export function EditorApp() {
                 </div>
                 <div>
                   <dt>Status</dt>
-                  <dd>{formatDeliveryStatus(showcaseHud.activeJobStatus)}</dd>
+                  <dd>{showcaseHud.statusLabel}</dd>
                 </div>
                 <div>
-                  <dt>Endpoints</dt>
-                  <dd>{showcaseHud.endpointCount}</dd>
+                  <dt>Target</dt>
+                  <dd>{showcaseHud.targetVisible ? (showcaseHud.targetLabel ?? 'target') : '-'}</dd>
                 </div>
               </dl>
-              <p>{showcaseHud.prompt}</p>
+              {showcaseHud.promptVisible ? (
+                <p className="showcase-hud-prompt">{showcaseHud.prompt}</p>
+              ) : null}
+              {showcaseHud.completionText ? (
+                <p className="showcase-hud-feedback">{showcaseHud.completionText}</p>
+              ) : null}
             </div>
           ) : (
             <div className="viewport-overlay" aria-label="Viewport selection summary">
@@ -1717,18 +1728,6 @@ function formatMode(mode: EditorMode): string {
 
 function formatTool(tool: ActiveTool): string {
   return tool[0].toUpperCase() + tool.slice(1);
-}
-
-function formatDeliveryStatus(status: string): string {
-  if (status === 'readyToDeliver') {
-    return 'Ready';
-  }
-
-  if (status === 'inProgress') {
-    return 'In progress';
-  }
-
-  return status[0].toUpperCase() + status.slice(1);
 }
 
 function formatOverlayPosition(position: readonly number[]): string {
