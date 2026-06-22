@@ -3,7 +3,7 @@
 Date: 2026-06-22
 Branch: `codex/mature-dependency-worker-task-adapter-spike`
 Base: `origin/codex/mature-dependency-storage-adapter-spike`
-Status: Round 11 consistency review complete; isolated WorkerTaskAdapter evidence is PASS through Round 10.
+Status: Round 12 final validation complete; isolated WorkerTaskAdapter spike is PASS and ready for acceptance review.
 
 ## Scope
 
@@ -148,4 +148,4 @@ This guide uses 12 rounds:
 - Round 9: boundary guard, aggregate smoke script, reports.
 - Round 10: buffer fixes and aggregate smoke guard hardening.
 - Round 11: report consistency and review feedback.
-- Round 12: final validation and handoff report.
+- Round 12: final validation and handoff report complete.
