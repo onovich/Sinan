@@ -196,4 +196,3 @@ gates. Expected coverage by the end of Phase 24:
   explicit for one to two jobs.
 - Route feedback can leak renderer details into data or React. Keep feedback snapshots
   renderer-neutral and Three visuals inside `src/runtime/three/**`.
-

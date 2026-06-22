@@ -69,6 +69,10 @@ Phase 24 is complete and pushed through `origin/main` up to `1884374 test: add d
 - Asset report: PASS, 8 assets, 24884 B used / 46080 B budget, 0 issues.
 - Boundary checks: PASS, no forbidden Three.js imports or dynamic-code patterns.
 - `git diff --check`: PASS, with Windows line-ending conversion warnings only.
+- Repair validation: EOF blank-line cleanup in
+  `docs/phase-24-delivery-gameplay-showcase.md` was followed by
+  `git diff --check 1417f10..HEAD`, `Validate.cmd`, and `Smoke.cmd` passing on
+  2026-06-22.
 
 ## Commits And Push
 
@@ -84,6 +88,8 @@ Phase 24 is complete and pushed through `origin/main` up to `1884374 test: add d
 - `35d9666` feat: add delivery job editor affordances, pushed to `origin/main`.
 - `0af47e9` test: integrate delivery job flow, pushed to `origin/main`.
 - `1884374` test: add delivery showcase smoke gate, pushed to `origin/main`.
+- `77b7eb9` docs: finalize phase 24 delivery showcase, pushed to
+  `origin/main`.
 
 ## Buffer
 
