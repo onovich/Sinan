@@ -4,6 +4,12 @@ import type { EventData } from '../schemas/event.schema';
 import type { LevelData } from '../schemas/level.schema';
 import type { PaletteData } from '../schemas/palette.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
+import type {
+  SocialAvatarData,
+  SocialEmoteData,
+  SocialPresetData,
+  SocialStampData,
+} from '../schemas/social.schema';
 import type { TimelineData } from '../schemas/timeline.schema';
 import { createDefaultMaterialRegistry, type MaterialRegistry } from '../runtime/materials';
 import { validateAssetBudgets, type SupportedModelCompressionCodec } from './AssetBudgetValidator';
@@ -20,6 +26,10 @@ export interface ProjectValidationInput {
   cameraShots?: readonly CameraShotData[];
   events?: readonly EventData[];
   timelines?: readonly TimelineData[];
+  socialAvatars?: readonly SocialAvatarData[];
+  socialEmotes?: readonly SocialEmoteData[];
+  socialStamps?: readonly SocialStampData[];
+  socialPresets?: readonly SocialPresetData[];
   availablePublicAssetUrls?: ReadonlySet<string>;
   availablePublicAssetByteSizes?: ReadonlyMap<string, number>;
   supportedModelCompressionCodecs?: ReadonlySet<SupportedModelCompressionCodec>;
@@ -48,6 +58,10 @@ export function validateProject(input: ProjectValidationInput): ProjectValidatio
     cameraShots: input.cameraShots,
     events: input.events,
     timelines: input.timelines,
+    socialAvatars: input.socialAvatars,
+    socialEmotes: input.socialEmotes,
+    socialStamps: input.socialStamps,
+    socialPresets: input.socialPresets,
     materialRegistry: input.materialRegistry ?? createDefaultMaterialRegistry(),
     availableEventIds: input.availableEventIds,
     availableTimelineIds: input.availableTimelineIds,

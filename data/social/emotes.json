@@ -1,0 +1,32 @@
+[
+  {
+    "schemaVersion": 1,
+    "id": "emote.wave",
+    "label": "Wave",
+    "iconToken": "wave",
+    "durationMs": 1600,
+    "cooldownMs": 1200,
+    "color": "#4BA3FF",
+    "fallbackLabel": "Hi"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "emote.ready",
+    "label": "Ready",
+    "iconToken": "check",
+    "durationMs": 1400,
+    "cooldownMs": 1500,
+    "color": "#46C28B",
+    "fallbackLabel": "OK"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "emote.spark",
+    "label": "Spark",
+    "iconToken": "spark",
+    "durationMs": 1800,
+    "cooldownMs": 1800,
+    "color": "#F8D66D",
+    "fallbackLabel": "!"
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "schemaVersion": 1,
+    "id": "stamp.wave_ring",
+    "emoteId": "emote.wave",
+    "label": "Wave Ring",
+    "lifetimeMs": 2200,
+    "radius": 0.9,
+    "height": 1.35,
+    "color": "#4BA3FF",
+    "priority": 2,
+    "lowEndBehavior": "badge-only"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "stamp.ready_check",
+    "emoteId": "emote.ready",
+    "label": "Ready Check",
+    "lifetimeMs": 2000,
+    "radius": 0.75,
+    "height": 1.5,
+    "color": "#46C28B",
+    "priority": 3,
+    "lowEndBehavior": "visible"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "stamp.spark_ping",
+    "emoteId": "emote.spark",
+    "label": "Spark Ping",
+    "lifetimeMs": 2400,
+    "radius": 1.1,
+    "height": 1.65,
+    "color": "#F8D66D",
+    "priority": 1,
+    "lowEndBehavior": "hidden"
+  }
+]

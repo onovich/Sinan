@@ -1,0 +1,33 @@
+[
+  {
+    "schemaVersion": 1,
+    "id": "avatar.courier_sky",
+    "displayName": "Sky Courier",
+    "shortLabel": "SKY",
+    "bodyColor": "#4BA3FF",
+    "accentColor": "#F8D66D",
+    "modelAssetId": "model.player_spawn",
+    "fixtureScale": 1,
+    "lowEndBehavior": "visible"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "avatar.courier_mint",
+    "displayName": "Mint Courier",
+    "shortLabel": "MNT",
+    "bodyColor": "#46C28B",
+    "accentColor": "#F3F5F0",
+    "fixtureScale": 0.95,
+    "lowEndBehavior": "badge-only"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "avatar.courier_rose",
+    "displayName": "Rose Courier",
+    "shortLabel": "ROS",
+    "bodyColor": "#E36B86",
+    "accentColor": "#293241",
+    "fixtureScale": 1.05,
+    "lowEndBehavior": "hidden"
+  }
+]

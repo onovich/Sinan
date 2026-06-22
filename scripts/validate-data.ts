@@ -10,6 +10,12 @@ import { EventSchema } from '../src/schemas/event.schema';
 import { LevelSchema } from '../src/schemas/level.schema';
 import { PaletteSchema } from '../src/schemas/palette.schema';
 import { PrefabSchema } from '../src/schemas/prefab.schema';
+import {
+  SocialAvatarSchema,
+  SocialEmoteSchema,
+  SocialPresetSchema,
+  SocialStampSchema,
+} from '../src/schemas/social.schema';
 import { TimelineSchema } from '../src/schemas/timeline.schema';
 import { validateProject } from '../src/data/validateProject';
 import { createDefaultActionRegistry } from '../src/events/actionRegistry';
@@ -25,6 +31,10 @@ async function main(): Promise<void> {
   const palettes = await readSchemaDirectory('data/palettes', PaletteSchema);
   const prefabs = await readSchemaDirectory('data/prefabs', PrefabSchema);
   const levels = await readSchemaDirectory('data/levels', LevelSchema);
+  const socialAvatars = await readSchemaFile('data/social/avatars.json', SocialAvatarSchema);
+  const socialEmotes = await readSchemaFile('data/social/emotes.json', SocialEmoteSchema);
+  const socialStamps = await readSchemaFile('data/social/stamps.json', SocialStampSchema);
+  const socialPresets = await readSchemaFile('data/social/presets.json', SocialPresetSchema);
   const actionRegistry = createDefaultActionRegistry();
   const conditionRegistry = createDefaultConditionRegistry();
   const publicAssets = await readPublicAssets();
@@ -39,6 +49,10 @@ async function main(): Promise<void> {
     cameraShots,
     events,
     timelines,
+    socialAvatars,
+    socialEmotes,
+    socialStamps,
+    socialPresets,
     availableTimelineIds: new Set(timelines.map((timeline) => timeline.id)),
     availableCameraShotIds: new Set(cameraShots.map((shot) => shot.id)),
     schemaActionTypes: getActionSchemaTypes(),
@@ -59,7 +73,7 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    `Data validation passed: ${prefabs.length} prefabs, ${levels.length} levels, ${events.length} events, ${timelines.length} timelines, ${cameraShots.length} camera shots, ${palettes.length} palettes, ${Object.keys(assets.assets).length} assets.`,
+    `Data validation passed: ${prefabs.length} prefabs, ${levels.length} levels, ${events.length} events, ${timelines.length} timelines, ${cameraShots.length} camera shots, ${palettes.length} palettes, ${socialAvatars.length} social avatars, ${socialEmotes.length} social emotes, ${socialStamps.length} social stamps, ${socialPresets.length} social presets, ${Object.keys(assets.assets).length} assets.`,
   );
 }
 
@@ -138,6 +152,27 @@ async function readSchemaDirectory<T>(
       schema.parse(await readJson(path.join(relativePath, fileName))),
     ),
   );
+}
+
+async function readSchemaFile<T>(
+  relativePath: string,
+  schema: { parse(value: unknown): T },
+): Promise<T[]> {
+  try {
+    const value = await readJson(relativePath);
+
+    if (!Array.isArray(value)) {
+      throw new Error(`${relativePath} must contain a JSON array.`);
+    }
+
+    return value.map((entry) => schema.parse(entry));
+  } catch (error) {
+    if (isNodeError(error) && error.code === 'ENOENT') {
+      return [];
+    }
+
+    throw error;
+  }
 }
 
 async function readJsonFileNames(absolutePath: string): Promise<string[]> {

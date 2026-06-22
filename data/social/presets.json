@@ -1,0 +1,100 @@
+[
+  {
+    "schemaVersion": 1,
+    "id": "social.showcase.ten_remote",
+    "label": "Showcase Ten Remote",
+    "maxRemotePlayers": 10,
+    "remotes": [
+      {
+        "id": "remote.sky.01",
+        "avatarId": "avatar.courier_sky",
+        "displayName": "Sky 01",
+        "initialEmoteId": "emote.wave",
+        "initialStampId": "stamp.wave_ring",
+        "spawnRegion": "hill",
+        "lowEndVisible": true
+      },
+      {
+        "id": "remote.mint.02",
+        "avatarId": "avatar.courier_mint",
+        "displayName": "Mint 02",
+        "initialEmoteId": "emote.ready",
+        "initialStampId": "stamp.ready_check",
+        "spawnRegion": "hill",
+        "lowEndVisible": true
+      },
+      {
+        "id": "remote.rose.03",
+        "avatarId": "avatar.courier_rose",
+        "displayName": "Rose 03",
+        "initialEmoteId": "emote.spark",
+        "initialStampId": "stamp.spark_ping",
+        "spawnRegion": "hill",
+        "lowEndVisible": false
+      },
+      {
+        "id": "remote.sky.04",
+        "avatarId": "avatar.courier_sky",
+        "displayName": "Sky 04",
+        "initialEmoteId": "emote.ready",
+        "initialStampId": "stamp.ready_check",
+        "spawnRegion": "hill",
+        "lowEndVisible": true
+      },
+      {
+        "id": "remote.mint.05",
+        "avatarId": "avatar.courier_mint",
+        "displayName": "Mint 05",
+        "initialEmoteId": "emote.wave",
+        "initialStampId": "stamp.wave_ring",
+        "spawnRegion": "hill",
+        "lowEndVisible": true
+      },
+      {
+        "id": "remote.rose.06",
+        "avatarId": "avatar.courier_rose",
+        "displayName": "Rose 06",
+        "initialEmoteId": "emote.spark",
+        "initialStampId": "stamp.spark_ping",
+        "spawnRegion": "hill",
+        "lowEndVisible": false
+      },
+      {
+        "id": "remote.sky.07",
+        "avatarId": "avatar.courier_sky",
+        "displayName": "Sky 07",
+        "initialEmoteId": "emote.wave",
+        "initialStampId": "stamp.wave_ring",
+        "spawnRegion": "hill",
+        "lowEndVisible": true
+      },
+      {
+        "id": "remote.mint.08",
+        "avatarId": "avatar.courier_mint",
+        "displayName": "Mint 08",
+        "initialEmoteId": "emote.ready",
+        "initialStampId": "stamp.ready_check",
+        "spawnRegion": "hill",
+        "lowEndVisible": true
+      },
+      {
+        "id": "remote.rose.09",
+        "avatarId": "avatar.courier_rose",
+        "displayName": "Rose 09",
+        "initialEmoteId": "emote.spark",
+        "initialStampId": "stamp.spark_ping",
+        "spawnRegion": "hill",
+        "lowEndVisible": false
+      },
+      {
+        "id": "remote.sky.10",
+        "avatarId": "avatar.courier_sky",
+        "displayName": "Sky 10",
+        "initialEmoteId": "emote.wave",
+        "initialStampId": "stamp.wave_ring",
+        "spawnRegion": "hill",
+        "lowEndVisible": true
+      }
+    ]
+  }
+]

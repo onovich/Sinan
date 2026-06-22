@@ -13,6 +13,12 @@ import type { LevelData } from '../schemas/level.schema';
 import type { PaletteData } from '../schemas/palette.schema';
 import type { PrefabData } from '../schemas/prefab.schema';
 import { RenderStyleSchema, type RenderStyleData } from '../schemas/renderStyle.schema';
+import type {
+  SocialAvatarData,
+  SocialEmoteData,
+  SocialPresetData,
+  SocialStampData,
+} from '../schemas/social.schema';
 import type { TimelineData, TimelineTrackData } from '../schemas/timeline.schema';
 import type { MaterialParameterValue, MaterialRegistry } from '../runtime/materials';
 import type { RenderableMaterialSlotsData } from '../schemas/material.schema';
@@ -38,6 +44,10 @@ export interface ReferenceValidationInput {
   cameraShots?: readonly CameraShotData[];
   events?: readonly EventData[];
   timelines?: readonly TimelineData[];
+  socialAvatars?: readonly SocialAvatarData[];
+  socialEmotes?: readonly SocialEmoteData[];
+  socialStamps?: readonly SocialStampData[];
+  socialPresets?: readonly SocialPresetData[];
   materialRegistry: MaterialRegistry;
   availableEventIds?: ReadonlySet<string>;
   availableTimelineIds?: ReadonlySet<string>;
@@ -343,7 +353,119 @@ export function validateProjectReferences(
     }
   }
 
+  addSocialReferenceIssues(input, assetIds, issues);
+
   return issues;
+}
+
+function addSocialReferenceIssues(
+  input: ReferenceValidationInput,
+  assetIds: ReadonlySet<string>,
+  issues: ReferenceValidationIssue[],
+): void {
+  const avatars = input.socialAvatars ?? [];
+  const emotes = input.socialEmotes ?? [];
+  const stamps = input.socialStamps ?? [];
+  const presets = input.socialPresets ?? [];
+  const avatarIds = new Set(avatars.map((avatar) => avatar.id));
+  const emoteIds = new Set(emotes.map((emote) => emote.id));
+  const stampIds = new Set(stamps.map((stamp) => stamp.id));
+
+  addDuplicateIdIssues(
+    avatars.map((avatar) => avatar.id),
+    'data/social/avatars.json',
+    'social avatar',
+    issues,
+  );
+  addDuplicateIdIssues(
+    emotes.map((emote) => emote.id),
+    'data/social/emotes.json',
+    'social emote',
+    issues,
+  );
+  addDuplicateIdIssues(
+    stamps.map((stamp) => stamp.id),
+    'data/social/stamps.json',
+    'social stamp',
+    issues,
+  );
+  addDuplicateIdIssues(
+    presets.map((preset) => preset.id),
+    'data/social/presets.json',
+    'social preset',
+    issues,
+  );
+
+  for (const avatar of avatars) {
+    addMissingAssetIssue(
+      avatar.modelAssetId,
+      assetIds,
+      `data/social/avatars.json.${avatar.id}.modelAssetId`,
+      issues,
+    );
+    addAssetTypeIssue(
+      avatar.modelAssetId,
+      input.assets,
+      'model',
+      `data/social/avatars.json.${avatar.id}.modelAssetId`,
+      issues,
+    );
+  }
+
+  for (const stamp of stamps) {
+    if (!emoteIds.has(stamp.emoteId)) {
+      issues.push({
+        severity: 'error',
+        path: `data/social/stamps.json.${stamp.id}.emoteId`,
+        message: `Missing social emote "${stamp.emoteId}".`,
+      });
+    }
+  }
+
+  for (const preset of presets) {
+    addDuplicateIdIssues(
+      preset.remotes.map((remote) => remote.id),
+      `data/social/presets.json.${preset.id}.remotes`,
+      'social preset remote',
+      issues,
+    );
+
+    if (preset.remotes.length > preset.maxRemotePlayers) {
+      issues.push({
+        severity: 'error',
+        path: `data/social/presets.json.${preset.id}.remotes`,
+        message: `Social preset "${preset.id}" has ${preset.remotes.length} remotes but maxRemotePlayers is ${preset.maxRemotePlayers}.`,
+      });
+    }
+
+    for (const remote of preset.remotes) {
+      const path = `data/social/presets.json.${preset.id}.remotes.${remote.id}`;
+
+      if (!avatarIds.has(remote.avatarId)) {
+        issues.push({
+          severity: 'error',
+          path: `${path}.avatarId`,
+          message: `Missing social avatar "${remote.avatarId}".`,
+        });
+      }
+
+      if (remote.initialEmoteId && !emoteIds.has(remote.initialEmoteId)) {
+        issues.push({
+          severity: 'error',
+          path: `${path}.initialEmoteId`,
+          message: `Missing social emote "${remote.initialEmoteId}".`,
+        });
+      }
+
+      if (remote.initialStampId && !stampIds.has(remote.initialStampId)) {
+        issues.push({
+          severity: 'error',
+          path: `${path}.initialStampId`,
+          message: `Missing social stamp "${remote.initialStampId}".`,
+        });
+      }
+    }
+  }
 }
 
 function addWorldProjectionReferenceIssues(
