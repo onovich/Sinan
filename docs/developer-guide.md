@@ -39,11 +39,42 @@ npm run test
 npm run check-boundaries
 npm run validate-data
 npm run report-assets
+npm run perf:smoke
 npm run migrate-data -- --check
 npm run test:smoke
 ```
 
-`check-boundaries` rejects forbidden Three.js imports in renderer-neutral layers and dynamic-code execution patterns in project code/data. `validate-data` checks schemas, references, public asset URLs, asset budget metadata, registry coverage, custom whitelist usage, duplicate ids, timeline references, camera shot references, and animation clip metadata. `report-assets` prints the asset budget/compression report and exits nonzero for critical asset issues such as missing files, missing metadata, or over-budget files.
+`check-boundaries` rejects forbidden Three.js imports in renderer-neutral layers and dynamic-code execution patterns in project code/data. `validate-data` checks schemas, references, public asset URLs, asset budget metadata, registry coverage, custom whitelist usage, duplicate ids, timeline references, camera shot references, social data references, and animation clip metadata. `report-assets` prints the asset budget/compression report and exits nonzero for critical asset issues such as missing files, missing metadata, or over-budget files. `perf:smoke` prints the Phase 26 vertical-slice budget summary and fails if the asset budget has issues or if committed shader, LOD/scatter, spherical world, delivery showcase, or multiplayer-lite social budget evidence disappears.
+
+## Phase 26 Vertical Slice RC Profile
+
+The current release-candidate slice is local and reproducible, not a packaged deployment. Its baseline includes:
+
+- Showcase Mode with the Phase 24 delivery job flow.
+- Multiplayer-lite local social simulation with ten remotes, active stamps, invalid-message handling, and local WebSocket prototype evidence.
+- Shader/postprocess production quality gates and a low-end Chromium baseline.
+- LOD/scatter/spherical world diagnostics with standard and low-end budget evidence.
+- Asset report and vertical-slice budget report gates.
+
+Preferred release validation:
+
+```powershell
+C:\Users\Administrator\.codex\skills\project-ops-workflow\scripts\ops\Validate.cmd
+C:\Users\Administrator\.codex\skills\project-ops-workflow\scripts\ops\Smoke.cmd
+npm run perf:smoke
+git diff --check
+```
+
+Demo flow:
+
+1. Start `npm run dev -- --port 5174 --strictPort`.
+2. Open `http://127.0.0.1:5174/?runtimeDiagnostics=1`.
+3. Switch to `Showcase`.
+4. Accept and complete `Hill Mail Run`.
+5. Confirm the HUD shows delivery progress, ten local social remotes, active stamp diagnostics, and runtime-ready status.
+6. Repeat diagnostics at `http://127.0.0.1:5174/?runtimeDiagnostics=1&styleQuality=low-end` when checking low-end LOD/scatter behavior.
+
+Mobile/low-end evidence is local Chromium evidence only. The smoke suite covers a 390x844 editor viewport and a 360x640 low-end shader baseline. Do not describe this as real mobile hardware certification unless a separate device run is recorded.
 
 ## Repository Shape
 
@@ -102,9 +133,10 @@ Asset reporting:
 ```powershell
 npm run report-assets
 npm run report-assets -- --json
+npm run perf:smoke
 ```
 
-The human report lists byte sizes, byte budgets, compression status, material profile, texture usage/colorSpace, clips, and per-asset status. The JSON report exposes the same summary, rows, and issues for future CI or release notes.
+The human asset report lists byte sizes, byte budgets, compression status, material profile, texture usage/colorSpace, clips, and per-asset status. The JSON report exposes the same summary, rows, and issues for future CI or release notes. The vertical-slice budget report summarizes the asset status and checks that shader low-end, LOD/scatter, spherical world, delivery showcase, and multiplayer-lite social budget gates remain present.
 
 GLB export guidance:
 
@@ -131,7 +163,7 @@ Suggested authoring flow:
    - `textureCompression`: KTX2/Basis readiness for texture/image assets, separate from `textureUsage` and `colorSpace`.
    - `clips`: known animation clips.
    - `source` and `notes`: authoring provenance and short review notes.
-6. Run `npm run report-assets`, `npm run validate-data`, and `npm run test` before committing.
+6. Run `npm run report-assets`, `npm run perf:smoke`, `npm run validate-data`, and `npm run test` before committing.
 
 Optional optimization recommendations:
 
