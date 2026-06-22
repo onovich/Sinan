@@ -3,7 +3,7 @@
 Date: 2026-06-22
 Branch: `codex/mature-dependency-worker-task-adapter-spike`
 Base: `origin/codex/mature-dependency-storage-adapter-spike`
-Status: Round 1 handoff entry
+Status: Round 11 consistency review complete; isolated WorkerTaskAdapter evidence is PASS through Round 10.
 
 ## Scope
 
@@ -52,6 +52,20 @@ The browser smoke harness has real Playwright Chromium evidence for raw Comlink 
 - Evidence includes Worker support, Vite module worker URL, RPC success, transferable payload detach, diagnostic error mapping, and terminate/dispose.
 
 That evidence is a prerequisite only. This spike must prove the same path through `WorkerTaskAdapter`, not raw Comlink.
+
+## Current WorkerTaskAdapter Evidence
+
+WorkerTaskAdapter browser smoke now has real Playwright Chromium evidence through the adapter boundary:
+
+- WorkerTaskAdapter / Comlink / Worker status: `PASS`.
+- Browser port: `5184`.
+- Evidence file: `spikes/mature-dependencies/reports/browser-smoke/worker-task-adapter-summary.json`.
+- Evidence includes adapter boot/load, fixture task submit, transfer policy, invalid-input, timeout, cancellation, and dispose.
+
+Aggregate WorkerTaskAdapter smoke also passes:
+
+- Evidence file: `spikes/mature-dependencies/reports/worker-task-adapter/worker-task-adapter-validation-summary.json`.
+- It validates typecheck, worker-task unit tests, worker-task boundary guard, browser summary status, and absence of generated test/browser artifact directories.
 
 ## Boundary Principle
 
@@ -132,6 +146,6 @@ This guide uses 12 rounds:
 - Round 7: transferable and serialization policy.
 - Round 8: browser smoke through WorkerTaskAdapter.
 - Round 9: boundary guard, aggregate smoke script, reports.
-- Round 10: buffer fixes.
+- Round 10: buffer fixes and aggregate smoke guard hardening.
 - Round 11: report consistency and review feedback.
 - Round 12: final validation and handoff report.

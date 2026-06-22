@@ -46,6 +46,7 @@ npm --prefix spikes\mature-dependencies run smoke:worker-task
   - Worker-task unit tests passed.
   - Worker-task boundary guard passed.
   - WorkerTaskAdapter browser summary was PASS with zero console errors.
+  - Generated artifact guard passed for `test-results`, `playwright-report`, and `coverage`.
 
 ## Evidence
 

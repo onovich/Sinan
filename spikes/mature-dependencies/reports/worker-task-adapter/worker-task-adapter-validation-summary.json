@@ -3,7 +3,7 @@
   "status": "PASS",
   "decision": "PASS",
   "layer": "candidate",
-  "durationMs": 2198,
+  "durationMs": 2459,
   "command": "npm run smoke:worker-task",
   "diagnostics": [
     "typecheck: PASS",
@@ -15,8 +15,8 @@
     "worker-task unit tests:  RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
     "worker-task unit tests:  Test Files  4 passed (4)",
     "worker-task unit tests:       Tests  27 passed (27)",
-    "worker-task unit tests:    Start at  14:57:38",
-    "worker-task unit tests:    Duration  269ms (transform 157ms, setup 0ms, import 219ms, tests 99ms, environment 0ms)",
+    "worker-task unit tests:    Start at  14:59:10",
+    "worker-task unit tests:    Duration  432ms (transform 179ms, setup 0ms, import 304ms, tests 118ms, environment 0ms)",
     "worker-task boundary guard: PASS",
     "worker-task boundary guard: imports and dynamic-code scan passed",
     "worker-task browser summary: PASS",
@@ -45,8 +45,8 @@
         " RUN  v4.1.9 D:/LabProjects/Sinan-MatureDependencySpikes/spikes/mature-dependencies",
         " Test Files  4 passed (4)",
         "      Tests  27 passed (27)",
-        "   Start at  14:57:38",
-        "   Duration  269ms (transform 157ms, setup 0ms, import 219ms, tests 99ms, environment 0ms)"
+        "   Start at  14:59:10",
+        "   Duration  432ms (transform 179ms, setup 0ms, import 304ms, tests 118ms, environment 0ms)"
       ]
     },
     {
@@ -86,5 +86,5 @@
       "browser binaries"
     ]
   },
-  "timestamp": "2026-06-22T06:57:38.957Z"
+  "timestamp": "2026-06-22T06:59:10.499Z"
 }
